@@ -1,0 +1,67 @@
+{
+ "schema_version": "1.0",
+ "method_version": "none",
+ "build_date": "2026-11-14",
+ "is_sample": true,
+ "reference_scale": "MODIS-equivalent detections (SAMPLE: invented values)",
+ "time_coverage": {
+  "start": "2023-01-01",
+  "end": "2025-12-31"
+ },
+ "sources": [
+  {
+   "source": "MODIS_SP",
+   "first_date": "2023-06-13",
+   "last_date": "2025-10-15",
+   "n_detections_kept": 636
+  },
+  {
+   "source": "VIIRS_SNPP_SP",
+   "first_date": "2023-05-27",
+   "last_date": "2025-10-18",
+   "n_detections_kept": 1045
+  },
+  {
+   "source": "VIIRS_NOAA20_SP",
+   "first_date": "2023-06-08",
+   "last_date": "2025-10-19",
+   "n_detections_kept": 1046
+  },
+  {
+   "source": "VIIRS_NOAA21_SP",
+   "first_date": "2024-07-02",
+   "last_date": "2025-10-30",
+   "n_detections_kept": 627
+  }
+ ],
+ "filters": {
+  "min_confidence": "nominal",
+  "types_kept": [
+   0
+  ]
+ },
+ "grid_resolution_deg": 0.25,
+ "regions": [
+  "US-CA"
+ ],
+ "sensor_transitions": [
+  {
+   "date": "2024-01-17",
+   "label": "NOAA-21 VIIRS starts"
+  }
+ ],
+ "known_gaps": [
+  {
+   "start": "2024-06-01",
+   "end": "2024-06-30",
+   "sensor": "all",
+   "note": "SAMPLE: invented outage to test hatching"
+  }
+ ],
+ "validation": {
+  "r2": null,
+  "median_abs_pct_error": null,
+  "test_years": "none (sample data)"
+ },
+ "citation": "We acknowledge the use of imagery from the NASA LANCE FIRMS (https://earthdata.nasa.gov/firms), part of the NASA Earth Science Data and Information System (ESDIS)."
+}

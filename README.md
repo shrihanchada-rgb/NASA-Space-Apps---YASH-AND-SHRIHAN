@@ -113,6 +113,9 @@ docs/data-contract.md  # exact shape of the files the app reads (step S07)
 docs/schemas/          # JSON Schemas for the data contract (used to validate files)
 docs/sources.md        # every source used with FIRMS, with status and licence
 docs/HANDOFF.md        # running log: one entry per step, newest first
+scripts/               # make_sample_fixtures.py, validate_data.py
+tests/                 # pytest tests (no downloads)
+requirements.txt       # Python packages
 web/                   # app source
 notebooks/             # Colab notebook that runs the pipeline (Section 14)
 web/fixtures/          # small fake sample files that follow the data contract
@@ -178,7 +181,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 
 ### Phase 2 — Data contract
 - [x] **S07 Write the contract.** Needs: S05. Do: write the JSON schema for each app file in Section 2.4 into `docs/data-contract.md`, starting from the example in Section 11.4. Done when: every field has a type, meaning, and an example.
-- [ ] **S08 Fake sample data.** Needs: S07. Do: make small fake files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly, with `"is_sample": true`. Done when: a script or test validates them against the contract.
+- [x] **S08 Fake sample data.** Needs: S07. Do: make small fake files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly, with `"is_sample": true`. Done when: a script or test validates them against the contract.
 
 ### Phase 3 — Get and clean data
 - [ ] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors (run it locally or in Colab, Section 14). First call `/api/data_availability/` to get the exact `_SP` date ranges, and check the CSV headers, `confidence` format and presence of `type` against `docs/data-notes.md` §8; update that file with what you find. Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.

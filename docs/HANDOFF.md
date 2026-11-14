@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-14 — S08 Fake sample data — DONE
+- **Who / AI:** Shrihan using Claude
+- **Did:** Wrote `scripts/make_sample_fixtures.py`, which creates FAKE files in `web/fixtures/` exactly following `docs/data-contract.md`: 1 region (`US-CA`, rectangle boundary), 3 years (2023-01-01 to 2025-12-31), 3,354 invented detections, then daily/monthly/baseline built from those detections so all files agree. Wrote `scripts/validate_data.py` (schemas + cross-file checks) and `tests/test_contract.py`. Added `requirements.txt`.
+- **Files changed:** `scripts/`, `tests/`, `web/fixtures/`, `requirements.txt`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** `pip install -r requirements.txt`; `python3 scripts/validate_data.py web/fixtures` prints `0 problem(s)`; `python3 -m pytest -q tests` prints `7 passed`. Re-running the generator gives identical files (fixed random seed).
+- **Results / numbers:** All 7 tests pass. Built-in edge cases: Feb 2023 = observed with zero fires (0, not null); June 2024 = invented outage (all null, `n_days_observed` 0, listed in `known_gaps`); June baseline has only 2 years so its values are null; NOAA-21 appears from its real start date 2024-01-17 (listed as a sensor transition).
+- **Decisions and why:** Fake harmonization weights (MODIS 1.0, VIIRS 0.25) and band (±10%) are invented only so files are consistent; they mean nothing. The validator checks things JSON Schema cannot: months with no gaps, daily sums = monthly totals, hotspot rows = monthly raw counts, sum of `harmonized_weight` = `count_harm`. The same validator must be run on real `data/processed/` output in S17.
+- **Problems / open questions:** Yash has still not reviewed the data contract (S07). Fixtures use a rectangle, not a real California boundary. `daily.json` is pretty-printed (one value per line); fine for fixtures, real output can be compact.
+- **Next step:** S09 (download one region-year, confirm the open items in `docs/data-notes.md` §8) and/or S19 (website scaffold on these fixtures).
+
 ### 2026-11-14 — S07 Write the data contract — DONE
 - **Who / AI:** Shrihan using Claude
 - **Did:** Wrote `docs/data-contract.md`: file layout under `data/processed/`, field-by-field tables (type, meaning, example) for `metadata.json`, `regions.geojson`, `regions/<id>/monthly.json`, `daily.json`, `baseline.json`, `hotspots/<year>.csv`, and the pipeline-only `daily_grid.parquet`, plus a table mapping each website feature to the file it reads. Added JSON Schemas in `docs/schemas/`. Added `docs/sources.md` listing every source used with FIRMS (documentation, boundaries, burned area, basemap) with status and licence notes.

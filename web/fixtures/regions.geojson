@@ -1,0 +1,48 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -124.5,
+       32.5
+      ],
+      [
+       -114.1,
+       32.5
+      ],
+      [
+       -114.1,
+       42.0
+      ],
+      [
+       -124.5,
+       42.0
+      ],
+      [
+       -124.5,
+       32.5
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "region_id": "US-CA",
+    "name": "California (SAMPLE)",
+    "country": "United States",
+    "area_km2": 971280,
+    "bbox": [
+     -124.5,
+     32.5,
+     -114.1,
+     42.0
+    ],
+    "boundary_source": "SAMPLE: rectangle around California, not a real boundary"
+   }
+  }
+ ]
+}

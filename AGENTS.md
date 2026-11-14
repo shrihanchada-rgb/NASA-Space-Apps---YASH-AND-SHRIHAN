@@ -8,9 +8,22 @@ Shrihan leads the backend data work (`pipeline/`, `data/`, `docs/data-notes.md`,
 
 ## Status
 
-Planning stage. No source code, build system, linter, or tests exist yet, so there are no commands to document. When you scaffold `pipeline/` or `web/`, add its real commands here (install, run, test, single test such as `pytest pipeline/tests -k <name>`).
+Early stage. The data contract (`docs/data-contract.md`), its schemas, fake sample files (`web/fixtures/`), a validator, and tests exist. The pipeline (`pipeline/`) and website app are not written yet.
 
 `README.md` is the source of truth for scope, task order, and ownership. Read it fully before starting. Do not create a competing plan elsewhere; edit the README instead.
+
+## Commands
+
+Install (once): `pip install -r requirements.txt`
+
+| What | Command |
+|---|---|
+| Re-create the fake sample files in `web/fixtures/` | `python3 scripts/make_sample_fixtures.py` |
+| Check a data folder against the data contract | `python3 scripts/validate_data.py web/fixtures` (or `data/processed`) |
+| Run all tests | `python3 -m pytest -q tests` |
+| Run one test | `python3 -m pytest -q tests/test_contract.py -k missing_month` |
+
+Pipeline (`pipeline/`) and website (`web/`) commands are added here when those are scaffolded.
 
 ## Start of every session
 

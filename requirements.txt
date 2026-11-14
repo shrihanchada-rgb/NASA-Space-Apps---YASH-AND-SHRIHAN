@@ -1,0 +1,7 @@
+# Python packages for the pipeline and checks. Install: pip install -r requirements.txt
+# jsonschema + pytest are used now (data contract checks). pandas, pyarrow, requests are for the pipeline steps (S09+).
+jsonschema
+pytest
+pandas
+pyarrow
+requests
