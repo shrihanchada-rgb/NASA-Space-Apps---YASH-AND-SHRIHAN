@@ -50,7 +50,7 @@ If you are Codex and Yash has not confirmed this, remind him before any download
 ## Rules
 
 - Never invent data. Sample fixtures must be marked `"is_sample": true`. If real data is missing, stop and say so.
-- Every harmonized value ships with `count_raw`, `count_harmonized`, `method_version`, and an uncertainty band.
+- Every harmonized value ships with raw counts, `count_harm`, its band (`count_low`/`count_high`), and `method_version`, exactly as in `docs/data-contract.md`. Validate output against `docs/schemas/`.
 - Use FIRMS standard-processing (SP) archive data for history; near-real-time data is only for the "current fire" feature, labeled provisional.
 - Use the verified facts in `docs/data-notes.md` (sensor dates, API limits, columns, confidence, `type`, citation). Items in its "Still unverified" section must be checked on the first real download (S09) before code depends on them. S-NPP ended on 2 Nov 2026.
 - Changing the data contract needs both people's agreement; flag it rather than changing it alone.

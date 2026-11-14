@@ -1,0 +1,71 @@
+{
+  "title": "regions/<region_id>/hotspots/<year>.csv (column spec, not JSON Schema)",
+  "columns": [
+    {
+      "name": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    {
+      "name": "time_utc",
+      "pattern": "^\\d{4}$"
+    },
+    {
+      "name": "latitude",
+      "type": "number",
+      "min": -90,
+      "max": 90
+    },
+    {
+      "name": "longitude",
+      "type": "number",
+      "min": -180,
+      "max": 180
+    },
+    {
+      "name": "sensor",
+      "enum": [
+        "MODIS",
+        "VIIRS"
+      ]
+    },
+    {
+      "name": "satellite",
+      "enum": [
+        "T",
+        "A",
+        "N",
+        "N20",
+        "N21"
+      ]
+    },
+    {
+      "name": "confidence",
+      "enum": [
+        "low",
+        "nominal",
+        "high"
+      ]
+    },
+    {
+      "name": "frp",
+      "type": "number",
+      "min": 0
+    },
+    {
+      "name": "daynight",
+      "enum": [
+        "D",
+        "N"
+      ]
+    },
+    {
+      "name": "harmonized_weight",
+      "type": "number",
+      "min": 0
+    },
+    {
+      "name": "region_id",
+      "pattern": "^[A-Z0-9-]+$"
+    }
+  ]
+}

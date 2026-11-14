@@ -53,7 +53,7 @@ Problem: VIIRS 375 m yields more detections per fire than MODIS 1 km. Use the ov
 - Pick the method by held-out validation: fit on 2014–2018 overlap, test on 2019–2023. (2012–2013 VIIRS had "numerous bad scan episodes", per the FIRMS FAQ, so they are excluded from fitting.) Also check NOAA-20 vs S-NPP vs NOAA-21 against each other in their overlap years, because S-NPP has ended and the VIIRS record continues on NOAA-20/21 only. Report honestly where it fails (small regions, low counts, cloud/smoke-heavy areas).
 
 ### 2.4 Output data products (what the app reads)
-Committed to `data/processed/` (or hosted release assets if too large):
+The exact field-by-field definition is `docs/data-contract.md` (machine-checkable schemas in `docs/schemas/`); the list below is a summary. Committed to `data/processed/` (or hosted release assets if too large):
 - `daily_grid.parquet`: `date, cell_id, count_raw_modis, count_raw_viirs, count_harm, frp_sum`
 - `monthly_region.json` per region: `year, month, count_harm, count_low, count_high, n_days_observed`
 - `regions.geojson`: selectable regions (countries, states/provinces, plus user-drawn polygon support using cell lookup)
@@ -108,8 +108,10 @@ README.md              # this plan
 pipeline/              # 01..07 scripts + tests
 data/raw|processed/    # raw is gitignored; processed small files tracked (or Releases)
 docs/validation/       # plots + metrics
-docs/data-notes.md     # verified facts about FIRMS data (Task 1.1)
-docs/data-contract.md  # exact shape of the files the app reads (Task 2.0)
+docs/data-notes.md     # verified facts about FIRMS data (step S05)
+docs/data-contract.md  # exact shape of the files the app reads (step S07)
+docs/schemas/          # JSON Schemas for the data contract (used to validate files)
+docs/sources.md        # every source used with FIRMS, with status and licence
 docs/HANDOFF.md        # running log: one entry per step, newest first
 web/                   # app source
 notebooks/             # Colab notebook that runs the pipeline (Section 14)
@@ -175,7 +177,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [x] **S06 Fix the README.** Needs: S05. Do: correct anything wrong in Sections 0, 2.1, 7. Done when: no "verify" note is left that S05 answered.
 
 ### Phase 2 — Data contract
-- [ ] **S07 Write the contract.** Needs: S05. Do: write the JSON schema for each app file in Section 2.4 into `docs/data-contract.md`, starting from the example in Section 11.4. Done when: every field has a type, meaning, and an example.
+- [x] **S07 Write the contract.** Needs: S05. Do: write the JSON schema for each app file in Section 2.4 into `docs/data-contract.md`, starting from the example in Section 11.4. Done when: every field has a type, meaning, and an example.
 - [ ] **S08 Fake sample data.** Needs: S07. Do: make small fake files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly, with `"is_sample": true`. Done when: a script or test validates them against the contract.
 
 ### Phase 3 — Get and clean data

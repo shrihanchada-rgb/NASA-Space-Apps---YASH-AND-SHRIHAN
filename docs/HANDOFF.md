@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-14 — S07 Write the data contract — DONE
+- **Who / AI:** Shrihan using Claude
+- **Did:** Wrote `docs/data-contract.md`: file layout under `data/processed/`, field-by-field tables (type, meaning, example) for `metadata.json`, `regions.geojson`, `regions/<id>/monthly.json`, `daily.json`, `baseline.json`, `hotspots/<year>.csv`, and the pipeline-only `daily_grid.parquet`, plus a table mapping each website feature to the file it reads. Added JSON Schemas in `docs/schemas/`. Added `docs/sources.md` listing every source used with FIRMS (documentation, boundaries, burned area, basemap) with status and licence notes.
+- **Files changed:** `docs/data-contract.md`, `docs/schemas/*.schema.json`, `docs/sources.md`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** `pip install jsonschema`, then in Python load each `docs/schemas/*.schema.json` and run `jsonschema.Draft202012Validator.check_schema(schema)` (all pass). Test documents were checked: a valid month passes; a null `count_harm` with a numeric band fails; an unknown satellite code fails; a baseline with 11 months fails.
+- **Results / numbers:** 5 JSON Schemas + 1 CSV column spec. No real data yet.
+- **Decisions and why:** (1) `null` = no data, `0` = observed with no fires, enforced by the schema. (2) Daily data stored column-wise to keep files small. (3) Region ids: `US-CA`, `BR-PA`, `AU-NSW-VIC`, `PT`. (4) Website reads per-region files, so it can be a static site. (5) Drawn polygons use hotspot points, not pre-computed months. (6) Boundaries: Natural Earth planned; GADM rejected because its licence forbids redistribution without permission.
+- **Problems / open questions:** Yash has **not** reviewed the contract yet; README says contract changes need both people, so Yash should review before S08 is built on it. Open items are in `docs/data-contract.md` §10 (compression, interval width, `count_low`/`count_high` naming). Natural Earth admin-1 licence wording not read on the official page.
+- **Next step:** Yash reviews `docs/data-contract.md`. Then S08 (fake fixtures in `web/fixtures/` + a validator script using `docs/schemas/`).
+
 ### 2026-11-14 — S05 Verify FIRMS facts, S06 Fix the README — DONE
 - **Who / AI:** Shrihan using Claude (plus web search and direct downloads of official NASA pages)
 - **Did:** Read the FIRMS FAQ, the attributes page, the FIRMS API area and data-availability pages, and the official MODIS C6/C6.1 and VIIRS C2 user guides. Wrote `docs/data-notes.md` with every fact linked to its source. Corrected README Sections 0, 1, 2.1, 2.2, 2.3, 7, 10 (S03, S09), 13 and the rule lines in `CLAUDE.md` / `AGENTS.md`.
