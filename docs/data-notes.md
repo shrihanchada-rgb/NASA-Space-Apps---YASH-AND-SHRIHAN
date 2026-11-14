@@ -125,12 +125,24 @@ What this means:
 - `type`: `0` x360,157, `2` x8,318, `3` x207, `1` x8.
 - `daynight`: `D` x225,234, `N` x143,456. `instrument`: always `MODIS`.
 
+**Values in VIIRS SP (California box, full ranges; S10 run 2026-11-14):**
+
+| Source | Rows | `satellite` | `confidence` | `version` | `type` 0 / 1 / 2 / 3 |
+|---|---|---|---|---|---|
+| VIIRS_SNPP_SP (2012-01-20 → 2026-07-31) | 1,117,337 | `N` | `n` 977,565 · `h` 86,032 · `l` 53,740 | `2` | 1,016,112 / 0 / 100,096 / 1,129 |
+| VIIRS_NOAA20_SP (2018-04-01 → 2026-07-31) | 773,314 | `N20` | `n` 683,422 · `h` 52,669 · `l` 37,223 | `2` | 708,503 / 0 / 63,796 / 1,015 |
+| VIIRS_NOAA21_SP (2023-03-01 → 2026-07-31) | 149,284 | `N21` | `n` 128,173 · `h` 12,137 · `l` 8,974 | `2` | 123,625 / 0 / 25,426 / 233 |
+
+- VIIRS `confidence` is **lower-case letters `l`/`n`/`h`** (confirmed). VIIRS `satellite` codes match the docs (`N`, `N20`, `N21`). `version` `2` = Collection 2.
+- **`type` 2 ("other static land source") is 9–17% of VIIRS rows** in this box (MODIS: 2.3%). Dropping non-vegetation types (the plan) matters much more for VIIRS than for MODIS; check this per region in S12.
+- Low-confidence (`l`) is about 5–6% of VIIRS rows here, so SP data **does** contain low-confidence pixels.
+- MODIS for the same box and full period: 368,690 rows (two satellites together), while each VIIRS satellite returned 2–3 times that over a shorter period.
+
 **FIRMS answers "Invalid MAP_KEY." when the limit is used up**, not only for a wrong key. A run that had already made about 2,000 successful requests was stopped by it. The downloader now waits and retries in that case.
 
 ## 9. Still unverified
 
-1. VIIRS values inside `confidence` (letters `l`/`n`/`h`?), `satellite`, `version`, `type`. MODIS values are now confirmed (above). The downloader prints a value summary per source.
-2. `VIIRS_NOAA21_SP` header (expected same as other VIIRS).
+1. (Resolved: MODIS and VIIRS value formats and the NOAA-21 header are confirmed above.)
 3. The direct MAP_KEY request URL.
 4. Current mission status of Terra and Aqua beyond "to the present", including any orbit drift.
 5. The LANCE Disclaimer text.
