@@ -118,9 +118,18 @@ What this means:
 
 **Row counts, California box (approximate box, before any filtering), 2023:** MODIS_SP 8,438; VIIRS_SNPP_SP 38,691; VIIRS_NOAA20_SP 39,541. VIIRS returned about 4.6 times as many rows per satellite as MODIS (Terra + Aqua combined) for this box and year. One region-year; not a general ratio.
 
+**Values in MODIS_SP (California box, 2000-11-01 to 2026-08-31, 368,690 rows; S10 run 2026-11-14):**
+- `satellite`: **`Terra`** and **`Aqua`** (full words), **not** `T`/`A` as the attribute page says. The cleaning step must map `Terra`→`T`, `Aqua`→`A` (the data contract uses `T`/`A`).
+- `confidence`: numbers 0–100 (most common `100`), as documented. Classes come from the MODIS user guide thresholds (§4).
+- `version`: **`6.03`** (333,220 rows) and **`61.03`** (35,470 rows). So MODIS_SP mixes Collection 6 and Collection 6.1 files. The FAQ says C6.1 has no fire-algorithm changes (§6), but the date where it switches is not known yet: check in S11 and record it.
+- `type`: `0` x360,157, `2` x8,318, `3` x207, `1` x8.
+- `daynight`: `D` x225,234, `N` x143,456. `instrument`: always `MODIS`.
+
+**FIRMS answers "Invalid MAP_KEY." when the limit is used up**, not only for a wrong key. A run that had already made about 2,000 successful requests was stopped by it. The downloader now waits and retries in that case.
+
 ## 9. Still unverified
 
-1. The values inside `confidence` (MODIS numbers? VIIRS letters `l`/`n`/`h`?), `type`, `satellite`, `version`. The downloader now prints a value summary per source; it will show on the next run (S10).
+1. VIIRS values inside `confidence` (letters `l`/`n`/`h`?), `satellite`, `version`, `type`. MODIS values are now confirmed (above). The downloader prints a value summary per source.
 2. `VIIRS_NOAA21_SP` header (expected same as other VIIRS).
 3. The direct MAP_KEY request URL.
 4. Current mission status of Terra and Aqua beyond "to the present", including any orbit drift.

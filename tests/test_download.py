@@ -139,3 +139,29 @@ def test_limit_answer_gives_up_after_max_waits(tmp_path):
         dl.download("PT", D(2023, 8, 1), D(2023, 8, 2), ["MODIS_SP"], "KEY", out=tmp_path, get=get,
                     limiter=dl.RateLimiter(budget=10**9), log=lambda *a: None, sleep=lambda s: None, max_limit_waits=2)
     assert list((tmp_path / "MODIS_SP" / "PT").iterdir()) == []
+
+
+def _err(url, msg):
+    return urllib.error.HTTPError(url, 400, "Bad Request", {}, io.BytesIO(msg))
+
+
+def test_invalid_key_after_successes_is_treated_as_limit(tmp_path):
+    calls, waits = [], []
+
+    def get(url):
+        calls.append(url)
+        if len(calls) == 2:
+            raise _err(url, b"Invalid MAP_KEY.")
+        return HEADER + "\n"
+    s = dl.download("PT", D(2023, 8, 1), D(2023, 8, 10), ["MODIS_SP"], "KEY", out=tmp_path, get=get,
+                    limiter=dl.RateLimiter(budget=10**9), log=lambda *a: None, sleep=waits.append)
+    assert waits == [660] and len(calls) == 3 and s["MODIS_SP"]["chunks"] == 2
+
+
+def test_invalid_key_with_no_success_waits_once_then_stops(tmp_path):
+    waits = []
+    with pytest.raises(dl.KeyRejected):
+        dl.download("PT", D(2023, 8, 1), D(2023, 8, 2), ["MODIS_SP"], "KEY", out=tmp_path,
+                    get=lambda url: (_ for _ in ()).throw(_err(url, b"Invalid MAP_KEY.")),
+                    limiter=dl.RateLimiter(budget=10**9), log=lambda *a: None, sleep=waits.append)
+    assert waits == [660]

@@ -26,16 +26,16 @@ Rules for entries:
 
 ## Entries
 
-### 2026-11-14 — S10 Download everything — PAUSED (FIRMS limit hit; fix ready)
-- **Who / AI:** Shrihan ran Colab; Claude fixed the downloader
-- **Did:** First full California run (2000-11-01 to 2026-08-31) stopped at the MODIS chunk starting 2007-09-01 with `HTTP 400: Exceeding allowed transaction limit.`, after about 500 requests. By the formula on the FIRMS API page (`computeWeight`: MODIS 5-day request for this box = 3, VIIRS = 10) that is about 1,500 of 5,000, so the FIRMS server counts differently from its own page. Fix: the downloader now (1) budgets with the FIRMS formula at 3,000 per 10 minutes and (2) when FIRMS answers "transaction limit", waits 11 minutes and retries the same chunk, up to 12 times per run, instead of stopping. Colab output now streams live with progress every 100 chunks.
-- **Files changed:** `pipeline/01_download.py`, `pipeline/config.py`, `tests/test_download.py`, `notebooks/run_pipeline_colab.ipynb`, `docs/HANDOFF.md`
-- **How to check it:** `python3 -m pytest -q tests` → `22 passed` (includes: limit answer waits 660 s then retries; gives up after the max and leaves no partial file).
-- **Results / numbers:** MODIS_SP for US-CA is on Drive from 2000-11-01 up to the chunk before 2007-09-01 (about 500 files); a rerun skips them.
-- **Decisions and why:** Waiting on the server's own answer is more reliable than guessing its counting rule.
-- **Problems / open questions:** FIRMS's real counting rule is unknown; downloads may be slower than estimated. The 2023 test files overlap with full-range chunks (different 5-day windows): S11 must drop exact duplicate rows.
-- **Next step:** merge branch `fix/colab-live-output`, upload a fresh `repo.zip` and notebook, and rerun California with the same `STEP_ARGS`; it resumes from 2007-09-01.
-- **If PAUSED — branch and resume command:** branch `fix/colab-live-output` (not yet merged); then rerun Colab step 01 with `--check-availability --region US-CA --start 2000-11-01 --end 2026-08-31`.
+### 2026-11-14 — S10 Download everything — PAUSED (California MODIS done; VIIRS in progress)
+- **Who / AI:** Shrihan ran Colab; Claude fixed the downloader twice
+- **Did:** (1) First run stopped at 2007-09-01 with "Exceeding allowed transaction limit" → downloader now waits 11 min and retries (merged, PR 16). (2) Next run with that fix finished **MODIS_SP for US-CA: 1,887 chunks, 368,690 rows**, then stopped in VIIRS_SNPP_SP at the chunk starting 2013-07-23 with "Invalid MAP_KEY." after ~2,000 successful requests. FIRMS uses that message for an exhausted limit too, so the downloader now treats "Invalid MAP_KEY" after earlier successes as a limit (wait + retry); before any success it waits once, then stops.
+- **Files changed:** `pipeline/01_download.py`, `tests/test_download.py`, `docs/data-notes.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `24 passed`.
+- **Results / numbers:** MODIS values recorded in `docs/data-notes.md` §8: `satellite` is `Terra`/`Aqua` (must map to `T`/`A`), `confidence` 0–100, `version` mixes `6.03` and `61.03`, `type` mostly 0.
+- **Decisions and why:** treat the ambiguous "Invalid MAP_KEY" as a limit only after the key has been shown to work in the same run.
+- **Problems / open questions:** FIRMS limits slow the download; real time per region unknown. 2023 test files overlap full-range chunks → S11 must drop exact duplicate rows. MODIS C6/C6.1 switch date unknown.
+- **Next step:** merge `fix/invalid-key-mid-run`, upload a fresh `repo.zip`, rerun US-CA with the same `STEP_ARGS` (MODIS is skipped; VIIRS resumes), then BR-PA, AU-NSW-VIC, PT.
+- **If PAUSED — branch and resume command:** branch `fix/invalid-key-mid-run`; Colab step 01 with `--check-availability --region US-CA --start 2000-11-01 --end 2026-08-31`.
 
 ### 2026-11-14 — S09 Download one region-year — DONE
 - **Who / AI:** Shrihan ran the Colab notebook (step 01) with his key; Claude recorded results and updated code.
