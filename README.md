@@ -166,7 +166,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 ### Phase 0 — Setup
 - [x] **S01 Read the plan.** Needs: —. Do: read this README, `CLAUDE.md` or `AGENTS.md`, and `docs/HANDOFF.md`. Done when: you can say in one sentence what the project builds. Leave behind: a "STARTED" entry.
 - [x] **S02 Tools installed.** Needs: S01. Do: install Python 3.11+ and Node.js 20+ (check `python3 --version`, `node --version`). Done when: both print a version. Leave behind: versions in the handoff entry.
-- [ ] **S03 FIRMS key.** Needs: S01. Do: request a free FIRMS MAP_KEY (page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link) and put it in `.env` as `FIRMS_MAP_KEY=...`. Done when: `.env` exists locally. Leave behind: `.env.example` with `FIRMS_MAP_KEY=` (empty) committed. Never commit `.env`. Note: `.env` is local to one machine, so the other person needs their own key.
+- [x] **S03 FIRMS key.** Needs: S01. Do: request a free FIRMS MAP_KEY (page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link) and put it in `.env` as `FIRMS_MAP_KEY=...`. Done when: `.env` exists locally. Leave behind: `.env.example` with `FIRMS_MAP_KEY=` (empty) committed. **Decision (Shrihan, 2026-11-14):** `.env` with the key is committed on `main` because the repo is private, so Yash does not need his own key. If the repo is ever made public, request a new key first and remove `.env` from the repo. Colab cannot read `.env`; it reads Colab Secrets (`FIRMS_MAP_KEY`).
 - [ ] **S04 Pilot regions agreed.** Needs: S01. Do: confirm the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal) or change them. Done when: final list written in Section 2.1.
 
 ### Phase 1 — Check the facts

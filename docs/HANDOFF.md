@@ -26,16 +26,15 @@ Rules for entries:
 
 ## Entries
 
-### 2026-11-14 — S03 FIRMS key — PAUSED (needs a person)
+### 2026-11-14 — S03 FIRMS key — DONE
 - **Who / AI:** Shrihan using Claude
-- **Did:** Added `.env.example` with an empty `FIRMS_MAP_KEY=` line. Shrihan has a FIRMS key. It was **not** shared with the AI or put in the repo.
-- **Files changed:** `.env.example`, `docs/HANDOFF.md`
-- **How to check it:** `cat .env.example` shows `FIRMS_MAP_KEY=` with no value; `git check-ignore .env` prints `.env` (so a real `.env` stays out of git).
-- **Results / numbers:** none
-- **Decisions and why:** Keys are never pasted into chat, the repo, or this log. Colab reads the key from Colab Secrets; a laptop reads it from a local `.env`.
-- **Problems / open questions:** S03 is not ticked: it is only done once each person has the key in Colab Secrets (name `FIRMS_MAP_KEY`, notebook access on) and/or a local `.env`. Yash needs his own key. The key-request link is unverified until S05.
-- **Next step:** Shrihan and Yash tick S03 once their key is set up. Then S05 (verify FIRMS facts).
-- **If PAUSED — branch and resume command:** none, the code part is merged; only the personal key setup is left.
+- **Did:** Shrihan has a FIRMS key. `.env` with the key is committed on `main` (commit `c2dd4b5`, 47 bytes, checked by name and size only; the AI never saw the contents). Shrihan also reports adding the key to Colab Secrets as `FIRMS_MAP_KEY` with notebook access on (not verified by the AI). `.env.example` (empty template) is also in the repo.
+- **Files changed:** `README.md` (S03 ticked, decision noted), `docs/HANDOFF.md`
+- **How to check it:** `git pull`, then `ls -la .env` shows a small file; do NOT print it. To test the key, run the S09 download script when it exists.
+- **Results / numbers:** none. The key has **not been tested** against FIRMS.
+- **Decisions and why:** The repo is private, so committing a free key was accepted by Shrihan, so Yash can use it without his own. Rejected: key only in `.env` ignored by git (the safer default).
+- **Problems / open questions:** (1) `CLAUDE.md` and `AGENTS.md` still say "`.env` ... are gitignored" and "never commit secrets", which now contradict the repo; to be updated. (2) If the repo is made public, the key is exposed in git history: request a new key. (3) The Colab notebook still cannot clone the private repo (cell 3, no login); decision pending between a Drive zip copy and a read-only token.
+- **Next step:** S04 (pilot regions, a decision for both) and S05 (verify FIRMS facts, web research only).
 
 ### 2026-11-14 — S01 Read the plan, S02 Tools installed — DONE
 - **Who / AI:** Shrihan using Claude (running in the cloud session, not on a personal laptop)
