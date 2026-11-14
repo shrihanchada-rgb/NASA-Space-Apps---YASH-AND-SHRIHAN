@@ -25,5 +25,5 @@ REGIONS = {
 API_BASE = "https://firms.modaps.eosdis.nasa.gov/api"
 MAX_DAY_RANGE = 5                 # FIRMS area API allows 1..5 days per call
 TRANSACTION_LIMIT = 5000          # per MAP_KEY per 10 minutes
-TRANSACTION_BUDGET = 4000         # stay safely under the limit
+TRANSACTION_BUDGET = 3000         # stay well under the limit (FIRMS's server count was higher than its formula)
 WINDOW_SECONDS = 600

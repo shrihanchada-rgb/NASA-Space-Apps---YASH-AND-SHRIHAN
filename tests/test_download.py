@@ -1,5 +1,6 @@
 """Tests for pipeline/01_download.py. No network: FIRMS answers are faked."""
 import datetime as dt
+import io
 import importlib.util
 import urllib.error
 from pathlib import Path
@@ -108,3 +109,33 @@ def test_value_summary_counts_formats():
     text = HEADER + "\n1,2,300,1,1,2023-08-01,1030,T,MODIS,80,6.1,290,5.5,D,0\n1,2,300,1,1,2023-08-01,1030,A,MODIS,20,6.1,290,5.5,N,2\n"
     v = dl.value_summary([text])
     assert dict(v["satellite"]) == {"T": 1, "A": 1} and dict(v["type"]) == {"0": 1, "2": 1}
+
+
+def test_request_cost_matches_firms_formula():
+    ca = [-124.6, 32.4, -114.0, 42.1]
+    assert dl.request_cost("MODIS_SP", ca, 5) == 3
+    assert dl.request_cost("VIIRS_NOAA20_SP", ca, 5) == 10
+    assert dl.request_cost("VIIRS_SNPP_SP", [-180, -90, 180, 90], 1) == 36
+
+
+def test_limit_answer_waits_and_retries(tmp_path):
+    calls, waits, logs = [], [], []
+
+    def get(url):
+        calls.append(url)
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(url, 400, "Bad Request", {}, io.BytesIO(b"Exceeding allowed transaction limit."))
+        return HEADER + "\n"
+    s = dl.download("PT", D(2023, 8, 1), D(2023, 8, 2), ["MODIS_SP"], "KEY", out=tmp_path, get=get,
+                    limiter=dl.RateLimiter(budget=10**9), log=logs.append, sleep=waits.append, limit_wait_s=660)
+    assert len(calls) == 2 and waits == [660] and s["MODIS_SP"]["chunks"] == 1
+    assert any("waiting 11 min" in m for m in logs)
+
+
+def test_limit_answer_gives_up_after_max_waits(tmp_path):
+    def get(url):
+        raise urllib.error.HTTPError(url, 400, "Bad Request", {}, io.BytesIO(b"Exceeding allowed transaction limit."))
+    with pytest.raises(dl.LimitReached):
+        dl.download("PT", D(2023, 8, 1), D(2023, 8, 2), ["MODIS_SP"], "KEY", out=tmp_path, get=get,
+                    limiter=dl.RateLimiter(budget=10**9), log=lambda *a: None, sleep=lambda s: None, max_limit_waits=2)
+    assert list((tmp_path / "MODIS_SP" / "PT").iterdir()) == []

@@ -13,6 +13,7 @@ import argparse
 import collections
 import csv
 import datetime as dt
+import math
 import os
 import sys
 import time
@@ -29,6 +30,10 @@ RAW = ROOT / "data" / "raw"
 
 class FirmsError(Exception):
     pass
+
+
+class LimitReached(FirmsError):
+    """FIRMS answered that the MAP_KEY transaction limit is used up."""
 
 
 def load_key():
@@ -121,6 +126,8 @@ def fetch(url, key, get=http_get, retries=4, sleep=time.sleep):
             break
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace").strip()[:200] if hasattr(e, "read") else ""
+            if "transaction limit" in body.lower() or "transaction/time limit" in body.lower():
+                raise LimitReached(f"HTTP {e.code}: {body} ({mask(url, key)})") from None
             if e.code < 500 or attempt == retries:
                 raise FirmsError(f"HTTP {e.code}: {body or e.reason} ({mask(url, key)})") from None
         except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
@@ -133,12 +140,22 @@ def fetch(url, key, get=http_get, retries=4, sleep=time.sleep):
     return text
 
 
+def request_cost(source, bbox, n):
+    """Transaction cost of one area request, using the formula on the FIRMS API area page
+    (computeWeight): ceil(ceil(width/60) * ceil(height/60) * (2 for VIIRS, 0.5 otherwise) * days).
+    FIRMS's server may count differently, so limit answers are also handled by waiting (see download)."""
+    w, s_, e, n_ = bbox
+    x, y = math.ceil((e - w) / 60.0), math.ceil((n_ - s_) / 60.0)
+    return math.ceil(x * y * (2 if "VIIRS" in source else 0.5) * n)
+
+
 def area_url(key, source, bbox, day, n):
     area = ",".join(f"{v:g}" for v in bbox)
     return f"{config.API_BASE}/area/csv/{key}/{source}/{area}/{n}/{day.isoformat()}"
 
 
-def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=None, dry_run=False, log=print):
+def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=None, dry_run=False, log=print,
+             sleep=time.sleep, limit_wait_s=660, max_limit_waits=12):
     bbox = config.REGIONS[region]["bbox"]
     limiter = limiter or RateLimiter()
     summary = {}
@@ -152,7 +169,11 @@ def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=No
             continue
         folder = out / source / region
         folder.mkdir(parents=True, exist_ok=True)
-        for day, n in chunks(*span):
+        todo = list(chunks(*span))
+        log(f"{source}: {span[0]} to {span[1]}, {len(todo)} chunks")
+        for k, (day, n) in enumerate(todo, start=1):
+            if k % 100 == 0:
+                log(f"  {source}: {k}/{len(todo)} chunks done")
             path = folder / f"{day.isoformat()}_{n}d.csv"
             stats["chunks"] += 1
             if path.exists():
@@ -161,8 +182,18 @@ def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=No
             elif dry_run:
                 continue
             else:
-                limiter.take(n)
-                text = fetch(area_url(key, source, bbox, day, n), key, get=get)
+                limiter.take(request_cost(source, bbox, n))
+                text = None
+                for wait in range(max_limit_waits + 1):
+                    try:
+                        text = fetch(area_url(key, source, bbox, day, n), key, get=get)
+                        break
+                    except LimitReached:
+                        if wait == max_limit_waits:
+                            raise
+                        log(f"  FIRMS says the key's limit is used up; waiting {limit_wait_s // 60} min, then retrying "
+                            f"({wait + 1}/{max_limit_waits}). Nothing is lost.")
+                        sleep(limit_wait_s)
                 tmp = path.with_suffix(".part")
                 tmp.write_text(text)
                 tmp.rename(path)
