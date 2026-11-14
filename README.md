@@ -1,14 +1,14 @@
 # NASA Space Apps — Harmonized Burning Activity Calendar (MODIS + VIIRS)
 
 > Team: Shrihan and Yash. This README is the single source of truth for what to build, so humans and AI coding agents (e.g. Codex) can work on the same problem without overlap.
-> Status: planning. No code yet. Facts marked "verify" must be checked in Task 1.1 before code depends on them.
+> Status: planning. No code yet. Data facts are verified in `docs/data-notes.md` (step S05); items still open are listed at the end of that file.
 
 ---
 
 ## 0. Context
-NASA FIRMS has two active-fire records: MODIS (Terra from Nov 2000, Aqua from mid-2002, ~1 km pixels) and VIIRS (S-NPP from 2012, NOAA-20 from ~2018/2020, NOAA-21 from ~2024; 375 m pixels). VIIRS detects more, smaller fires, so raw counts are not comparable across sensors; a naive concatenation creates a fake jump in 2012. Emergency managers need one consistent hotspot history per place. Goal: harmonize, then expose it via a web app with region + date selection, analytics, a burning-activity calendar (color ramp), and CSV export.
+NASA FIRMS has two active-fire records: MODIS (Terra from 1 Nov 2000, Aqua from July 2002, ~1 km pixels) and VIIRS (S-NPP 20 Jan 2012 to 2 Nov 2026, now ended; NOAA-20 from 1 Apr 2018; NOAA-21 from 17 Jan 2024; ~375 m pixels). VIIRS detects more, smaller fires, so raw counts are not comparable across sensors; a naive concatenation creates a fake jump in 2012. Emergency managers need one consistent hotspot history per place. Goal: harmonize, then expose it via a web app with region + date selection, analytics, a burning-activity calendar (color ramp), and CSV export.
 
-(Sensor start dates and column names above are from memory; Task 1.1 must verify them against the FIRMS docs before any code depends on them.)
+(Dates verified from the FIRMS FAQ on 2026-11-14; sources in `docs/data-notes.md`. S-NPP stopped delivering data on 2 November 2026, so VIIRS continuity now depends on NOAA-20 and NOAA-21.)
 
 ## 1. Mission / Goals / Objectives
 
@@ -22,21 +22,21 @@ NASA FIRMS has two active-fire records: MODIS (Terra from Nov 2000, Aqua from mi
 **Measurable objectives**
 - O1: Pipeline reproducible with one command from raw FIRMS CSVs to app-ready files.
 - O2: Harmonization validated on the overlap period (2012+): after adjustment, monthly MODIS-equivalent vs VIIRS totals per region agree within a stated error (report R², MAPE; target R² ≥ 0.8 for regions with enough counts — a target, not a promise).
-- O3: No visible step change in the regional monthly series at sensor transitions (2012 VIIRS start, 2002 Aqua start, NOAA-20/21 starts). Check by plot + change-point test.
+- O3: No visible step change in the regional monthly series at sensor transitions (2002 Aqua start, 2012 S-NPP start, 2018 NOAA-20 start, 2024 NOAA-21 start, 2026 S-NPP end). Check by plot + change-point test.
 - O4: App returns analytics for a 10-year, country-sized query in < 3 s (pre-aggregation required).
 - O5: CSV export includes original per-sensor fields plus harmonized fields.
 
 ## 2. Part 1 — Harmonization (data pipeline)
 
 ### 2.1 Inputs
-- FIRMS archive downloads (CSV/shapefile): MODIS C6.1 (`MODIS_C6_1`), VIIRS S-NPP (`VIIRS_SNPP_SP` standard processing for archive), VIIRS NOAA-20 (`VIIRS_NOAA20_SP`), NOAA-21 if available. Requires a FIRMS MAP_KEY for API use; store in `.env`, never commit.
+- FIRMS API sources (verified, `docs/data-notes.md` §2): `MODIS_SP`, `VIIRS_SNPP_SP` (archive only; ended 2 Nov 2026), `VIIRS_NOAA20_SP`, `VIIRS_NOAA21_SP`. Area API: max 5 days per call, 5000 transactions per 10 minutes per key. Requires a FIRMS MAP_KEY: in Colab Secrets or an untracked local `.env`.
 - Use **standard-processing (SP) archive**, not near-real-time (NRT), for history. NRT for the "current fire" feature only, labeled as provisional.
-- Columns (verify): MODIS `brightness, bright_t31, confidence(0–100)`; VIIRS `bright_ti4, bright_ti5, confidence(l/n/h)`; both `latitude, longitude, scan, track, acq_date, acq_time, satellite, instrument, frp, daynight, type`.
+- Columns (from FIRMS docs; exact CSV headers to be confirmed on first download in S09): MODIS `brightness, bright_t31, confidence (0–100 %)`; VIIRS `bright_ti4, bright_ti5, confidence (low/nominal/high)`; both `latitude, longitude, scan, track, acq_date, acq_time, satellite, version, frp, daynight, type`. MODIS confidence classes: low < 30, nominal 30–79, high ≥ 80 (MODIS user guide Table 11). `type`: 0 vegetation fire, 1 volcano, 2 static land source, 3 offshore. Details: `docs/data-notes.md` §3–5.
 - **Pilot regions (agreed by Shrihan and Yash, 2026-11-14, step S04):** California (USA), Pará (Brazil), New South Wales + Victoria (Australia), Portugal. Chosen for being fire-rich with different fire regimes. Scale to global later.
 
 ### 2.2 Steps (each step = one script in `pipeline/`, with a unit test)
 1. `01_download.py` — fetch per sensor/year/region into `data/raw/<sensor>/<year>.csv`. Resumable, logs checksums.
-2. `02_clean.py` — normalize to one schema: `lat, lon, date, time_utc, sensor, satellite, confidence_class (low/nominal/high), frp, daynight, type`. Map MODIS numeric confidence → low (<30), nominal (30–79), high (≥80); VIIRS l/n/h as-is. Drop `type != 0` (non-vegetation fire: volcano, static source, offshore) by default; keep as a flag.
+2. `02_clean.py` — normalize to one schema: `lat, lon, date, time_utc, sensor, satellite, confidence_class (low/nominal/high), frp, daynight, type`. Map MODIS numeric confidence → low (<30), nominal (30–79), high (≥80), as in the MODIS user guide; VIIRS classes as-is. Drop `type != 0` (non-vegetation fire: volcano, static source, offshore) by default; keep as a flag.
 3. `03_filter.py` — drop low-confidence by default (configurable). Record how many dropped per sensor/year.
 4. `04_dedupe_and_grid.py` — assign each detection to a fixed grid (start: 0.25°; also keep 0.1° option) and to day. Within a sensor, merge same-day detections of the same satellite pass to avoid double counting adjacent-overpass pixels (rule documented and tested).
 5. `05_calibrate.py` — core harmonization (see 2.3).
@@ -48,9 +48,9 @@ Problem: VIIRS 375 m yields more detections per fire than MODIS 1 km. Use the ov
 - Candidate A (baseline): per grid cell × month, fit `modis_count ≈ f(viirs_count)` over the overlap; start with a log–log linear fit per region/biome and per season; apply `f` to VIIRS-only months.
 - Candidate B: spatial re-aggregation — collapse VIIRS 375 m detections onto the MODIS 1 km footprint grid (count a MODIS-sized cell once if any VIIRS pixel is hot), then calibrate residual differences. Physically more defensible.
 - Candidate C: quantile mapping of monthly count distributions per region.
-- Also normalize **sensor-era changes inside MODIS**: Terra-only (Nov 2000–mid 2002) vs Terra+Aqua; treat per satellite or scale by overpass count. Check Terra overpass-time drift in recent years (to verify; may need Terra-only treatment). Use FRP-weighted activity as a secondary metric, since FRP is less count-sensitive.
+- Also normalize **sensor-era changes inside MODIS**: Terra-only (Nov 2000–mid 2002) vs Terra+Aqua; treat per satellite or scale by overpass count. Terra/Aqua overpass-time drift in recent years was not found in the pages checked in S05 (still open, `docs/data-notes.md` §8). Use FRP-weighted activity as a secondary metric, since FRP is less count-sensitive.
 - Output both `count_raw` and `count_harmonized`, plus `method_version` and an uncertainty band (e.g., residual std from the overlap fit).
-- Pick the method by held-out validation: fit on 2012–2018 overlap, test on 2019–2023. Report honestly where it fails (small regions, low counts, cloud/smoke-heavy areas).
+- Pick the method by held-out validation: fit on 2014–2018 overlap, test on 2019–2023. (2012–2013 VIIRS had "numerous bad scan episodes", per the FIRMS FAQ, so they are excluded from fitting.) Also check NOAA-20 vs S-NPP vs NOAA-21 against each other in their overlap years, because S-NPP has ended and the VIIRS record continues on NOAA-20/21 only. Report honestly where it fails (small regions, low counts, cloud/smoke-heavy areas).
 
 ### 2.4 Output data products (what the app reads)
 Committed to `data/processed/` (or hosted release assets if too large):
@@ -136,11 +136,12 @@ The step-by-step version is the checklist in Section 10. Every step ends with an
 
 ## 7. Risks and open questions
 - Count mapping may vary by region/biome; a single global fit may be wrong → fit per region, report error.
-- The VIIRS→MODIS-scale mapping is learned on the 2012+ overlap. It matters most for any period where MODIS data is missing or ends (Terra and Aqua are old satellites near end of life; verify their current status). Using it there assumes the relationship stays the same over time; document this assumption.
+- The VIIRS→MODIS-scale mapping is learned on the 2014+ overlap. It matters most for any period where MODIS data is missing or ends. The FIRMS FAQ lists Terra and Aqua data as available "to the present" (checked 2026-11-14); their future end date was not found. Using the mapping there assumes the relationship stays the same over time; document this assumption.
+- S-NPP stopped on 2 November 2026. Any S-NPP-based calibration must be transferred to NOAA-20/NOAA-21, which fly in the same orbit about 50 minutes apart (FIRMS FAQ).
 - Detection depends on overpass time, cloud, and smoke; harmonization does not fix undercounting from these.
 - Data size for global per-detection export → shard by region-year.
 - NRT vs. SP data differ; keep NRT separate and labeled.
-- Licence/citation requirements for FIRMS data: verify and put in the README.
+- Citation (FIRMS FAQ): cite imagery as "NASA FIRMS"; for scientific use: "We acknowledge the use of imagery from the NASA LANCE FIRMS (https://earthdata.nasa.gov/firms), part of the NASA Earth Science Data and Information System (ESDIS)." The LANCE Disclaimer is still to be read.
 
 ## 8. Definition of done
 Pipeline reproduces from raw; validation report published; web app deployed; calendar, analytics, and CSV work for the pilot regions; methods page honest about uncertainty.
@@ -166,19 +167,19 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 ### Phase 0 — Setup
 - [x] **S01 Read the plan.** Needs: —. Do: read this README, `CLAUDE.md` or `AGENTS.md`, and `docs/HANDOFF.md`. Done when: you can say in one sentence what the project builds. Leave behind: a "STARTED" entry.
 - [x] **S02 Tools installed.** Needs: S01. Do: install Python 3.11+ and Node.js 20+ (check `python3 --version`, `node --version`). Done when: both print a version. Leave behind: versions in the handoff entry.
-- [x] **S03 FIRMS key.** Needs: S01. Do: request a free FIRMS MAP_KEY (page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link) and put it in `.env` as `FIRMS_MAP_KEY=...`. Done when: `.env` exists locally. Leave behind: `.env.example` with `FIRMS_MAP_KEY=` (empty) committed. **Update (Shrihan, 2026-11-14):** `.env` was briefly committed and has been removed again. The key now lives in Colab Secrets (`FIRMS_MAP_KEY`), and anyone running locally keeps it in an untracked `.env` file. Because the key was in git history, treat it as exposed to anyone with repo access, and request a new key if the repo ever goes public.
+- [x] **S03 FIRMS key.** Needs: S01. Do: request a free FIRMS MAP_KEY (via the "Get MAP_KEY" link on https://firms.modaps.eosdis.nasa.gov/api/area/) and put it in `.env` as `FIRMS_MAP_KEY=...`. Done when: `.env` exists locally. Leave behind: `.env.example` with `FIRMS_MAP_KEY=` (empty) committed. **Update (Shrihan, 2026-11-14):** `.env` was briefly committed and has been removed again. The key now lives in Colab Secrets (`FIRMS_MAP_KEY`), and anyone running locally keeps it in an untracked `.env` file. Because the key was in git history, treat it as exposed to anyone with repo access, and request a new key if the repo ever goes public.
 - [x] **S04 Pilot regions agreed.** Needs: S01. Do: confirm the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal) or change them. Done when: final list written in Section 2.1.
 
 ### Phase 1 — Check the facts
-- [ ] **S05 Verify FIRMS facts.** Needs: S01. Do: read the FIRMS docs for MODIS C6.1 and VIIRS 375 m active fire. Done when: `docs/data-notes.md` lists start date per satellite, exact CSV columns per sensor, meaning of each confidence value, meaning of `type`, licence and citation, with a link to the source for each fact. Leave behind: that file.
-- [ ] **S06 Fix the README.** Needs: S05. Do: correct anything wrong in Sections 0, 2.1, 7. Done when: no "verify" note is left that S05 answered.
+- [x] **S05 Verify FIRMS facts.** Needs: S01. Do: read the FIRMS docs for MODIS C6.1 and VIIRS 375 m active fire. Done when: `docs/data-notes.md` lists start date per satellite, exact CSV columns per sensor, meaning of each confidence value, meaning of `type`, licence and citation, with a link to the source for each fact. Leave behind: that file.
+- [x] **S06 Fix the README.** Needs: S05. Do: correct anything wrong in Sections 0, 2.1, 7. Done when: no "verify" note is left that S05 answered.
 
 ### Phase 2 — Data contract
 - [ ] **S07 Write the contract.** Needs: S05. Do: write the JSON schema for each app file in Section 2.4 into `docs/data-contract.md`, starting from the example in Section 11.4. Done when: every field has a type, meaning, and an example.
 - [ ] **S08 Fake sample data.** Needs: S07. Do: make small fake files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly, with `"is_sample": true`. Done when: a script or test validates them against the contract.
 
 ### Phase 3 — Get and clean data
-- [ ] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors (run it locally or in Colab, Section 14). Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.
+- [ ] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors (run it locally or in Colab, Section 14). First call `/api/data_availability/` to get the exact `_SP` date ranges, and check the CSV headers, `confidence` format and presence of `type` against `docs/data-notes.md` §8; update that file with what you find. Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.
 - [ ] **S10 Download everything.** Needs: S09. Do: extend to all pilot regions and years (2000 to now), resumable. Done when: a table of files and row counts is in the handoff entry. Raw files stay in `data/raw/` (not committed), so write how to re-create them.
 - [ ] **S11 Clean.** Needs: S10. Do: `02_clean.py` into the single schema (Section 2.2) plus a test on 5 known rows. Done when: test passes.
 - [ ] **S12 Filter.** Needs: S11. Do: `03_filter.py`; print how many were removed per sensor per year. Done when: counts are in `docs/validation/`.
@@ -339,7 +340,7 @@ These steps are done during the steps named in Section 10 (Step A in S13, Steps 
    - If the ratio is steady, good. If it changes by season or region, the conversion must be done per season or per region.
 
 ### Step C — Test each harmonization method fairly
-1. Split the overlap years: **train** on 2012–2018, **test** on 2019–2023.
+1. Split the overlap years: **train** on 2014–2018, **test** on 2019–2023 (2012–2013 VIIRS excluded, see Section 2.3).
 2. For each method (A, B, C): learn the conversion on train years only, then convert VIIRS counts in test years to "MODIS-equivalent".
 3. Compare converted numbers with the real MODIS numbers in test years. Compute:
    - **R²** (closer to 1 is better),
