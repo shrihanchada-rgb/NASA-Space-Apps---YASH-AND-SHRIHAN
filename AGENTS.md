@@ -37,6 +37,16 @@ Harmonized MODIS + VIIRS active-fire hotspot series (about 2000 to present) plus
 
 Data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web.
 
+## Yash: set up your own FIRMS key (once, before any download step)
+
+Shrihan's key is not in the repo. Before running anything that downloads FIRMS data (step S09 onward), Yash must:
+1. Request a free key at https://firms.modaps.eosdis.nasa.gov/api/map_key/ (link to be confirmed in `docs/data-notes.md`).
+2. Colab: add it in Colab Secrets (key icon in the left sidebar), name `FIRMS_MAP_KEY`, with "Notebook access" on.
+3. Laptop: `cp .env.example .env`, open `.env`, write `FIRMS_MAP_KEY=<key>`, save. Check `git check-ignore -v .env` prints a line. Never commit `.env`.
+4. Never paste the key into chat, a notebook cell, or `docs/HANDOFF.md`.
+
+If you are Codex and Yash has not confirmed this, remind him before any download step.
+
 ## Rules
 
 - Never invent data. Sample fixtures must be marked `"is_sample": true`. If real data is missing, stop and say so.

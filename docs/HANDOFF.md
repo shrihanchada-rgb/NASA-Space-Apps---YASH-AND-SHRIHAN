@@ -26,16 +26,25 @@ Rules for entries:
 
 ## Entries
 
-### 2026-11-14 — S03 FIRMS key — PAUSED (needs a person)
+### 2026-11-14 — S04 Pilot regions agreed — DONE
 - **Who / AI:** Shrihan using Claude
-- **Did:** Added `.env.example` with an empty `FIRMS_MAP_KEY=` line. Shrihan has a FIRMS key. It was **not** shared with the AI or put in the repo.
-- **Files changed:** `.env.example`, `docs/HANDOFF.md`
-- **How to check it:** `cat .env.example` shows `FIRMS_MAP_KEY=` with no value; `git check-ignore .env` prints `.env` (so a real `.env` stays out of git).
-- **Results / numbers:** none
-- **Decisions and why:** Keys are never pasted into chat, the repo, or this log. Colab reads the key from Colab Secrets; a laptop reads it from a local `.env`.
-- **Problems / open questions:** S03 is not ticked: it is only done once each person has the key in Colab Secrets (name `FIRMS_MAP_KEY`, notebook access on) and/or a local `.env`. Yash needs his own key. The key-request link is unverified until S05.
-- **Next step:** Shrihan and Yash tick S03 once their key is set up. Then S05 (verify FIRMS facts).
-- **If PAUSED — branch and resume command:** none, the code part is merged; only the personal key setup is left.
+- **Did:** Shrihan reported that Shrihan and Yash agreed on the default pilot regions. Wrote them in README Section 2.1 and ticked S04. Added a "set up your own FIRMS key" section to `AGENTS.md` for Yash.
+- **Files changed:** `README.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** README Section 2.1 lists the 4 regions; Section 10 shows S04 ticked.
+- **Results / numbers:** Regions: California (USA), Pará (Brazil), New South Wales + Victoria (Australia), Portugal.
+- **Decisions and why:** Defaults kept; region boundaries (which admin boundary file) are decided later in the pipeline steps.
+- **Problems / open questions:** Yash has not yet confirmed his own FIRMS key setup.
+- **Next step:** S05 (verify FIRMS facts).
+
+### 2026-11-14 — S03 FIRMS key; Colab private-repo fix — DONE
+- **Who / AI:** Shrihan using Claude
+- **Did:** Shrihan has a FIRMS key and reports adding it to Colab Secrets as `FIRMS_MAP_KEY` with notebook access on (not verified by the AI). An earlier commit (`c2dd4b5`) had put `.env` with the key on `main`; this change removes `.env` from the repo again (the AI never read its contents). Changed `notebooks/run_pipeline_colab.ipynb` cell 3 to unzip the repo from `My Drive/nasa-fire-calendar/repo.zip` instead of `git clone`, because the repo is private. Ticked S03 in README Section 10.
+- **Files changed:** `.env` (deleted), `notebooks/run_pipeline_colab.ipynb`, `README.md`, `docs/HANDOFF.md`
+- **How to check it:** `git ls-files | grep -x .env` prints nothing on this branch; in Python, `json.load` the notebook and `ast.parse` each code cell (all parse). Running the notebook in Colab has **not** been done.
+- **Results / numbers:** none. The key has not been tested against FIRMS; the new Colab cell has not been run.
+- **Decisions and why:** Key kept only in Colab Secrets and in each person's untracked local `.env`. Zip-from-Drive was chosen over a GitHub token in Colab, so no GitHub credential is needed there. Rejected: read-only token (more setup).
+- **Problems / open questions:** (1) The key is still visible in git history (commit `c2dd4b5`) to anyone with repo access; it is a free key, but request a new one if the repo goes public. (2) Anyone running locally must create their own untracked `.env` from `.env.example`. (3) The zip must be re-uploaded whenever code changes. (4) The pipeline scripts do not exist yet, so cell 6 onward is untested.
+- **Next step:** S04 (pilot regions) and S05 (verify FIRMS facts).
 
 ### 2026-11-14 — S01 Read the plan, S02 Tools installed — DONE
 - **Who / AI:** Shrihan using Claude (running in the cloud session, not on a personal laptop)
