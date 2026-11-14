@@ -2,25 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Who you are working for
+
+You are Shrihan's AI. Shrihan owns the web app (`web/`), the data contract fixtures (`web/fixtures/`, `docs/data-contract.md`), and keeping the README checklist current. Yash owns `pipeline/` and `data/` and works with Codex, which reads `AGENTS.md`. Do not edit `pipeline/` or `data/`; if a change is needed there, say so and stop. Full role table: README Section 9.
+
 ## Status
 
-Planning stage. The repo contains only `README.md` (the project plan) and `.gitignore`. There is no source code, build system, linter, or test suite yet, so there are no build/test commands to document. Add them here when the pipeline and web app are scaffolded.
+Planning stage. No source code, build system, linter, or tests exist yet, so there are no commands to document. When you scaffold `web/`, add its real commands (dev server, build, test, single test) here.
 
-`README.md` is the source of truth for scope and task ownership. Read it before starting work; it is also shared with Codex AI, so keep it consistent rather than forking the plan elsewhere.
+`README.md` is the source of truth for scope, task order, and ownership. Keep it consistent rather than writing the plan elsewhere.
+
+## Start of every session
+
+1. `git checkout main && git pull`, then branch as `task/<id>-<short-name>` (README Section 11.2).
+2. Find the task in the README checklist (Section 10) and check `docs/CLAIMS.md` that nobody else has it. Add a claim line.
+3. When done: tick the checklist box in the same pull request, set the claim to `in review`, and show Shrihan the commands you ran and their output. Never push to `main`; Yash reviews before merge.
 
 ## Project
 
-NASA Space Apps challenge: a harmonized MODIS + VIIRS active-fire hotspot time series (~2000 to present) and a web app that shows a burning-activity calendar for a user-selected region and date range, with analytics and CSV export. Two parts:
+Harmonized MODIS + VIIRS active-fire hotspot series (about 2000 to present) plus a web app showing a burning-activity calendar for a chosen region and date range, with analytics and CSV export.
 
-1. **Pipeline (`pipeline/`, Python):** numbered scripts `01_download` to `07_validate`, turning raw NASA FIRMS archive CSVs into app-ready files in `data/processed/` (`daily_grid.parquet`, per-region `monthly_region.json`, `regions.geojson`, `anomaly_baseline.json`, `metadata.json`). The core step is `05_calibrate`: MODIS-equivalent counts are the reference scale, and a mapping learned on the 2012+ overlap is applied to VIIRS-era data. Three candidate methods are to be compared by held-out validation, and the winner documented.
-2. **Web app (`web/`):** reads only the pre-aggregated outputs, so queries stay fast. Centerpiece is a years x months calendar heatmap (log-count, percentile, and anomaly color modes; missing data hatched, never shown as zero).
+- **Pipeline (Yash):** `pipeline/01_download` to `07_validate` turn raw FIRMS CSVs into the app files in `data/processed/`. MODIS-equivalent counts are the reference scale; the conversion is learned on the 2012+ overlap.
+- **Web app (Shrihan):** reads only the files defined in the data contract (README Section 11.3, `docs/data-contract.md`). Until the pipeline delivers, build against `web/fixtures/`. Switching to `data/processed/` must need no app changes; if it does, the contract was broken, so fix the contract or pipeline, not the app.
+- **Calendar:** years x months heatmap; log-count, percentile, and anomaly color modes; `count_harm: null` means missing data and is hatched, never shown as zero.
 
-The data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web. The app must not depend on raw files.
+## Rules
 
-## Rules specific to this repo
-
-- Use FIRMS standard-processing (SP) archive data for history. Near-real-time data is only for the "current fire" feature and must be labeled provisional.
-- Every harmonized value ships with `count_raw`, `count_harmonized`, `method_version`, and an uncertainty band. Do not publish harmonized numbers without them.
-- Facts in the README about sensor start dates, FIRMS column names, and the MODIS confidence mapping came from memory and are unverified until Task 1.1 (`docs/data-notes.md`) confirms them. Do not hard-code them before then.
-- The FIRMS MAP_KEY goes in `.env` (gitignored). `data/raw/` is gitignored; do not commit raw downloads.
-- Coordination: claim a task as a line in `docs/CLAIMS.md` and work on one branch per task, so Yash, Shrihan, and Codex do not collide.
+- Never invent data. Sample fixtures must be marked `"is_sample": true`. If real data is missing, stop and say so.
+- Every harmonized value shown comes with its uncertainty (`count_low`/`count_high`) and `method_version`.
+- Near-real-time FIRMS data is only for the "current fire" feature and is labeled provisional.
+- Sensor dates, FIRMS column names, and confidence mapping are unverified until `docs/data-notes.md` (Task 1.1) exists. Do not hard-code them before then.
+- Changing the data contract needs Yash's agreement; flag it rather than changing it alone.
+- `.env` (FIRMS MAP_KEY) and `data/raw/` are gitignored.
