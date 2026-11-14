@@ -1,6 +1,8 @@
 // One small shared state object. Components read it and subscribe to changes;
 // they never talk to each other directly.
 
+import type { BBox } from './data/types';
+
 export type ColorMode = 'absolute' | 'percentile' | 'anomaly';
 
 export interface AppState {
@@ -8,6 +10,8 @@ export interface AppState {
   startDate: string | null; // YYYY-MM-DD
   endDate: string | null;
   colorMode: ColorMode;
+  drawnBox: BBox | null; // a rectangle the user drew on the map; null = use the whole region
+  drawing: boolean; // true while the map is in draw mode
 }
 
 export interface Store<T> {

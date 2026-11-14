@@ -26,11 +26,11 @@ The app fetches everything from `<site>/data/`. `vite.config.ts` decides which f
 ```
 index.html              page layout: one <section> per feature
 src/main.ts             starts the app: loads data, creates state, mounts components
-src/state.ts            shared state (region, dates, colour mode) with subscribe()
+src/state.ts            shared state (region, dates, colour mode, drawn box, draw mode) with subscribe()
 src/context.ts          what every component receives (metadata, regions, state, loaded data)
 src/data/types.ts       TypeScript shapes of the data files (mirror of the data contract)
 src/data/loader.ts      the only place that fetches files
-src/data/derive.ts      pure calculations (totals for a date range); unit tested
+src/data/derive.ts      pure calculations (range totals, peaks, presets, fire season, drawn areas); unit tested
 src/dom.ts              small helpers to build elements and format numbers
 src/components/         one file per page section
   controls.ts           region + date range
@@ -55,9 +55,18 @@ src/styles.css          all styles; colours are CSS variables with light and dar
 | Section | Status | Checklist step |
 |---|---|---|
 | Sample-data banner, footer citation | Built | S19 |
-| Region dropdown, date range, basic totals | Basic version built | S20 adds search, draw-on-map, presets, peak month/year |
-| Map | Region outlines only, no basemap | S27 adds basemap + hotspot points |
+| Region search + dropdown, click region on map, draw a rectangle | Built | S20 (polygon drawing not built) |
+| Date presets (all, last 30 days, last 12 months, last full year, fire season) + custom range | Built | S20 |
+| Summary: harmonized total, peak month, peak year, FRP, % high confidence, days with no data, raw by sensor | Built | S20 |
+| Map | Region outlines, selection, drawn box; no basemap | S27 adds basemap + hotspot points |
 | Burning activity calendar | Placeholder | S21 |
 | Charts | Placeholder | S22 |
 | CSV download | Placeholder | S23 |
-| Hotspot CSV loading | Not built (no loader yet) | S23 / S27 |
+| Hotspot CSV loading | Built (`loadHotspots`), used for drawn areas | reused by S23 / S27 |
+
+## How some numbers are defined
+
+- **Fire season preset:** the 3 consecutive calendar months with the highest mean `count_harm` in `baseline.json` (can wrap the year end, e.g. Nov–Jan), applied to the last full year in the data.
+- **Peak month / peak year / % high confidence:** use whole months that overlap the chosen dates (month files cannot be split into days). The summary says so when the dates cut a month.
+- **Presets** are relative to the last date in the data, not today's date.
+- **Drawn area:** counts hotspot points inside the rectangle from the regions it overlaps. Harmonized count = sum of `harmonized_weight`. Days with no data cannot be identified from points, so a drawn area shows no "days with no data" figure.

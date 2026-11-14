@@ -25,7 +25,7 @@ export interface RegionProperties {
   name: string;
   country: string;
   area_km2: number;
-  bbox: [number, number, number, number]; // west, south, east, north
+  bbox: BBox;
   boundary_source: string;
 }
 
@@ -94,7 +94,25 @@ export interface Baseline extends FileHeader {
   months: BaselineMonth[];
 }
 
-/** Everything the app loads for one region. Hotspot CSVs are loaded later, on demand (S23, S27). */
+/** One row of regions/<id>/hotspots/<year>.csv (docs/data-contract.md section 7). */
+export interface Hotspot {
+  date: string;
+  time_utc: string;
+  latitude: number;
+  longitude: number;
+  sensor: 'MODIS' | 'VIIRS';
+  satellite: string;
+  confidence: 'low' | 'nominal' | 'high';
+  frp: number;
+  daynight: 'D' | 'N';
+  harmonized_weight: number;
+  region_id: string;
+}
+
+/** [west, south, east, north] in degrees. */
+export type BBox = [number, number, number, number];
+
+/** Everything the app loads for one region. Hotspot CSVs are loaded on demand (drawn areas, map points, downloads). */
 export interface RegionData {
   monthly: Monthly;
   daily: Daily;
