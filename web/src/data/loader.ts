@@ -1,7 +1,7 @@
 // The only place that fetches data. Everything comes from <site>/data/, which is
 // web/fixtures in development and data/processed for the real site (see vite.config.ts).
 
-import type { Baseline, Daily, FileHeader, Metadata, Monthly, RegionCollection, RegionData } from './types';
+import type { Baseline, Daily, FileHeader, Hotspot, Metadata, Monthly, RegionCollection, RegionData } from './types';
 
 export const SUPPORTED_SCHEMA = '1.0';
 
@@ -60,6 +60,60 @@ export function loadRegionData(regionId: string): Promise<RegionData> {
     });
     hit.catch(() => regionCache.delete(regionId)); // allow a retry after a failure
     regionCache.set(regionId, hit);
+  }
+  return hit;
+}
+
+const HOTSPOT_COLUMNS = [
+  'date', 'time_utc', 'latitude', 'longitude', 'sensor', 'satellite',
+  'confidence', 'frp', 'daynight', 'harmonized_weight', 'region_id',
+] as const;
+
+/** Parse a hotspot CSV. The contract's columns contain no commas or quotes, so a plain split is safe. */
+export function parseHotspotCsv(text: string, path = 'hotspots'): Hotspot[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '' && !l.startsWith('#'));
+  const header = lines.shift()?.split(',') ?? [];
+  if (header.join(',') !== HOTSPOT_COLUMNS.join(',')) {
+    throw new DataError(`${path} has unexpected columns: ${header.join(',')}`);
+  }
+  return lines.map((line) => {
+    const v = line.split(',');
+    return {
+      date: v[0] ?? '',
+      time_utc: v[1] ?? '',
+      latitude: Number(v[2]),
+      longitude: Number(v[3]),
+      sensor: v[4] as Hotspot['sensor'],
+      satellite: v[5] ?? '',
+      confidence: v[6] as Hotspot['confidence'],
+      frp: Number(v[7]),
+      daynight: v[8] as Hotspot['daynight'],
+      harmonized_weight: Number(v[9]),
+      region_id: v[10] ?? '',
+    };
+  });
+}
+
+const hotspotCache = new Map<string, Promise<Hotspot[]>>();
+
+/** Hotspots for one region and year. A missing file (404) means no detections that year: returns []. */
+export function loadHotspots(regionId: string, year: number): Promise<Hotspot[]> {
+  const path = `regions/${encodeURIComponent(regionId)}/hotspots/${year}.csv`;
+  let hit = hotspotCache.get(path);
+  if (!hit) {
+    hit = (async () => {
+      let res: Response;
+      try {
+        res = await fetch(base + path);
+      } catch {
+        throw new DataError(`Could not reach ${path}. Check your connection.`);
+      }
+      if (res.status === 404) return [];
+      if (!res.ok) throw new DataError(`Could not load ${path} (HTTP ${res.status}).`);
+      return parseHotspotCsv(await res.text(), path);
+    })();
+    hit.catch(() => hotspotCache.delete(path));
+    hotspotCache.set(path, hit);
   }
   return hit;
 }

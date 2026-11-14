@@ -27,6 +27,8 @@ async function start(): Promise<void> {
     startDate: metadata.time_coverage.start,
     endDate: metadata.time_coverage.end,
     colorMode: 'absolute',
+    drawnBox: null,
+    drawing: false,
   });
   const loaded = createStore<LoadState>({ regionData: null, loading: false });
   const ctx: AppContext = { metadata, regions, state, loaded };
@@ -39,7 +41,7 @@ async function start(): Promise<void> {
 
   mountControls(need('controls'), ctx);
   mountSummary(need('summary'), ctx);
-  mountMap(need('map'), need('map-note'), ctx);
+  mountMap(need('map'), need('map-note'), need('map-tools'), ctx);
   mountPlaceholder(need('calendar'), 'Burning activity calendar', 'S21', 'Years × months heatmap of hotspot counts.');
   mountPlaceholder(need('charts'), 'Charts', 'S22', 'Monthly series, yearly totals and seasonal cycle.');
   mountPlaceholder(need('downloads'), 'Downloads', 'S23', 'CSV of hotspots for the current selection.');

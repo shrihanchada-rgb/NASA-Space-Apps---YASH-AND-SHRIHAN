@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-14 — S20 Pickers and summary — DONE
+- **Who / AI:** Shrihan using Claude (Yash's half: please review `web/README.md`)
+- **Did:** Region search that filters the dropdown; click a region on the map to select it; "Draw an area" (drag a rectangle) with its own summary from hotspot points; date presets (All data, Last 30 days, Last 12 months, last full year, Fire season derived from the baseline); summary now shows peak month, peak year, % high-confidence and a collapsible raw-by-sensor section. Added a hotspot CSV loader (reusable for S23/S27).
+- **Files changed:** `web/src/` (state, main, data/types, data/loader, data/derive, components/controls, components/summary, components/mapView, styles.css, new derive2.test.ts), `web/index.html`, `web/README.md`, `README.md`, `docs/HANDOFF.md`
+- **How to check it:** `cd web && npm run typecheck && npm test` → 20 tests pass; `npm run build` succeeds; `npm run dev`, click "Fire season Jul–Sep 2025" → dates 2025-07-01 to 2025-09-30; click "Draw an area", drag on the map → summary switches to "Drawn area" with a "Clear drawn area" button.
+- **Results / numbers:** Browser check (Chromium; desktop 1280, tablet 800, phone 390; dark mode): no console errors, no sideways scroll, sidebar no longer overflows (bug found and fixed in this step). Sample-data figures for all dates: 1,316 harmonized, peak month Aug 2025 (173), peak year 2025 (450), 30% high confidence, 30 days with no data.
+- **Decisions and why:** Month-based figures use whole months overlapping the dates (labelled in the UI). Presets are relative to the end of the data, not today. Drawn areas are rectangles only (polygon drawing not built); their counts come from hotspot points, and they cannot show "days with no data".
+- **Problems / open questions:** Clicking the map to switch regions is untested with more than one region (fixtures have one). Drawing has no keyboard alternative yet. Not tested in Firefox or Safari.
+- **Next step:** S21 (calendar) on the website side; S10 downloads for BR-PA, AU-NSW-VIC, PT on the data side.
+
 ### 2026-11-14 — S19 Website scaffold — DONE
 - **Who / AI:** Shrihan using Claude (this is Yash's half of the project; Yash should read `web/README.md`)
 - **Did:** Built the website backbone in `web/` with Vite + TypeScript (no UI framework) and MapLibre. It loads the sample data in `web/fixtures/`, shows a "SAMPLE DATA" banner, a region dropdown, a date range, basic totals for the selection, and a map with the region outline. Calendar, charts and downloads are labelled placeholders. Wrote `web/README.md` (commands, structure, rules for adding a feature).
