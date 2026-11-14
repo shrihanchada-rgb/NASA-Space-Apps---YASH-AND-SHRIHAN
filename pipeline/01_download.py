@@ -113,7 +113,8 @@ class RateLimiter:
                 self.events.append((now, cost))
                 return
             wait = self.window - (now - self.events[0][0]) + 1
-            print(f"  rate limit: waiting {wait:.0f} s")
+            if wait >= 30:  # short pauses are normal pacing; only report long ones
+                print(f"  rate limit: waiting {wait:.0f} s")
             self.sleep(wait)
 
 

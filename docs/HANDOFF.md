@@ -26,16 +26,16 @@ Rules for entries:
 
 ## Entries
 
-### 2026-11-14 — S10 Download everything — PAUSED (California MODIS done; VIIRS in progress)
-- **Who / AI:** Shrihan ran Colab; Claude fixed the downloader twice
-- **Did:** (1) First run stopped at 2007-09-01 with "Exceeding allowed transaction limit" → downloader now waits 11 min and retries (merged, PR 16). (2) Next run with that fix finished **MODIS_SP for US-CA: 1,887 chunks, 368,690 rows**, then stopped in VIIRS_SNPP_SP at the chunk starting 2013-07-23 with "Invalid MAP_KEY." after ~2,000 successful requests. FIRMS uses that message for an exhausted limit too, so the downloader now treats "Invalid MAP_KEY" after earlier successes as a limit (wait + retry); before any success it waits once, then stops.
-- **Files changed:** `pipeline/01_download.py`, `tests/test_download.py`, `docs/data-notes.md`, `docs/HANDOFF.md`
-- **How to check it:** `python3 -m pytest -q tests` → `24 passed`.
-- **Results / numbers:** MODIS values recorded in `docs/data-notes.md` §8: `satellite` is `Terra`/`Aqua` (must map to `T`/`A`), `confidence` 0–100, `version` mixes `6.03` and `61.03`, `type` mostly 0.
-- **Decisions and why:** treat the ambiguous "Invalid MAP_KEY" as a limit only after the key has been shown to work in the same run.
-- **Problems / open questions:** FIRMS limits slow the download; real time per region unknown. 2023 test files overlap full-range chunks → S11 must drop exact duplicate rows. MODIS C6/C6.1 switch date unknown.
-- **Next step:** merge `fix/invalid-key-mid-run`, upload a fresh `repo.zip`, rerun US-CA with the same `STEP_ARGS` (MODIS is skipped; VIIRS resumes), then BR-PA, AU-NSW-VIC, PT.
-- **If PAUSED — branch and resume command:** branch `fix/invalid-key-mid-run`; Colab step 01 with `--check-availability --region US-CA --start 2000-11-01 --end 2026-08-31`.
+### 2026-11-14 — S10 Download everything — PAUSED (California done; 3 regions left)
+- **Who / AI:** Shrihan ran Colab; Claude recorded results
+- **Did:** **US-CA is fully downloaded** (all 4 sources, full ranges). The run finished with `ok` and no 11-minute waits. VIIRS value formats confirmed and recorded in `docs/data-notes.md` §8. Short "rate limit: waiting N s" messages (normal pacing) are now only printed for waits of 30 s or more.
+- **Files changed:** `pipeline/01_download.py`, `docs/data-notes.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `24 passed`. In Drive: `raw/MODIS_SP/US-CA` (1,887 full-range files), `raw/VIIRS_SNPP_SP/US-CA` (1,062), `raw/VIIRS_NOAA20_SP/US-CA` (609), `raw/VIIRS_NOAA21_SP/US-CA` (250), plus the older 2023 test files in the first three.
+- **Results / numbers (US-CA box, before cleaning):** MODIS_SP 368,690; VIIRS_SNPP_SP 1,117,337; VIIRS_NOAA20_SP 773,314; VIIRS_NOAA21_SP 149,284 rows.
+- **Decisions and why:** none new.
+- **Problems / open questions:** VIIRS `type` 2 is 9–17% of rows here: S12 must report per region how many are dropped. The 2023 test files use different 5-day windows: S11 must drop exact duplicate rows.
+- **Next step:** run Colab step 01 for `BR-PA`, then `AU-NSW-VIC`, then `PT` (same `--start 2000-11-01 --end 2026-08-31`). No new zip needed for that unless you want the quieter messages.
+- **If PAUSED — branch and resume command:** none needed; resume with the next region in Colab.
 
 ### 2026-11-14 — S09 Download one region-year — DONE
 - **Who / AI:** Shrihan ran the Colab notebook (step 01) with his key; Claude recorded results and updated code.
