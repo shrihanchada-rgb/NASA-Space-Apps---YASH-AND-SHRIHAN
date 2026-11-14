@@ -26,6 +26,17 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-14 — S03 FIRMS key — PAUSED (needs a person)
+- **Who / AI:** Shrihan using Claude
+- **Did:** Added `.env.example` with an empty `FIRMS_MAP_KEY=` line. Shrihan has a FIRMS key. It was **not** shared with the AI or put in the repo.
+- **Files changed:** `.env.example`, `docs/HANDOFF.md`
+- **How to check it:** `cat .env.example` shows `FIRMS_MAP_KEY=` with no value; `git check-ignore .env` prints `.env` (so a real `.env` stays out of git).
+- **Results / numbers:** none
+- **Decisions and why:** Keys are never pasted into chat, the repo, or this log. Colab reads the key from Colab Secrets; a laptop reads it from a local `.env`.
+- **Problems / open questions:** S03 is not ticked: it is only done once each person has the key in Colab Secrets (name `FIRMS_MAP_KEY`, notebook access on) and/or a local `.env`. Yash needs his own key. The key-request link is unverified until S05.
+- **Next step:** Shrihan and Yash tick S03 once their key is set up. Then S05 (verify FIRMS facts).
+- **If PAUSED — branch and resume command:** none, the code part is merged; only the personal key setup is left.
+
 ### 2026-11-14 — S01 Read the plan, S02 Tools installed — DONE
 - **Who / AI:** Shrihan using Claude (running in the cloud session, not on a personal laptop)
 - **Did:** Read `README.md`, `CLAUDE.md` and `docs/HANDOFF.md`. Plan in one sentence: build a harmonized MODIS + VIIRS fire-hotspot history (2000 to now) and a website with a region/date picker, a burning-activity calendar, analytics and CSV download. Checked tool versions in the cloud session's environment and ticked S01 and S02.
