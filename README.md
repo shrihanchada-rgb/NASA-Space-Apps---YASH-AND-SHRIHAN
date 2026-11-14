@@ -32,7 +32,7 @@ NASA FIRMS has two active-fire records: MODIS (Terra from Nov 2000, Aqua from mi
 - FIRMS archive downloads (CSV/shapefile): MODIS C6.1 (`MODIS_C6_1`), VIIRS S-NPP (`VIIRS_SNPP_SP` standard processing for archive), VIIRS NOAA-20 (`VIIRS_NOAA20_SP`), NOAA-21 if available. Requires a FIRMS MAP_KEY for API use; store in `.env`, never commit.
 - Use **standard-processing (SP) archive**, not near-real-time (NRT), for history. NRT for the "current fire" feature only, labeled as provisional.
 - Columns (verify): MODIS `brightness, bright_t31, confidence(0–100)`; VIIRS `bright_ti4, bright_ti5, confidence(l/n/h)`; both `latitude, longitude, scan, track, acq_date, acq_time, satellite, instrument, frp, daynight, type`.
-- Pilot regions first (fire-rich, different regimes): California, Amazon/Pará (Brazil), Australia NSW/Victoria, Portugal/Iberia. Scale to global later.
+- **Pilot regions (agreed by Shrihan and Yash, 2026-11-14, step S04):** California (USA), Pará (Brazil), New South Wales + Victoria (Australia), Portugal. Chosen for being fire-rich with different fire regimes. Scale to global later.
 
 ### 2.2 Steps (each step = one script in `pipeline/`, with a unit test)
 1. `01_download.py` — fetch per sensor/year/region into `data/raw/<sensor>/<year>.csv`. Resumable, logs checksums.
@@ -167,7 +167,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [x] **S01 Read the plan.** Needs: —. Do: read this README, `CLAUDE.md` or `AGENTS.md`, and `docs/HANDOFF.md`. Done when: you can say in one sentence what the project builds. Leave behind: a "STARTED" entry.
 - [x] **S02 Tools installed.** Needs: S01. Do: install Python 3.11+ and Node.js 20+ (check `python3 --version`, `node --version`). Done when: both print a version. Leave behind: versions in the handoff entry.
 - [x] **S03 FIRMS key.** Needs: S01. Do: request a free FIRMS MAP_KEY (page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link) and put it in `.env` as `FIRMS_MAP_KEY=...`. Done when: `.env` exists locally. Leave behind: `.env.example` with `FIRMS_MAP_KEY=` (empty) committed. **Update (Shrihan, 2026-11-14):** `.env` was briefly committed and has been removed again. The key now lives in Colab Secrets (`FIRMS_MAP_KEY`), and anyone running locally keeps it in an untracked `.env` file. Because the key was in git history, treat it as exposed to anyone with repo access, and request a new key if the repo ever goes public.
-- [ ] **S04 Pilot regions agreed.** Needs: S01. Do: confirm the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal) or change them. Done when: final list written in Section 2.1.
+- [x] **S04 Pilot regions agreed.** Needs: S01. Do: confirm the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal) or change them. Done when: final list written in Section 2.1.
 
 ### Phase 1 — Check the facts
 - [ ] **S05 Verify FIRMS facts.** Needs: S01. Do: read the FIRMS docs for MODIS C6.1 and VIIRS 375 m active fire. Done when: `docs/data-notes.md` lists start date per satellite, exact CSV columns per sensor, meaning of each confidence value, meaning of `type`, licence and citation, with a link to the source for each fact. Leave behind: that file.

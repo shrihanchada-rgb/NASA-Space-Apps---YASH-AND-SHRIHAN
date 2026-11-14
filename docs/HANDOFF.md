@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-14 — S04 Pilot regions agreed — DONE
+- **Who / AI:** Shrihan using Claude
+- **Did:** Shrihan reported that Shrihan and Yash agreed on the default pilot regions. Wrote them in README Section 2.1 and ticked S04. Added a "set up your own FIRMS key" section to `AGENTS.md` for Yash.
+- **Files changed:** `README.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** README Section 2.1 lists the 4 regions; Section 10 shows S04 ticked.
+- **Results / numbers:** Regions: California (USA), Pará (Brazil), New South Wales + Victoria (Australia), Portugal.
+- **Decisions and why:** Defaults kept; region boundaries (which admin boundary file) are decided later in the pipeline steps.
+- **Problems / open questions:** Yash has not yet confirmed his own FIRMS key setup.
+- **Next step:** S05 (verify FIRMS facts).
+
 ### 2026-11-14 — S03 FIRMS key; Colab private-repo fix — DONE
 - **Who / AI:** Shrihan using Claude
 - **Did:** Shrihan has a FIRMS key and reports adding it to Colab Secrets as `FIRMS_MAP_KEY` with notebook access on (not verified by the AI). An earlier commit (`c2dd4b5`) had put `.env` with the key on `main`; this change removes `.env` from the repo again (the AI never read its contents). Changed `notebooks/run_pipeline_colab.ipynb` cell 3 to unzip the repo from `My Drive/nasa-fire-calendar/repo.zip` instead of `git clone`, because the repo is private. Ticked S03 in README Section 10.
