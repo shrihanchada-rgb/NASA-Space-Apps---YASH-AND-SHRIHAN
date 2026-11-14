@@ -164,8 +164,8 @@ One list, done in order. Tick a box (`- [x]`) in the same commit that finishes t
 Each step has: **Needs** (steps that must be ticked first), **Do** (the work), **Done when** (how you know), and **Leave behind** (what the next person finds in the repo).
 
 ### Phase 0 — Setup
-- [ ] **S01 Read the plan.** Needs: —. Do: read this README, `CLAUDE.md` or `AGENTS.md`, and `docs/HANDOFF.md`. Done when: you can say in one sentence what the project builds. Leave behind: a "STARTED" entry.
-- [ ] **S02 Tools installed.** Needs: S01. Do: install Python 3.11+ and Node.js 20+ (check `python3 --version`, `node --version`). Done when: both print a version. Leave behind: versions in the handoff entry.
+- [x] **S01 Read the plan.** Needs: —. Do: read this README, `CLAUDE.md` or `AGENTS.md`, and `docs/HANDOFF.md`. Done when: you can say in one sentence what the project builds. Leave behind: a "STARTED" entry.
+- [x] **S02 Tools installed.** Needs: S01. Do: install Python 3.11+ and Node.js 20+ (check `python3 --version`, `node --version`). Done when: both print a version. Leave behind: versions in the handoff entry.
 - [ ] **S03 FIRMS key.** Needs: S01. Do: request a free FIRMS MAP_KEY (page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link) and put it in `.env` as `FIRMS_MAP_KEY=...`. Done when: `.env` exists locally. Leave behind: `.env.example` with `FIRMS_MAP_KEY=` (empty) committed. Never commit `.env`. Note: `.env` is local to one machine, so the other person needs their own key.
 - [ ] **S04 Pilot regions agreed.** Needs: S01. Do: confirm the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal) or change them. Done when: final list written in Section 2.1.
 
