@@ -1,6 +1,6 @@
 # NASA Space Apps — Harmonized Burning Activity Calendar (MODIS + VIIRS)
 
-> Team: Yash and Shrihan. This README is the single source of truth for what to build, so humans and AI coding agents (e.g. Codex) can work on the same problem without overlap.
+> Team: Shrihan and Yash. This README is the single source of truth for what to build, so humans and AI coding agents (e.g. Codex) can work on the same problem without overlap.
 > Status: planning. No code yet. Facts marked "verify" must be checked in Task 1.1 before code depends on them.
 
 ---
@@ -119,14 +119,14 @@ web/fixtures/          # small fake sample files that follow the data contract
 ## 6. Work breakdown and ownership
 | # | Task | Owner | Depends on | Done when |
 |---|------|-------|-----------|-----------|
-| 1.1 | Verify sensor dates, columns, confidence mapping against FIRMS docs; write `docs/data-notes.md` | Yash (Codex) | — | Facts in this README confirmed/corrected |
-| 1.2 | Download + clean pilot regions (01–03) | Yash (Codex) | 1.1 | Unified schema files exist, tests pass |
-| 1.3 | Grid/dedupe + calibration experiments A/B/C (04–05) | Yash (Codex) | 1.2 | Metrics table comparing methods |
-| 1.4 | Validation + aggregation outputs (06–07) | Yash (Codex) | 1.3 | Data products in 2.4 generated |
-| 2.0 | Data contract + sample fixture files (Section 11.3) | Shrihan (Claude) + Yash review | — | `web/fixtures/` exists and Yash approved it |
-| 2.1 | App scaffold, region + date selection, summary panel | Shrihan (Claude) | 2.0 | Works on fixture JSON |
-| 2.2 | Calendar heatmap with 3 color modes | Shrihan (Claude) | 2.1 | Matches spec 3.1.4 |
-| 2.3 | Charts, map, CSV export, methods page | Shrihan (Claude) | 2.1, 1.4 | Spec 3.1 complete |
+| 1.1 | Verify sensor dates, columns, confidence mapping against FIRMS docs; write `docs/data-notes.md` | Shrihan (Claude) | — | Facts in this README confirmed/corrected |
+| 1.2 | Download + clean pilot regions (01–03) | Shrihan (Claude) | 1.1 | Unified schema files exist, tests pass |
+| 1.3 | Grid/dedupe + calibration experiments A/B/C (04–05) | Shrihan (Claude) | 1.2 | Metrics table comparing methods |
+| 1.4 | Validation + aggregation outputs (06–07) | Shrihan (Claude) | 1.3 | Data products in 2.4 generated |
+| 2.0 | Data contract + sample fixture files (Section 11.3) | Yash (Codex) + Shrihan review | — | `web/fixtures/` exists and Shrihan approved it |
+| 2.1 | App scaffold, region + date selection, summary panel | Yash (Codex) | 2.0 | Works on fixture JSON |
+| 2.2 | Calendar heatmap with 3 color modes | Yash (Codex) | 2.1 | Matches spec 3.1.4 |
+| 2.3 | Charts, map, CSV export, methods page | Yash (Codex) | 2.1, 1.4 | Spec 3.1 complete |
 | 3.1 | Integrate real data, current-fire comparison, polish, demo script | both | 1.4, 2.3 | End-to-end demo |
 
 Before starting a row, add a line to `docs/CLAIMS.md` (format is in that file). One branch per task. The full step-by-step version of this table is the checklist in Section 10.
@@ -148,13 +148,13 @@ Pipeline reproduces from raw; validation report published; web app deployed; cal
 
 Two people, two AI tools. Each person owns one half of the project and uses one AI.
 
-| | **Shrihan** | **Yash** |
+| | **Yash** | **Shrihan** |
 |---|---|---|
-| AI tool | Claude (Claude Code) | Codex |
+| AI tool | Codex | Claude (Claude Code) |
 | Owns folder | `web/` (the website) | `pipeline/` and `data/` (the data work) |
 | Main job | Build the web app: map, region picker, date picker, burning calendar, charts, CSV download, methods page | Download FIRMS data, clean it, harmonize MODIS + VIIRS, check the results, produce the files the app reads |
 | Also owns | The data contract fixtures (`web/fixtures/`), keeping `README.md` checklist up to date, the demo | `docs/data-notes.md` (verified facts), `docs/validation/` (plots + numbers that prove harmonization works) |
-| Reviews | Yash's pull requests (reads the plots, asks "does this make sense?") | Shrihan's pull requests (checks the app shows the data correctly) |
+| Reviews | Shrihan's pull requests (reads the plots, asks "does this make sense?") | Yash's pull requests (checks the app shows the data correctly) |
 | Shared | Data analysis (Section 13), final demo, presentation | Same |
 
 Rules for the split:
@@ -171,50 +171,50 @@ Tick a box (`- [x]`) in a pull request when the step is done. Owner is in bracke
 ### Phase 0 — Setup (both, day 1)
 - [ ] [Both] Clone the repo and read this whole README once.
 - [ ] [Both] Install Python 3.11+ and Node.js 20+ (LTS). Check with `python3 --version` and `node --version`.
-- [ ] [Yash] Get a free FIRMS MAP_KEY (request page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link). Put it in `.env` as `FIRMS_MAP_KEY=...`. Never commit `.env`.
-- [ ] [Yash] Create `.env.example` with `FIRMS_MAP_KEY=` (empty) and commit it.
+- [ ] [Shrihan] Get a free FIRMS MAP_KEY (request page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link). Put it in `.env` as `FIRMS_MAP_KEY=...`. Never commit `.env`.
+- [ ] [Shrihan] Create `.env.example` with `FIRMS_MAP_KEY=` (empty) and commit it.
 - [ ] [Both] Agree on the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal). Write the final list in Section 2.1.
 - [ ] [Both] Agree on daily sync time (Section 11.1).
 
-### Phase 1 — Check the facts (Yash, with Codex)
-- [ ] [Yash] Read the FIRMS documentation for MODIS C6.1 and VIIRS 375 m active fire products.
-- [ ] [Yash] Write `docs/data-notes.md` with: start date of each satellite, exact CSV column names for each sensor, what each confidence value means, what `type` values mean, data licence and how to cite FIRMS.
-- [ ] [Yash] Fix anything in this README that turned out wrong (Sections 0, 2.1, 7).
-- [ ] [Shrihan] Review `docs/data-notes.md` and merge.
+### Phase 1 — Check the facts (Shrihan, with Claude)
+- [ ] [Shrihan] Read the FIRMS documentation for MODIS C6.1 and VIIRS 375 m active fire products.
+- [ ] [Shrihan] Write `docs/data-notes.md` with: start date of each satellite, exact CSV column names for each sensor, what each confidence value means, what `type` values mean, data licence and how to cite FIRMS.
+- [ ] [Shrihan] Fix anything in this README that turned out wrong (Sections 0, 2.1, 7).
+- [ ] [Yash] Review `docs/data-notes.md` and merge.
 
-### Phase 2 — Data contract (Shrihan, with Claude; Yash reviews)
-- [ ] [Shrihan] Write the JSON schema for each app file in Section 2.4 into `docs/data-contract.md`, starting from the example in Section 11.3.
-- [ ] [Shrihan] Make small fake sample files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly. Mark them clearly as fake (`"is_sample": true`).
-- [ ] [Yash] Review: "Can my pipeline produce exactly this?" Change the contract now if not. After merge, changes to the contract need both people to agree.
+### Phase 2 — Data contract (Yash, with Codex; Shrihan reviews)
+- [ ] [Yash] Write the JSON schema for each app file in Section 2.4 into `docs/data-contract.md`, starting from the example in Section 11.3.
+- [ ] [Yash] Make small fake sample files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly. Mark them clearly as fake (`"is_sample": true`).
+- [ ] [Shrihan] Review: "Can my pipeline produce exactly this?" Change the contract now if not. After merge, changes to the contract need both people to agree.
 
-### Phase 3 — Get and clean data (Yash, with Codex)
-- [ ] [Yash] `pipeline/01_download.py`: download MODIS and VIIRS archive data for one pilot region and one year first. Check the file opens and has rows.
-- [ ] [Yash] Extend to all pilot regions and all years (2000→now). Keep raw files in `data/raw/` (not committed).
-- [ ] [Yash] `02_clean.py`: convert both sensors into the single schema in Section 2.2. Write a test that loads 5 known rows and checks the output.
-- [ ] [Yash] `03_filter.py`: remove low-confidence and non-vegetation detections; print how many were removed per sensor per year.
-- [ ] [Yash] Do the sanity checks in Section 13, Step A. Save the plots in `docs/validation/`.
+### Phase 3 — Get and clean data (Shrihan, with Claude)
+- [ ] [Shrihan] `pipeline/01_download.py`: download MODIS and VIIRS archive data for one pilot region and one year first. Check the file opens and has rows.
+- [ ] [Shrihan] Extend to all pilot regions and all years (2000→now). Keep raw files in `data/raw/` (not committed).
+- [ ] [Shrihan] `02_clean.py`: convert both sensors into the single schema in Section 2.2. Write a test that loads 5 known rows and checks the output.
+- [ ] [Shrihan] `03_filter.py`: remove low-confidence and non-vegetation detections; print how many were removed per sensor per year.
+- [ ] [Shrihan] Do the sanity checks in Section 13, Step A. Save the plots in `docs/validation/`.
 
-### Phase 4 — Build the app on fake data (Shrihan, with Claude) — runs at the same time as Phases 3–5
-- [ ] [Shrihan] Scaffold `web/` (Vite + TypeScript). Page loads with a blank map.
-- [ ] [Shrihan] Region picker (dropdown + draw on map) and date range picker with presets.
-- [ ] [Shrihan] Summary panel reading from `web/fixtures/`.
-- [ ] [Shrihan] Burning activity calendar (years × months) with the 3 color modes, legend, tooltips, hatching for missing data.
-- [ ] [Shrihan] Monthly time series, yearly totals, seasonal cycle charts.
-- [ ] [Shrihan] CSV download of the current query (columns in Section 3.1.8).
-- [ ] [Shrihan] Check the page works on a phone-sized screen and with keyboard only.
+### Phase 4 — Build the app on fake data (Yash, with Codex) — runs at the same time as Phases 3–5
+- [ ] [Yash] Scaffold `web/` (Vite + TypeScript). Page loads with a blank map.
+- [ ] [Yash] Region picker (dropdown + draw on map) and date range picker with presets.
+- [ ] [Yash] Summary panel reading from `web/fixtures/`.
+- [ ] [Yash] Burning activity calendar (years × months) with the 3 color modes, legend, tooltips, hatching for missing data.
+- [ ] [Yash] Monthly time series, yearly totals, seasonal cycle charts.
+- [ ] [Yash] CSV download of the current query (columns in Section 3.1.8).
+- [ ] [Yash] Check the page works on a phone-sized screen and with keyboard only.
 
-### Phase 5 — Harmonize (Yash, with Codex; analysis with Shrihan)
-- [ ] [Yash] `04_dedupe_and_grid.py`: put detections on the grid; test that no detection is lost or counted twice.
-- [ ] [Yash] `05_calibrate.py`: implement Candidate A first, then B and C (Section 2.3).
+### Phase 5 — Harmonize (Shrihan, with Claude; analysis with Yash)
+- [ ] [Shrihan] `04_dedupe_and_grid.py`: put detections on the grid; test that no detection is lost or counted twice.
+- [ ] [Shrihan] `05_calibrate.py`: implement Candidate A first, then B and C (Section 2.3).
 - [ ] [Both] Do the analysis in Section 13, Steps B–D. Decide which method wins. Write the decision and the numbers in `docs/validation/README.md`.
-- [ ] [Yash] `06_aggregate.py`: write the real app files into `data/processed/`, following the data contract exactly.
-- [ ] [Yash] `07_validate.py`: one command that re-creates all validation plots and the metrics table.
+- [ ] [Shrihan] `06_aggregate.py`: write the real app files into `data/processed/`, following the data contract exactly.
+- [ ] [Shrihan] `07_validate.py`: one command that re-creates all validation plots and the metrics table.
 
 ### Phase 6 — Connect real data (both)
-- [ ] [Shrihan] Switch the app from `web/fixtures/` to `data/processed/`. Nothing else should need to change; if it does, the contract was broken — fix the contract or the pipeline, not the app.
+- [ ] [Yash] Switch the app from `web/fixtures/` to `data/processed/`. Nothing else should need to change; if it does, the contract was broken — fix the contract or the pipeline, not the app.
 - [ ] [Both] Do Section 13, Step E (does the calendar make sense?).
-- [ ] [Shrihan] Map with hotspot points, current-fire comparison, methods page.
-- [ ] [Shrihan] Deploy to GitHub Pages.
+- [ ] [Yash] Map with hotspot points, current-fire comparison, methods page.
+- [ ] [Yash] Deploy to GitHub Pages.
 
 ### Phase 7 — Finish (both)
 - [ ] [Both] Run the whole pipeline from an empty `data/processed/` and check the app still works.
@@ -224,7 +224,7 @@ Tick a box (`- [x]`) in a pull request when the step is done. Owner is in bracke
 
 ---
 
-## 11. How Shrihan and Yash work together
+## 11. How Yash and Shrihan work together
 
 ### 11.1 Daily routine
 1. **Start of day (10 min call or chat):** each person says (a) what I finished, (b) what I do today, (c) what is blocking me. Write the answers as one line each in `docs/CLAIMS.md` if anything changed.
@@ -235,7 +235,7 @@ Tick a box (`- [x]`) in a pull request when the step is done. Owner is in bracke
 ### 11.2 Git workflow (same for both)
 1. One task = one branch. Name: `task/<id>-<short-name>`, for example `task/2.2-calendar` or `task/1.2-clean`.
 2. Open a pull request into `main` when the task is done.
-3. The **other person** reads the pull request before it is merged. For Yash's pull requests Shrihan looks at the plots and numbers; for Shrihan's pull requests Yash opens the app and checks the numbers look right.
+3. The **other person** reads the pull request before it is merged. For Shrihan's pull requests Yash looks at the plots and numbers; for Yash's pull requests Shrihan opens the app and checks the numbers look right.
 4. Merge only after the other person says OK. Never push directly to `main`.
 5. If two pull requests change the same file, the second one to merge pulls `main` first and fixes the conflict.
 
@@ -278,7 +278,7 @@ Shrihan uses Claude Code; Yash uses Codex. Both tools read their instruction fil
 7. **Ask it to ask.** "If something is unclear, ask me before guessing."
 8. **Small steps.** If the AI's answer is very long or changes many files, ask it to split the work.
 
-### 12.2 Prompt template — Shrihan → Claude
+### 12.2 Prompt template — Yash → Codex (website)
 ```
 Task: <ID and name from README Section 10, e.g. 2.2 Burning activity calendar>
 Read first: README.md Sections 3.1.4 and 11.3, docs/data-contract.md
@@ -293,10 +293,10 @@ Show me: the commands you ran and their output, and a screenshot if you can.
 If anything is unclear, ask me first.
 ```
 
-### 12.3 Prompt template — Yash → Codex
+### 12.3 Prompt template — Shrihan → Claude (data pipeline)
 ```
 Task: <ID and name from README Section 10, e.g. 1.2 Clean MODIS + VIIRS data>
-Read first: AGENTS.md, README.md Section 2.2, docs/data-notes.md
+Read first: CLAUDE.md, README.md Section 2.2, docs/data-notes.md
 Input: data/raw/<sensor>/<year>.csv
 Output: data/interim/clean_<sensor>_<year>.parquet with columns exactly:
         lat, lon, date, time_utc, sensor, satellite, confidence_class, frp, daynight, type
@@ -323,7 +323,7 @@ The AIs do not talk to each other. They share information only through the repo.
 
 ## 13. How to analyze the data (both, step by step)
 
-Do these steps together, on a shared screen if possible. Yash runs the code; Shrihan asks questions and writes down the findings. Save every plot in `docs/validation/` with a clear file name.
+Do these steps together, on a shared screen if possible. Shrihan runs the code; Yash asks questions and writes down the findings. Save every plot in `docs/validation/` with a clear file name.
 
 ### Step A — Sanity checks on cleaned data (after Phase 3)
 1. For each pilot region, plot **hotspots per year, one line per sensor** (MODIS and VIIRS separately).
