@@ -36,6 +36,11 @@ class LimitReached(FirmsError):
     """FIRMS answered that the MAP_KEY transaction limit is used up."""
 
 
+class KeyRejected(FirmsError):
+    """FIRMS answered "Invalid MAP_KEY". FIRMS also uses this when the limit is used up
+    (its status page: "MAP_KEY is invalid or your have exceeded your transaction/time limit")."""
+
+
 def load_key():
     key = os.environ.get("FIRMS_MAP_KEY", "").strip()
     env = ROOT / ".env"
@@ -128,6 +133,8 @@ def fetch(url, key, get=http_get, retries=4, sleep=time.sleep):
             body = e.read().decode("utf-8", errors="replace").strip()[:200] if hasattr(e, "read") else ""
             if "transaction limit" in body.lower() or "transaction/time limit" in body.lower():
                 raise LimitReached(f"HTTP {e.code}: {body} ({mask(url, key)})") from None
+            if "invalid map_key" in body.lower():
+                raise KeyRejected(f"HTTP {e.code}: {body} ({mask(url, key)})") from None
             if e.code < 500 or attempt == retries:
                 raise FirmsError(f"HTTP {e.code}: {body or e.reason} ({mask(url, key)})") from None
         except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
@@ -159,6 +166,7 @@ def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=No
     bbox = config.REGIONS[region]["bbox"]
     limiter = limiter or RateLimiter()
     summary = {}
+    downloaded_ok = 0
     for source in sources:
         span = clip_to_source(source, start, end)
         stats = {"chunks": 0, "skipped": 0, "rows": 0, "header": None, "values": {}}
@@ -187,8 +195,14 @@ def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=No
                 for wait in range(max_limit_waits + 1):
                     try:
                         text = fetch(area_url(key, source, bbox, day, n), key, get=get)
+                        downloaded_ok += 1
                         break
-                    except LimitReached:
+                    except (LimitReached, KeyRejected) as err:
+                        # "Invalid MAP_KEY" before any success in this run: wait once (a previous run may
+                        # have used the limit), then stop - the key is probably wrong.
+                        # After earlier successes in this run it means the limit: keep waiting and retrying.
+                        if isinstance(err, KeyRejected) and downloaded_ok == 0 and wait >= 1:
+                            raise
                         if wait == max_limit_waits:
                             raise
                         log(f"  FIRMS says the key's limit is used up; waiting {limit_wait_s // 60} min, then retrying "
