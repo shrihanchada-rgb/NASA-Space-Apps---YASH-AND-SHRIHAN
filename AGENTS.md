@@ -1,31 +1,38 @@
 # AGENTS.md
 
-Guidance for Codex and other AI coding agents working in this repository. `CLAUDE.md` carries the same project rules for Claude Code; if you change one, update the other.
+Guidance for Codex in this repository. `CLAUDE.md` holds the matching rules for Claude Code; if you change shared project rules here, update `CLAUDE.md` too.
+
+## Who you are working for
+
+You are Yash's AI. Yash owns the data work: `pipeline/`, `data/`, `docs/data-notes.md`, and `docs/validation/`. Shrihan owns the web app (`web/`) and works with Claude. Do not edit `web/`; if a change is needed there, say so and stop. Full role table: README Section 9.
 
 ## Status
 
-Planning stage. The repo holds only `README.md` (the project plan), `CLAUDE.md`, `AGENTS.md`, and `.gitignore`. There is no source code, build system, linter, or test suite yet, so there are no build or test commands. When you scaffold the pipeline or web app, add the real commands to this file and to `CLAUDE.md`.
+Planning stage. No source code, build system, linter, or tests exist yet, so there are no commands to document. When you scaffold `pipeline/`, add its real commands here (install, run the full pipeline, run all tests, run a single test such as `pytest pipeline/tests -k <name>`).
 
 `README.md` is the source of truth for scope, task order, and ownership. Read it fully before starting. Do not create a competing plan elsewhere; edit the README instead.
 
+## Start of every session
+
+1. `git checkout main && git pull`, then branch as `task/<id>-<short-name>` (README Section 11.2).
+2. Find the task in the README checklist (Section 10) and check `docs/CLAIMS.md` that nobody else has it. Add a claim line.
+3. When done: tick the checklist box in the same pull request, set the claim to `in review`, and show Yash the commands you ran and their output. Never push to `main`; Shrihan reviews before merge.
+
 ## Project
 
-NASA Space Apps challenge: a harmonized MODIS + VIIRS active-fire hotspot time series (about 2000 to present) and a web app that shows a burning-activity calendar for a chosen region and date range, with analytics and CSV export.
+Harmonized MODIS + VIIRS active-fire hotspot series (about 2000 to present) plus a web app showing a burning-activity calendar for a chosen region and date range, with analytics and CSV export.
 
-1. **Pipeline (`pipeline/`, Python):** numbered scripts `01_download` to `07_validate` turn raw NASA FIRMS archive CSVs into app-ready files in `data/processed/`. The core step is `05_calibrate`: MODIS-equivalent counts are the reference scale, and a mapping learned on the 2012+ overlap is applied to VIIRS-era data. Compare the candidate methods in the README by held-out validation and document the winner.
-2. **Web app (`web/`):** reads only the pre-aggregated outputs, never raw files. The centerpiece is a years x months calendar heatmap with log-count, percentile, and anomaly color modes. Missing data is hatched, never shown as zero.
+- **Pipeline (yours):** numbered scripts `01_download` to `07_validate` turn raw NASA FIRMS archive CSVs into the app files in `data/processed/`. The core step is `05_calibrate`: MODIS-equivalent counts are the reference scale, and a conversion learned on the 2012+ overlap is applied to VIIRS data. Test candidate methods A, B, C fairly (train 2012–2018, test 2019–2023; README Section 13 Step C) and write the winner and its metrics in `docs/validation/README.md`.
+- **Output must match the data contract** (README Section 11.3, `docs/data-contract.md`) exactly. The web app reads nothing else. Missing months are `null`, never `0`.
 
 Data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web.
 
 ## Rules
 
+- Never invent data or rows. If a download fails or a column differs from `docs/data-notes.md`, stop and report it.
 - Use FIRMS standard-processing (SP) archive data for history. Near-real-time data is only for the "current fire" feature and must be labeled provisional.
 - Every harmonized value ships with `count_raw`, `count_harmonized`, `method_version`, and an uncertainty band.
 - Sensor start dates, FIRMS column names, and the MODIS confidence mapping in the README are unverified (written from memory). Do not hard-code them until Task 1.1 (`docs/data-notes.md`) confirms them.
+- Tests must not download data; use small checked-in sample rows.
+- Changing the data contract needs Shrihan's agreement.
 - The FIRMS MAP_KEY goes in `.env` (gitignored). `data/raw/` is gitignored; do not commit raw downloads or secrets.
-
-## Coordinating with other agents and people
-
-- Pick an unblocked task from the README work breakdown (Section 6) and add a line for it to `docs/CLAIMS.md` before starting.
-- One branch per task. Do not push to `main` directly; open a pull request.
-- Do not take a task already claimed in `docs/CLAIMS.md`.
