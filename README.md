@@ -112,6 +112,7 @@ docs/data-notes.md     # verified facts about FIRMS data (Task 1.1)
 docs/data-contract.md  # exact shape of the files the app reads (Task 2.0)
 docs/HANDOFF.md        # running log: one entry per step, newest first
 web/                   # app source
+notebooks/             # Colab notebook that runs the pipeline (Section 14)
 web/fixtures/          # small fake sample files that follow the data contract
 .env.example           # FIRMS_MAP_KEY=
 ```
@@ -177,7 +178,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [ ] **S08 Fake sample data.** Needs: S07. Do: make small fake files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly, with `"is_sample": true`. Done when: a script or test validates them against the contract.
 
 ### Phase 3 — Get and clean data
-- [ ] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors. Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.
+- [ ] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors (run it locally or in Colab, Section 14). Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.
 - [ ] **S10 Download everything.** Needs: S09. Do: extend to all pilot regions and years (2000 to now), resumable. Done when: a table of files and row counts is in the handoff entry. Raw files stay in `data/raw/` (not committed), so write how to re-create them.
 - [ ] **S11 Clean.** Needs: S10. Do: `02_clean.py` into the single schema (Section 2.2) plus a test on 5 known rows. Done when: test passes.
 - [ ] **S12 Filter.** Needs: S11. Do: `03_filter.py`; print how many were removed per sensor per year. Done when: counts are in `docs/validation/`.
@@ -360,3 +361,32 @@ These steps are done during the steps named in Section 10 (Step A in S13, Steps 
 
 ### Step F — Write up what you found
 For each region, write 3–5 short sentences on the methods page: peak months, most active years, any trend, and how sure we are (from the Step C numbers). Use plain words, because emergency managers will read it.
+
+---
+
+## 14. Running the pipeline in Google Colab
+
+Downloading 25 years of FIRMS data and running the harmonization is heavy. Colab can do that on Google's machines instead of a laptop. The code still lives in this repo; Colab only runs it.
+
+**The notebook:** `notebooks/run_pipeline_colab.ipynb`. It clones this repo, installs packages, loads the FIRMS key from Colab Secrets, keeps `data/raw` and `data/interim` on Google Drive (so downloads survive a restart), runs the pipeline scripts you choose, runs the tests, and prints a summary. Status: written but never run; the pipeline scripts it calls do not exist yet.
+
+### 14.1 One-time setup (each person, once)
+1. Open the notebook in Colab: Colab → File → Open notebook → GitHub tab → paste `shrihanchada-rgb/NASA-Space-Apps---YASH-AND-SHRIHAN` → pick `notebooks/run_pipeline_colab.ipynb`.
+2. Click the key icon (Secrets) in the left bar. Add a secret `FIRMS_MAP_KEY` with your FIRMS key (step S03) and turn on "Notebook access".
+3. Run the cells top to bottom once with `STEPS = []` to check setup works. Expect "nothing to run".
+
+### 14.2 Doing a pipeline step in Colab
+1. Pull `main` and read the newest `docs/HANDOFF.md` entry as usual (Section 11.1).
+2. In Colab, set `BRANCH` (default `main`) and `STEPS`, for example `["01"]`, then run all cells. Start with one region and one year (S09) before running everything (S10).
+3. Raw and interim files land in `My Drive/nasa-fire-calendar/` and are reused by the next run, by either person, if the Drive folder is shared.
+4. Colab sessions are wiped when they end, so **copy the summary from the last cell into your `docs/HANDOFF.md` entry**, with the exact `STEPS` and `BRANCH` you used. Record file counts and sizes, not the files.
+
+### 14.3 Rules for Colab
+- Code changes happen in the repo, not in the notebook. If a script needs fixing, fix it in `pipeline/`, commit and push, then re-run the notebook, which pulls the new version. Do not leave fixes only inside a Colab cell.
+- Never paste the FIRMS key into a cell or a handoff entry.
+- Large data stays on Drive. Small outputs the website needs (`data/processed/`) are downloaded from Drive and committed from a laptop, or via the repo if they are small. Do not put a GitHub token into Colab.
+- Share the Drive folder `nasa-fire-calendar` with the other person (Drive → Share) so both can reuse the same raw downloads. If you cannot share, the other person must re-download, which takes time.
+- A free Colab session can disconnect after a few hours or when idle. The scripts must be resumable (S09, S10), so rerunning continues instead of starting over.
+
+### 14.4 Using the AIs with Colab
+Claude Code and Codex cannot control a Colab session. They write and fix the code in the repo; a person runs it in Colab and brings the results back through the handoff entry. When prompting an AI, paste the Colab error output in full, and say which `STEPS` and `BRANCH` you ran. Start any prompt with: "Read README.md and the newest entry in docs/HANDOFF.md."
