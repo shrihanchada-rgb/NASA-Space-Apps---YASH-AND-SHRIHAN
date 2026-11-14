@@ -1,3 +1,6 @@
+import '@fontsource-variable/ibm-plex-sans';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
 import './styles.css';
 import { mountControls } from './components/controls';
 import { mountMap } from './components/mapView';
@@ -33,21 +36,34 @@ async function start(): Promise<void> {
   const loaded = createStore<LoadState>({ regionData: null, loading: false });
   const ctx: AppContext = { metadata, regions, state, loaded };
 
+  const tag = (text: string, cls = '') => {
+    const t = document.createElement('span');
+    t.className = `tag ${cls}`;
+    const dot = document.createElement('span');
+    dot.className = 'tag-dot';
+    t.append(dot, text);
+    return t;
+  };
+  need('data-status').replaceChildren(
+    tag(metadata.is_sample ? 'Sample data' : 'FIRMS data', metadata.is_sample ? 'is-sample' : ''),
+    tag(`Built ${metadata.build_date}`),
+    tag(`Method ${metadata.method_version}`),
+  );
   if (metadata.is_sample) {
     const banner = need('sample-banner');
-    banner.textContent = 'SAMPLE DATA: these numbers are invented for development. They are not real fire data.';
+    banner.textContent = 'Sample data: these numbers are invented for development. They are not real fire data.';
     banner.hidden = false;
   }
 
   mountControls(need('controls'), ctx);
   mountSummary(need('summary'), ctx);
   mountMap(need('map'), need('map-note'), need('map-tools'), ctx);
-  mountPlaceholder(need('calendar'), 'Burning activity calendar', 'S21', 'Years × months heatmap of hotspot counts.');
-  mountPlaceholder(need('charts'), 'Charts', 'S22', 'Monthly series, yearly totals and seasonal cycle.');
-  mountPlaceholder(need('downloads'), 'Downloads', 'S23', 'CSV of hotspots for the current selection.');
+  mountPlaceholder(need('calendar'), 'Burning activity calendar', 'S21', 'Years × months heatmap of hotspot counts, with absolute, percentile and anomaly colour modes.', 'calendar');
+  mountPlaceholder(need('charts'), 'Charts', 'S22', 'Monthly series with uncertainty, yearly totals and the seasonal cycle.', 'chart');
+  mountPlaceholder(need('downloads'), 'Downloads', 'S23', 'CSV of hotspots for the current selection, with the citation in the header.', 'download');
 
   need('footer').textContent =
-    `${metadata.citation} · Data built ${metadata.build_date} · Method ${metadata.method_version}`;
+    `${metadata.citation} Map imagery: NASA Global Imagery Browse Services (GIBS).`;
 
   async function loadSelected(): Promise<void> {
     const id = state.get().regionId;

@@ -25,7 +25,9 @@ Status key: **Used** = already relied on. **Planned** = needed for a checklist s
 | Region boundaries: **do not use GADM** | GADM is common, but its licence page says redistribution or commercial use is not allowed without permission. Our app redistributes the polygons, so avoid it. | Rejected | Checked (search summary of https://gadm.org/license.html) | https://gadm.org/license.html |
 | FIRMS near real-time (`*_NRT` sources) | "Current fire" comparison only (README 3.1.7), labelled provisional | Planned (S27) | Same as FIRMS | FIRMS API |
 | MODIS Burned Area MCD64A1 v6.1 (monthly, 500 m) | Independent check of fire seasons and big fire years (Section 13, Step E): do months with many hotspots also have a lot of burned area? | Optional | The Google Earth Engine catalog says no restrictions on use; DOI 10.5067/MODIS/MCD64A1.061. Not checked on the LP DAAC page. | https://doi.org/10.5067/MODIS/MCD64A1.061 |
-| Basemap tiles for the map | Background map under hotspots | Planned (S27), provider not chosen | Each tile provider has its own usage policy (OpenStreetMap's public tiles have limits). Check before choosing. | — |
+| **NASA GIBS imagery** (Blue Marble Next Generation; MODIS Terra Corrected Reflectance true colour; Reference_Labels_15m; Coastlines_15m) | Satellite background for the website map | **Used** (website, 2026-11-14) | Free, no key; tiles allow cross-origin use (`access-control-allow-origin: *`, checked). NASA's data-use policy not re-read for GIBS specifically. Credit shown on the map and in the footer. | https://gibs.earthdata.nasa.gov |
+| IBM Plex Sans / IBM Plex Mono fonts | Website typography | **Used** | OFL-1.1 (from the npm package licence field) | https://github.com/IBM/plex |
+| ui-ux-pro-max skill | Design guidance | **Used** (development only, not shipped in the site) | MIT | `.claude/skills/ui-ux-pro-max/SOURCE.md` |
 | News or official fire reports | Confirming that the worst years in the calendar match real events (Section 13, Step E) | Planned (S26) | Cite each one used | — |
 
 ## 3. Rules

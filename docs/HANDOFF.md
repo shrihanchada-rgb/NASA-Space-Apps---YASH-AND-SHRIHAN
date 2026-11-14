@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-14 — Website design refresh + NASA satellite map — DONE (not a checklist step)
+- **Who / AI:** Shrihan using Claude, with the `ui-ux-pro-max` design skill
+- **Did:** Redesigned the website: app bar with data-status tags, KPI cards for the summary, flat Swiss-style look (no gradients), IBM Plex Sans + Mono (chosen after a web search to avoid "AI default" fonts such as Inter/Space Grotesk), dark mode, empty states for planned sections. Map now uses NASA GIBS imagery with a switcher: Satellite (Blue Marble), Imagery on date (MODIS Terra true colour for the selected end date, with coastlines), Plain; optional place names.
+- **Files changed:** `web/index.html`, `web/src/styles.css`, `web/src/main.ts`, `web/src/icons.ts` (new), `web/src/components/{summary,mapView,placeholder,controls}.ts`, `web/package.json`, `web/package-lock.json`, `web/README.md`, `docs/sources.md`, `docs/HANDOFF.md`
+- **How to check it:** `cd web && npm install && npm run typecheck && npm test` (20 pass) and `npm run build`; `npm run dev`, switch the three map buttons.
+- **Results / numbers:** Chromium check at 1440 px, 390 px and dark mode: IBM Plex loads, 0 elements with gradients, no sideways scroll; 24/24 Blue Marble tiles for the California view returned HTTP 200. NASA's place-name (and occasionally coastline) tiles sometimes return HTTP 500, so place names default to off; failed overlay tiles are not logged as app errors.
+- **Decisions and why:** NASA GIBS instead of Google Maps: Google needs an API key with billing and restricts use of its tiles in other map libraries; GIBS is free, NASA-made, and has imagery by date. The environment `nasa-space-apps-yash-and-shrihan` now allows `gibs.earthdata.nasa.gov` (for testing only; users' browsers load tiles directly).
+- **Problems / open questions:** Daily imagery is often cloudy and has gaps between satellite passes (stated on the map). Not tested in Firefox/Safari. GIBS terms of use not re-read.
+- **Next step:** S21 (calendar).
+
 ### 2026-11-14 — S20 Pickers and summary — DONE
 - **Who / AI:** Shrihan using Claude (Yash's half: please review `web/README.md`)
 - **Did:** Region search that filters the dropdown; click a region on the map to select it; "Draw an area" (drag a rectangle) with its own summary from hotspot points; date presets (All data, Last 30 days, Last 12 months, last full year, Fire season derived from the baseline); summary now shows peak month, peak year, % high-confidence and a collapsible raw-by-sensor section. Added a hotspot CSV loader (reusable for S23/S27).

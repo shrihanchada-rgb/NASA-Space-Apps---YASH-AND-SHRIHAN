@@ -1,4 +1,4 @@
-// Figures for the current selection: the whole region (from daily/monthly files),
+// Headline figures for the current selection: the whole region (from daily/monthly files),
 // or a drawn area (from hotspot points).
 
 import type { AppContext } from '../context';
@@ -6,10 +6,34 @@ import { boxAreaKm2, boxesOverlap, MONTH_NAMES, monthPeaks, summarizePoints, sum
 import { loadHotspots } from '../data/loader';
 import type { BBox, Hotspot } from '../data/types';
 import { formatCount, h } from '../dom';
+import { icon } from '../icons';
 
 const pct = (v: number | null) => (v == null ? 'No data' : `${Math.round(v * 100)}%`);
-const row = (label: string, value: string, hint?: string) =>
-  h('div', { class: 'stat' }, h('dt', {}, label, hint ? h('span', { class: 'hint' }, hint) : null), h('dd', {}, value));
+
+function kpi(label: string, value: string, opts: { hint?: string; unit?: string; primary?: boolean } = {}): HTMLElement {
+  return h('div', { class: `kpi${opts.primary ? ' is-primary' : ''}` },
+    h('p', { class: 'kpi-label' }, label),
+    h('p', { class: 'kpi-value' }, value, opts.unit && value !== 'No data' ? h('span', { class: 'unit' }, opts.unit) : null),
+    opts.hint ? h('p', { class: 'kpi-hint' }, opts.hint) : null,
+  );
+}
+
+const inline = (label: string, value: string) => h('p', { class: 'inline-stat' }, `${label} `, h('strong', {}, value));
+
+function rawDetails(modis: number | null, viirs: number | null): HTMLElement {
+  return h('details', { class: 'raw' },
+    h('summary', {}, 'Raw detections by sensor'),
+    h('div', { class: 'raw-body' },
+      inline('MODIS (Terra + Aqua):', formatCount(modis)),
+      inline('VIIRS (all satellites):', formatCount(viirs)),
+      h('p', { class: 'note' }, 'Raw counts are not comparable between sensors: VIIRS sees more, smaller fires. The harmonized count is.'),
+    ),
+  );
+}
+
+function head(title: string, meta: string, extra?: HTMLElement): HTMLElement {
+  return h('div', { class: 'summary-head' }, h('h1', { class: 'summary-title' }, title), h('p', { class: 'summary-meta' }, meta), extra ?? null);
+}
 
 export function mountSummary(el: HTMLElement, ctx: AppContext): void {
   let token = 0; // ignore answers from older selections
@@ -20,78 +44,73 @@ export function mountSummary(el: HTMLElement, ctx: AppContext): void {
     const region = ctx.regions.features.find((f) => f.properties.region_id === regionId)?.properties;
     if (!region || !regionData || !startDate || !endDate) return null;
     const s = summarizeRange(regionData.daily, startDate, endDate);
-    if (!s) return [h('p', { class: 'note' }, 'No data for these dates. Pick dates inside the covered period.')];
-    const peaks = monthPeaks(regionData.monthly, s.start, s.end);
-    const monthNote = peaks.wholeMonths ? undefined : 'whole months that overlap the dates';
+    if (!s) return [head(region.name, `${startDate} – ${endDate}`), h('p', { class: 'note' }, 'No data for these dates. Pick dates inside the covered period.')];
+    const p = monthPeaks(regionData.monthly, s.start, s.end);
+    const monthHint = p.wholeMonths ? undefined : 'Whole months overlapping the dates';
     return [
-      h('p', { class: 'summary-region' }, `${region.name} · ${formatCount(region.area_km2)} km²`),
-      h('p', { class: 'note' }, `${s.start} to ${s.end}`),
-      h('dl', { class: 'stats' },
-        row('Hotspots (harmonized)', formatCount(s.countHarm)),
-        row('Peak month', peaks.peakMonth ? `${MONTH_NAMES[peaks.peakMonth.month - 1]} ${peaks.peakMonth.year} (${formatCount(peaks.peakMonth.count)})` : 'None', monthNote),
-        row('Peak year', peaks.peakYear ? `${peaks.peakYear.year} (${formatCount(peaks.peakYear.count)})` : 'None', peaks.peakYear && peaks.peakYear.monthsWithData < 12 ? `${peaks.peakYear.monthsWithData} months with data` : monthNote),
-        row('Fire radiative power (MW)', formatCount(s.frpSum)),
-        row('High-confidence detections', pct(peaks.shareHighConfidence), monthNote),
-        row('Days with no data', formatCount(s.daysMissing)),
+      head(region.name, `${s.start} – ${s.end} · ${formatCount(region.area_km2)} km²`),
+      h('div', { class: 'kpis' },
+        kpi('Hotspots (harmonized)', formatCount(s.countHarm), { primary: true, hint: 'MODIS-equivalent count' }),
+        kpi('Peak month', p.peakMonth ? `${MONTH_NAMES[p.peakMonth.month - 1]} ${p.peakMonth.year}` : 'None',
+          { hint: p.peakMonth ? `${formatCount(p.peakMonth.count)} hotspots` : monthHint }),
+        kpi('Peak year', p.peakYear ? String(p.peakYear.year) : 'None',
+          { hint: p.peakYear ? `${formatCount(p.peakYear.count)} hotspots${p.peakYear.monthsWithData < 12 ? ` · ${p.peakYear.monthsWithData} months` : ''}` : monthHint }),
+        kpi('High confidence', pct(p.shareHighConfidence), { hint: monthHint ?? 'Share of detections' }),
       ),
-      rawDetails(s.rawModis, s.rawViirs),
+      h('div', { class: 'summary-extra' },
+        inline('Fire radiative power:', `${formatCount(s.frpSum)} MW`),
+        inline('Days with no data:', formatCount(s.daysMissing)),
+        rawDetails(s.rawModis, s.rawViirs),
+      ),
     ];
-  }
-
-  function rawDetails(modis: number | null, viirs: number | null): HTMLElement {
-    return h('details', { class: 'raw' },
-      h('summary', {}, 'Raw detections by sensor'),
-      h('dl', { class: 'stats' }, row('MODIS (Terra + Aqua)', formatCount(modis)), row('VIIRS (all satellites)', formatCount(viirs))),
-      h('p', { class: 'note' }, 'Raw counts are not comparable between sensors: VIIRS sees more, smaller fires. The harmonized count above is.'),
-    );
   }
 
   async function boxView(box: BBox, mine: number): Promise<HTMLElement[]> {
     const { startDate, endDate } = ctx.state.get();
     if (!startDate || !endDate) return [];
-    const startYear = Number(startDate.slice(0, 4));
-    const endYear = Number(endDate.slice(0, 4));
     const touching = ctx.regions.features.filter((f) => boxesOverlap(f.properties.bbox, box));
     const files: Promise<Hotspot[]>[] = [];
-    for (const f of touching) for (let y = startYear; y <= endYear; y++) files.push(loadHotspots(f.properties.region_id, y));
+    for (const f of touching) {
+      for (let y = Number(startDate.slice(0, 4)); y <= Number(endDate.slice(0, 4)); y++) files.push(loadHotspots(f.properties.region_id, y));
+    }
     const points = (await Promise.all(files)).flat();
     if (mine !== token) return [];
     const s = summarizePoints(points, box, startDate, endDate);
-    const clear = h('button', { type: 'button', class: 'chip', textContent: 'Clear drawn area' });
+    const has = touching.length > 0;
+    const clear = h('button', { type: 'button', class: 'chip' }, icon('close'), 'Clear drawn area');
     clear.addEventListener('click', () => ctx.state.set({ drawnBox: null }));
-    const coverage = touching.length
-      ? `Uses hotspot points from: ${touching.map((f) => f.properties.name).join(', ')}.`
-      : 'This area is outside every region with data.';
     return [
-      h('p', { class: 'summary-region' }, `Drawn area · ${formatCount(boxAreaKm2(box))} km²`),
-      h('p', { class: 'note' }, `${startDate} to ${endDate}`),
-      h('dl', { class: 'stats' },
-        row('Hotspots (harmonized)', touching.length ? formatCount(s.countHarm) : 'No data', 'sum of point weights'),
-        row('Fire radiative power (MW)', touching.length ? formatCount(s.frpSum) : 'No data'),
-        row('High-confidence detections', s.total ? pct(s.highConfidence / s.total) : touching.length ? '0 detections' : 'No data'),
+      head('Drawn area', `${startDate} – ${endDate} · ${formatCount(boxAreaKm2(box))} km²`, clear),
+      h('div', { class: 'kpis' },
+        kpi('Hotspots (harmonized)', has ? formatCount(s.countHarm) : 'No data', { primary: true, hint: 'Sum of point weights' }),
+        kpi('Detections', has ? formatCount(s.total) : 'No data', { hint: 'All sensors, raw' }),
+        kpi('Fire radiative power', has ? formatCount(s.frpSum) : 'No data', { unit: 'MW' }),
+        kpi('High confidence', s.total ? pct(s.highConfidence / s.total) : has ? '—' : 'No data', { hint: 'Share of detections' }),
       ),
-      rawDetails(touching.length ? s.rawModis : null, touching.length ? s.rawViirs : null),
-      h('p', { class: 'note' }, `${coverage} Days with no data cannot be shown for drawn areas; missing days count as no detections here.`),
-      clear,
+      h('div', { class: 'summary-extra' },
+        rawDetails(has ? s.rawModis : null, has ? s.rawViirs : null),
+        h('p', { class: 'note' }, has
+          ? `From hotspot points in ${touching.map((f) => f.properties.name).join(', ')}. Missing days cannot be detected for drawn areas.`
+          : 'This area is outside every region with data.'),
+      ),
     ];
   }
 
   async function render(): Promise<void> {
     const mine = ++token;
-    const title = h('h2', {}, 'Summary');
     const { drawnBox } = ctx.state.get();
-    if (ctx.loaded.get().loading) return el.replaceChildren(title, h('p', { class: 'note' }, 'Loading…'));
+    if (ctx.loaded.get().loading) return el.replaceChildren(h('p', { class: 'note' }, 'Loading…'));
     if (drawnBox) {
-      el.replaceChildren(title, h('p', { class: 'note' }, 'Counting hotspots in the drawn area…'));
+      el.replaceChildren(h('p', { class: 'note' }, 'Counting hotspots in the drawn area…'));
       try {
         const parts = await boxView(drawnBox, mine);
-        if (mine === token) el.replaceChildren(title, ...parts);
+        if (mine === token) el.replaceChildren(...parts);
       } catch (err) {
-        if (mine === token) el.replaceChildren(title, h('p', { class: 'field-error' }, err instanceof Error ? err.message : 'Could not load hotspots.'));
+        if (mine === token) el.replaceChildren(h('p', { class: 'field-error' }, err instanceof Error ? err.message : 'Could not load hotspots.'));
       }
       return;
     }
-    el.replaceChildren(title, ...(regionView() ?? [h('p', { class: 'note' }, 'Choose a region to see its fire activity.')]));
+    el.replaceChildren(...(regionView() ?? [h('p', { class: 'note' }, 'Choose a region to see its fire activity.')]));
   }
 
   ctx.state.subscribe((s, prev) => {
