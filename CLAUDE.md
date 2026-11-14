@@ -14,16 +14,21 @@ Planning stage. No source code, build system, linter, or tests exist yet, so the
 
 ## Start of every session
 
-1. `git checkout main && git pull`, then branch as `task/<id>-<short-name>` (README Section 11.2).
-2. Take the task the person names from the README checklist (Section 10); check `docs/CLAIMS.md` that nobody else has it and add a claim line.
-3. When done: tick the checklist box in the same pull request, set the claim to `in review`, and show the commands you ran and their output. Do not push to `main`; the other person reviews.
+Shrihan and Yash work at different times, so the repo is the only memory. Do this every time:
+
+1. `git checkout main && git pull`.
+2. Read the newest entry in `docs/HANDOFF.md`. If it is `PAUSED`, check out the branch it names and continue from its resume command. Run its "How to check it" commands first; if they fail, say so before doing anything else.
+3. Take the next unticked step in README Section 10 whose "Needs" are ticked (or the step the person names). Add a `STARTED` entry to `docs/HANDOFF.md`.
+4. Work on a branch `step/S<number>-<short-name>`. Commit small and push often so work survives if the session ends.
+5. Before you stop: tick the step in README Section 10, write the handoff entry (template at the top of `docs/HANDOFF.md`: what you did, files changed, exact commands to check it, results, decisions and why, problems, next step), and make sure `main` still runs. If the step is unfinished, push the branch and write a `PAUSED` entry with the resume command.
+6. Say only what you verified. Show the person the commands you ran and their output.
 
 ## Project
 
 Harmonized MODIS + VIIRS active-fire hotspot series (about 2000 to present) plus a web app showing a burning-activity calendar for a chosen region and date range, with analytics and CSV export.
 
 - **Pipeline:** `pipeline/01_download` to `07_validate` turn raw NASA FIRMS CSVs into the app files in `data/processed/`. MODIS-equivalent counts are the reference scale; the conversion is learned on the 2012+ overlap. Compare candidate methods A, B, C with train 2012–2018 / test 2019–2023 (README Section 13 Step C) and write the winner and its metrics in `docs/validation/README.md`.
-- **Web app:** reads only the files defined in the data contract (README Section 11.3, `docs/data-contract.md`). Build against `web/fixtures/` until real data exists; switching to `data/processed/` must need no app changes.
+- **Web app:** reads only the files defined in the data contract (README Section 11.4, `docs/data-contract.md`). Build against `web/fixtures/` until real data exists; switching to `data/processed/` must need no app changes.
 - **Calendar:** years x months heatmap; log-count, percentile, and anomaly color modes; `count_harm: null` means missing data and is hatched, never zero.
 
 Data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web.

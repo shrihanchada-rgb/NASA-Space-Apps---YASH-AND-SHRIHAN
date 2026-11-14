@@ -110,26 +110,28 @@ data/raw|processed/    # raw is gitignored; processed small files tracked (or Re
 docs/validation/       # plots + metrics
 docs/data-notes.md     # verified facts about FIRMS data (Task 1.1)
 docs/data-contract.md  # exact shape of the files the app reads (Task 2.0)
-docs/CLAIMS.md         # who is working on what
+docs/HANDOFF.md        # running log: one entry per step, newest first
 web/                   # app source
 web/fixtures/          # small fake sample files that follow the data contract
 .env.example           # FIRMS_MAP_KEY=
 ```
 
-## 6. Work breakdown and ownership
-| # | Task | Owner | Depends on | Done when |
-|---|------|-------|-----------|-----------|
+## 6. Work breakdown
+Work happens one person at a time, at different times (see Section 9). So steps are not assigned to a fixed person: whoever starts a shift takes the next unticked step in Section 10. The suggested lead below is only a default.
+
+| Task | What | Default lead | Needs | Done when |
+|------|------|-------------|-------|-----------|
 | 1.1 | Verify sensor dates, columns, confidence mapping against FIRMS docs; write `docs/data-notes.md` | Shrihan | — | Facts in this README confirmed/corrected |
 | 1.2 | Download + clean pilot regions (01–03) | Shrihan | 1.1 | Unified schema files exist, tests pass |
 | 1.3 | Grid/dedupe + calibration experiments A/B/C (04–05) | Shrihan | 1.2 | Metrics table comparing methods |
 | 1.4 | Validation + aggregation outputs (06–07) | Shrihan | 1.3 | Data products in 2.4 generated |
-| 2.0 | Data contract + sample fixture files (Section 11.3) | Yash + Shrihan review | — | `web/fixtures/` exists and Shrihan approved it |
+| 2.0 | Data contract + sample fixture files (Section 11.4) | Yash | — | `web/fixtures/` exists |
 | 2.1 | App scaffold, region + date selection, summary panel | Yash | 2.0 | Works on fixture JSON |
 | 2.2 | Calendar heatmap with 3 color modes | Yash | 2.1 | Matches spec 3.1.4 |
 | 2.3 | Charts, map, CSV export, methods page | Yash | 2.1, 1.4 | Spec 3.1 complete |
-| 3.1 | Integrate real data, current-fire comparison, polish, demo script | both | 1.4, 2.3 | End-to-end demo |
+| 3.1 | Integrate real data, current-fire comparison, polish, demo script | either | 1.4, 2.3 | End-to-end demo |
 
-Before starting a row, add a line to `docs/CLAIMS.md` (format is in that file). One branch per task. The full step-by-step version of this table is the checklist in Section 10.
+The step-by-step version is the checklist in Section 10. Every step ends with an entry in `docs/HANDOFF.md`.
 
 ## 7. Risks and open questions
 - Count mapping may vary by region/biome; a single global fit may be wrong → fit per region, report error.
@@ -144,104 +146,92 @@ Pipeline reproduces from raw; validation report published; web app deployed; cal
 
 ---
 
-## 9. Team roles and responsibilities
+## 9. Team, shifts, and AI tools
 
-Two people, two AI tools. The people lead one half each. The AIs are not tied to a person or a half: Claude and Codex can both work on the website or the pipeline, and either person can use either AI. Tasks are assigned in Section 6; who does a task is flexible if the team agrees.
+Shrihan and Yash do **not** work at the same time. Each person works in their own sessions, uses Claude Code or Codex, and then stops. The next person (or the next AI) must be able to continue without asking anyone anything. So:
 
-| | **Yash** | **Shrihan** |
-|---|---|---|
-| AI tools | Claude or Codex, whichever fits the task | Claude or Codex, whichever fits the task |
-| Leads | `web/` (the website) | `pipeline/` and `data/` (the data work) |
-| Main job | Build the web app: map, region picker, date picker, burning calendar, charts, CSV download, methods page | Download FIRMS data, clean it, harmonize MODIS + VIIRS, check the results, produce the files the app reads |
-| Also owns | The data contract fixtures (`web/fixtures/`), keeping `README.md` checklist up to date, the demo | `docs/data-notes.md` (verified facts), `docs/validation/` (plots + numbers that prove harmonization works) |
-| Reviews | Shrihan's pull requests (reads the plots, asks "does this make sense?") | Yash's pull requests (checks the app shows the data correctly) |
-| Shared | Data analysis (Section 13), final demo, presentation | Same |
-
-Rules for the split:
-- The folder you lead is the one you review most closely. Anyone can edit any folder if the task needs it. Tell the other person in the daily sync or in the pull request when you touch their half.
-- Shared files (`README.md`, `docs/CLAIMS.md`, `CLAUDE.md`, `AGENTS.md`) can be edited by both, but keep each change small and in its own pull request so you do not overwrite each other.
-- If two people want the same task, check `docs/CLAIMS.md`; first claim wins, or split it.
-- The only thing that connects the two halves is the data contract (Section 11.3). As long as both sides follow it, you can work at the same time without waiting for each other.
-
----
+- **The repo is the memory.** Nothing important lives only in a chat. Every step is written down in `docs/HANDOFF.md` (Section 11).
+- **Work is one line, not two.** There is a single checklist (Section 10). Whoever starts a shift takes the next unticked step whose "Needs" are done.
+- **Leads, not walls.** Shrihan leans backend (`pipeline/`, `data/`), Yash leans website (`web/`). That is a default for who picks which step, not a rule. Anyone can do any step.
+- **Either AI can do any step.** Claude Code reads `CLAUDE.md`; Codex reads `AGENTS.md`. Both files point to the same README and handoff log.
+- **Review happens at the next shift.** The person who starts the next shift reads the last handoff entry, runs the "How to check it" commands, and notes anything wrong at the top of their own entry.
 
 ## 10. Step-by-step checklist
 
-Tick a box (`- [x]`) in a pull request when the step is done. Owner is in brackets. Do the phases in order; steps inside a phase with different owners can happen at the same time.
+One list, done in order. Tick a box (`- [x]`) in the same commit that finishes the step. If you need to skip ahead, check the step's "Needs" first. Every step ends with a handoff entry in `docs/HANDOFF.md` (template in that file).
 
-### Phase 0 — Setup (both, day 1)
-- [ ] [Both] Clone the repo and read this whole README once.
-- [ ] [Both] Install Python 3.11+ and Node.js 20+ (LTS). Check with `python3 --version` and `node --version`.
-- [ ] [Shrihan] Get a free FIRMS MAP_KEY (request page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link). Put it in `.env` as `FIRMS_MAP_KEY=...`. Never commit `.env`.
-- [ ] [Shrihan] Create `.env.example` with `FIRMS_MAP_KEY=` (empty) and commit it.
-- [ ] [Both] Agree on the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal). Write the final list in Section 2.1.
-- [ ] [Both] Agree on daily sync time (Section 11.1).
+Each step has: **Needs** (steps that must be ticked first), **Do** (the work), **Done when** (how you know), and **Leave behind** (what the next person finds in the repo).
 
-### Phase 1 — Check the facts (Shrihan)
-- [ ] [Shrihan] Read the FIRMS documentation for MODIS C6.1 and VIIRS 375 m active fire products.
-- [ ] [Shrihan] Write `docs/data-notes.md` with: start date of each satellite, exact CSV column names for each sensor, what each confidence value means, what `type` values mean, data licence and how to cite FIRMS.
-- [ ] [Shrihan] Fix anything in this README that turned out wrong (Sections 0, 2.1, 7).
-- [ ] [Yash] Review `docs/data-notes.md` and merge.
+### Phase 0 — Setup
+- [ ] **S01 Read the plan.** Needs: —. Do: read this README, `CLAUDE.md` or `AGENTS.md`, and `docs/HANDOFF.md`. Done when: you can say in one sentence what the project builds. Leave behind: a "STARTED" entry.
+- [ ] **S02 Tools installed.** Needs: S01. Do: install Python 3.11+ and Node.js 20+ (check `python3 --version`, `node --version`). Done when: both print a version. Leave behind: versions in the handoff entry.
+- [ ] **S03 FIRMS key.** Needs: S01. Do: request a free FIRMS MAP_KEY (page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link) and put it in `.env` as `FIRMS_MAP_KEY=...`. Done when: `.env` exists locally. Leave behind: `.env.example` with `FIRMS_MAP_KEY=` (empty) committed. Never commit `.env`. Note: `.env` is local to one machine, so the other person needs their own key.
+- [ ] **S04 Pilot regions agreed.** Needs: S01. Do: confirm the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal) or change them. Done when: final list written in Section 2.1.
 
-### Phase 2 — Data contract (Yash; Shrihan reviews)
-- [ ] [Yash] Write the JSON schema for each app file in Section 2.4 into `docs/data-contract.md`, starting from the example in Section 11.3.
-- [ ] [Yash] Make small fake sample files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly. Mark them clearly as fake (`"is_sample": true`).
-- [ ] [Shrihan] Review: "Can my pipeline produce exactly this?" Change the contract now if not. After merge, changes to the contract need both people to agree.
+### Phase 1 — Check the facts
+- [ ] **S05 Verify FIRMS facts.** Needs: S01. Do: read the FIRMS docs for MODIS C6.1 and VIIRS 375 m active fire. Done when: `docs/data-notes.md` lists start date per satellite, exact CSV columns per sensor, meaning of each confidence value, meaning of `type`, licence and citation, with a link to the source for each fact. Leave behind: that file.
+- [ ] **S06 Fix the README.** Needs: S05. Do: correct anything wrong in Sections 0, 2.1, 7. Done when: no "verify" note is left that S05 answered.
 
-### Phase 3 — Get and clean data (Shrihan)
-- [ ] [Shrihan] `pipeline/01_download.py`: download MODIS and VIIRS archive data for one pilot region and one year first. Check the file opens and has rows.
-- [ ] [Shrihan] Extend to all pilot regions and all years (2000→now). Keep raw files in `data/raw/` (not committed).
-- [ ] [Shrihan] `02_clean.py`: convert both sensors into the single schema in Section 2.2. Write a test that loads 5 known rows and checks the output.
-- [ ] [Shrihan] `03_filter.py`: remove low-confidence and non-vegetation detections; print how many were removed per sensor per year.
-- [ ] [Shrihan] Do the sanity checks in Section 13, Step A. Save the plots in `docs/validation/`.
+### Phase 2 — Data contract
+- [ ] **S07 Write the contract.** Needs: S05. Do: write the JSON schema for each app file in Section 2.4 into `docs/data-contract.md`, starting from the example in Section 11.4. Done when: every field has a type, meaning, and an example.
+- [ ] **S08 Fake sample data.** Needs: S07. Do: make small fake files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly, with `"is_sample": true`. Done when: a script or test validates them against the contract.
 
-### Phase 4 — Build the app on fake data (Yash) — runs at the same time as Phases 3–5
-- [ ] [Yash] Scaffold `web/` (Vite + TypeScript). Page loads with a blank map.
-- [ ] [Yash] Region picker (dropdown + draw on map) and date range picker with presets.
-- [ ] [Yash] Summary panel reading from `web/fixtures/`.
-- [ ] [Yash] Burning activity calendar (years × months) with the 3 color modes, legend, tooltips, hatching for missing data.
-- [ ] [Yash] Monthly time series, yearly totals, seasonal cycle charts.
-- [ ] [Yash] CSV download of the current query (columns in Section 3.1.8).
-- [ ] [Yash] Check the page works on a phone-sized screen and with keyboard only.
+### Phase 3 — Get and clean data
+- [ ] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors. Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.
+- [ ] **S10 Download everything.** Needs: S09. Do: extend to all pilot regions and years (2000 to now), resumable. Done when: a table of files and row counts is in the handoff entry. Raw files stay in `data/raw/` (not committed), so write how to re-create them.
+- [ ] **S11 Clean.** Needs: S10. Do: `02_clean.py` into the single schema (Section 2.2) plus a test on 5 known rows. Done when: test passes.
+- [ ] **S12 Filter.** Needs: S11. Do: `03_filter.py`; print how many were removed per sensor per year. Done when: counts are in `docs/validation/`.
+- [ ] **S13 Sanity checks.** Needs: S12. Do: Section 13, Step A. Done when: plots saved in `docs/validation/` with a short written reading of each.
 
-### Phase 5 — Harmonize (Shrihan; analysis with Yash)
-- [ ] [Shrihan] `04_dedupe_and_grid.py`: put detections on the grid; test that no detection is lost or counted twice.
-- [ ] [Shrihan] `05_calibrate.py`: implement Candidate A first, then B and C (Section 2.3).
-- [ ] [Both] Do the analysis in Section 13, Steps B–D. Decide which method wins. Write the decision and the numbers in `docs/validation/README.md`.
-- [ ] [Shrihan] `06_aggregate.py`: write the real app files into `data/processed/`, following the data contract exactly.
-- [ ] [Shrihan] `07_validate.py`: one command that re-creates all validation plots and the metrics table.
+### Phase 4 — Harmonize
+- [ ] **S14 Grid and dedupe.** Needs: S12. Do: `04_dedupe_and_grid.py`; test that no detection is lost or counted twice. Done when: test passes.
+- [ ] **S15 Calibration experiments.** Needs: S14. Do: `05_calibrate.py`, Candidate A first, then B and C (Section 2.3). Done when: all three run and save results.
+- [ ] **S16 Compare and choose.** Needs: S15. Do: Section 13, Steps B–D. Done when: `docs/validation/README.md` states the winning method, the metrics table, and where it works badly.
+- [ ] **S17 Aggregate.** Needs: S16, S07. Do: `06_aggregate.py` writes `data/processed/` following the contract exactly. Done when: output validates against the contract.
+- [ ] **S18 Validate command.** Needs: S17. Do: `07_validate.py` re-creates all validation plots and the metrics table in one command. Done when: it runs from scratch.
 
-### Phase 6 — Connect real data (both)
-- [ ] [Yash] Switch the app from `web/fixtures/` to `data/processed/`. Nothing else should need to change; if it does, the contract was broken — fix the contract or the pipeline, not the app.
-- [ ] [Both] Do Section 13, Step E (does the calendar make sense?).
-- [ ] [Yash] Map with hotspot points, current-fire comparison, methods page.
-- [ ] [Yash] Deploy to GitHub Pages.
+### Phase 5 — Website (can start after S08; does not need S10–S18)
+- [ ] **S19 Scaffold.** Needs: S08. Do: Vite + TypeScript app in `web/`, blank map loads. Done when: the run command is written in `CLAUDE.md` and `AGENTS.md`.
+- [ ] **S20 Pickers and summary.** Needs: S19. Do: region picker (dropdown + draw), date range with presets, summary panel from `web/fixtures/`.
+- [ ] **S21 Calendar.** Needs: S20. Do: years x months heatmap, 3 color modes, legend, tooltips, hatching for missing data (spec 3.1.4). Done when: it looks right for the sample region.
+- [ ] **S22 Charts.** Needs: S20. Do: monthly series, yearly totals, seasonal cycle.
+- [ ] **S23 CSV download.** Needs: S20. Do: CSV of the current query (columns in Section 3.1.8).
+- [ ] **S24 Phone and keyboard check.** Needs: S21. Done when: works on a phone-sized screen and with keyboard only.
 
-### Phase 7 — Finish (both)
-- [ ] [Both] Run the whole pipeline from an empty `data/processed/` and check the app still works.
-- [ ] [Both] Write the "known limits" list on the methods page.
-- [ ] [Both] Write and rehearse a 3-minute demo: pick a region → show calendar → show worst year → compare a recent fire → download CSV.
-- [ ] [Both] Confirm everything in Section 8 (Definition of done) is true.
+### Phase 6 — Connect and finish
+- [ ] **S25 Real data in.** Needs: S17, S21. Do: switch the app from `web/fixtures/` to `data/processed/`. Done when: nothing else needed changing. If something did, the contract was broken: fix the contract or pipeline, not the app.
+- [ ] **S26 Check the calendar.** Needs: S25. Do: Section 13, Step E.
+- [ ] **S27 Map and current-fire comparison.** Needs: S25.
+- [ ] **S28 Methods page and write-up.** Needs: S26. Do: Section 13, Step F, and the known-limits list.
+- [ ] **S29 Deploy.** Needs: S28. Do: GitHub Pages.
+- [ ] **S30 Full rebuild test.** Needs: S29. Do: run the whole pipeline from an empty `data/processed/` and check the app still works.
+- [ ] **S31 Demo.** Needs: S30. Do: write and rehearse a 3-minute demo (pick a region, show calendar, show worst year, compare a recent fire, download CSV). Done when: everything in Section 8 is true.
 
 ---
 
-## 11. How Yash and Shrihan work together
+## 11. How to hand work over (read this at the start and end of every shift)
 
-### 11.1 Daily routine
-1. **Start of day (10 min call or chat):** each person says (a) what I finished, (b) what I do today, (c) what is blocking me. Write the answers as one line each in `docs/CLAIMS.md` if anything changed.
-2. **Before you start coding:** `git checkout main` then `git pull`, then make a new branch.
-3. **While working:** commit small, working pieces. Push at least once a day so the other person can see progress.
-4. **End of day:** push your branch, open or update the pull request, tick the checklist boxes you finished.
+### 11.1 Start of a shift (5 minutes)
+1. `git checkout main && git pull`.
+2. Open `docs/HANDOFF.md` and read the **newest entry** (entries are newest first). If it says `PAUSED`, there is an unmerged branch named in it: check that branch out and continue from the "Resume" command.
+3. Read the entry's "How to check it" section and run it. If it does not work, say so at the top of your own entry before doing anything else.
+4. Pick the next unticked step in Section 10 whose "Needs" are ticked.
+5. Add a `STARTED` entry to the top of `docs/HANDOFF.md` and push it so the other person can see the step is taken.
 
-### 11.2 Git workflow (same for both)
-1. One task = one branch. Name: `task/<id>-<short-name>`, for example `task/2.2-calendar` or `task/1.2-clean`.
-2. Open a pull request into `main` when the task is done.
-3. The **other person** reads the pull request before it is merged. For Shrihan's pull requests Yash looks at the plots and numbers; for Yash's pull requests Shrihan opens the app and checks the numbers look right.
-4. Merge only after the other person says OK. Never push directly to `main`.
-5. If two pull requests change the same file, the second one to merge pulls `main` first and fixes the conflict.
+### 11.2 During the shift
+1. Branch name: `step/S<number>-<short-name>`, for example `step/S21-calendar`.
+2. Commit small, working pieces and **push often** (at least every hour). If the session ends suddenly, the work is still on GitHub.
+3. Write decisions down as you go (what you chose, what you rejected, why) in the step's own doc (`docs/data-notes.md`, `docs/data-contract.md`, or `docs/validation/README.md`), not only in chat.
 
-### 11.3 The data contract (how the two halves connect)
-The app never reads raw data. It only reads the files listed in Section 2.4. Their exact shape is written in `docs/data-contract.md`. Example of one region's monthly file:
+### 11.3 End of a shift or step
+1. Finished? Merge the step branch into `main` (pull request), tick the box in Section 10 in the same change. Not finished? Push the branch and write a `PAUSED` entry (see below).
+2. Add the handoff entry to the top of `docs/HANDOFF.md`, using the template at the top of that file.
+3. Make sure `main` is always runnable: if it is not, fix it or revert before you stop.
+
+A handoff entry must let someone with zero chat context continue. It contains: step id and status (`DONE` / `PAUSED` / `BLOCKED`), who and which AI, date, what was done, files changed, **how to check it (exact commands and expected output)**, numbers/results, decisions and why, problems and open questions, **next step**, and for `PAUSED` the branch name and the exact command to resume.
+
+### 11.4 The data contract (how the website and pipeline connect)
+The app never reads raw data. It only reads the files listed in Section 2.4. Their exact shape is in `docs/data-contract.md`. Example of one region's monthly file:
 
 ```json
 {
@@ -261,7 +251,7 @@ The app never reads raw data. It only reads the files listed in Section 2.4. The
 Rules:
 - `count_harm` is the harmonized number the calendar shows. `count_low`/`count_high` are the uncertainty band.
 - A month with no data has `count_harm: null`, never `0`. Zero means "we looked and found no fires".
-- Changing the contract needs both people to agree, and both the fixtures and the pipeline are updated in the same week.
+- Changing the contract means both people must know. Put the change at the top of your handoff entry and update both the fixtures and the pipeline in the same step, so the next shift does not hit a mismatch.
 
 ---
 
@@ -270,7 +260,7 @@ Rules:
 Either person can use either AI on any task: the AI follows the task, not the person. Claude Code can work on the website or the pipeline, and so can Codex. Both tools read their instruction file automatically (`CLAUDE.md` for Claude, `AGENTS.md` for Codex), so you do not need to re-explain the project every time. You do need to be specific about the task.
 
 ### 12.1 Rules for good prompts (both AIs)
-1. **One task per prompt.** Give the task ID from Section 10 ("Do task 2.2"), not "build the app".
+1. **One step per prompt.** Give the step ID from Section 10 ("Do step S21"), not "build the app".
 2. **Say what goes in and what comes out.** Name the input files and the exact output file and format.
 3. **Say how you will check it.** "Done when the test passes", "done when the calendar shows 3 years from `web/fixtures/`".
 4. **Say which files the task should change.** "Edit files in `web/` for this task." Keep it small so changes are easy to review.
@@ -278,11 +268,12 @@ Either person can use either AI on any task: the AI follows the task, not the pe
 6. **Ask for proof.** "Show me the commands you ran and their output."
 7. **Ask it to ask.** "If something is unclear, ask me before guessing."
 8. **Small steps.** If the AI's answer is very long or changes many files, ask it to split the work.
+9. **Always end with the handoff.** The AI must tick the step and write the `docs/HANDOFF.md` entry. The next person may be on a different AI.
 
 ### 12.2 Example prompt — website task (works for Claude or Codex)
 ```
-Task: <ID and name from README Section 10, e.g. 2.2 Burning activity calendar>
-Read first: README.md Sections 3.1.4 and 11.3, docs/data-contract.md
+Task: <step ID and name from README Section 10, e.g. S21 Calendar>
+Read first: README.md Section 3.1.4, docs/data-contract.md, docs/HANDOFF.md (newest entry)
 Input: web/fixtures/monthly_region.sample.json
 Output: a calendar component in web/src/, shown on the main page
 Must: 3 color modes (log count, percentile, anomaly), legend, tooltip with count/rank/anomaly,
@@ -292,12 +283,14 @@ Do not: change the data contract, invent data, add a backend.
 Done when: `npm run dev` shows the calendar for the sample region and `npm test` passes.
 Show me: the commands you ran and their output, and a screenshot if you can.
 If anything is unclear, ask me first.
+Last: tick the step in README Section 10 and add an entry to docs/HANDOFF.md
+      using its template (what you did, how to check it, results, decisions, next step).
 ```
 
 ### 12.3 Example prompt — data pipeline task (works for Claude or Codex)
 ```
-Task: <ID and name from README Section 10, e.g. 1.2 Clean MODIS + VIIRS data>
-Read first: README.md Section 2.2, docs/data-notes.md
+Task: <step ID and name from README Section 10, e.g. S11 Clean>
+Read first: README.md Section 2.2, docs/data-notes.md, docs/HANDOFF.md (newest entry)
 Input: data/raw/<sensor>/<year>.csv
 Output: data/interim/clean_<sensor>_<year>.parquet with columns exactly:
         lat, lon, date, time_utc, sensor, satellite, confidence_class, frp, daynight, type
@@ -306,27 +299,30 @@ Do not: hard-code facts not in docs/data-notes.md, download data in tests, inven
 Done when: `pytest pipeline/tests -k clean` passes and the script prints rows in/out per sensor.
 Show me: the commands you ran and their output.
 If a column is missing or different from docs/data-notes.md, stop and tell me.
+Last: tick the step in README Section 10 and add an entry to docs/HANDOFF.md
+      using its template (what you did, how to check it, results, decisions, next step).
 ```
 
 ### 12.4 Checking what the AI gave you (do this every time)
 - [ ] Run it yourself. Do not trust "it works" without seeing it work.
-- [ ] Read the diff. Does it only touch the files it was allowed to?
+- [ ] Read the diff. Does it only touch the files the step needed?
+- [ ] Is the handoff entry written, with commands someone else can run?
 - [ ] Look for invented values: hard-coded counts, made-up dates, fake column names.
 - [ ] Check one number by hand. Example: count the rows for one day in the raw CSV and compare with what the pipeline or app says.
 - [ ] If it is wrong, tell the AI exactly what is wrong and paste the error, instead of asking it to "try again".
 
 ### 12.5 Handing work between the two AIs
-The AIs do not talk to each other. They share information only through the repo. So:
-- Write decisions down in files (`docs/data-notes.md`, `docs/data-contract.md`, `docs/validation/README.md`), not only in chat.
-- When one person finishes something the other needs, say so in the daily sync and point to the file.
+The AIs do not talk to each other, and chats are not shared. They share information only through the repo. So:
+- Write decisions down in files (`docs/HANDOFF.md`, `docs/data-notes.md`, `docs/data-contract.md`, `docs/validation/README.md`), not only in chat.
+- If you stop in the middle of a step, push the branch and write a `PAUSED` entry (Section 11.3) with the exact command to resume. Start the next AI with: "Read README.md and the newest entry in docs/HANDOFF.md, then continue from it."
 
 ---
 
-## 13. How to analyze the data (both, step by step)
+## 13. How to analyze the data (step by step)
 
-Do these steps together, on a shared screen if possible. Shrihan runs the code; Yash asks questions and writes down the findings. Save every plot in `docs/validation/` with a clear file name.
+These steps are done during the steps named in Section 10 (Step A in S13, Steps B–D in S16, Step E in S26, Step F in S28). Whoever is on shift does the analysis and writes the findings into `docs/validation/` so the next person can read them without redoing the work. Save every plot there with a clear file name, and write one or two sentences next to each plot saying what it shows. The next person checks the numbers at the start of their shift (Section 11.1).
 
-### Step A — Sanity checks on cleaned data (after Phase 3)
+### Step A — Sanity checks on cleaned data (step S13)
 1. For each pilot region, plot **hotspots per year, one line per sensor** (MODIS and VIIRS separately).
    - Expect: VIIRS line much higher than MODIS from 2012 on (smaller pixels see more). MODIS line starts in 2000.
 2. Plot **hotspots per month of the year** (all years added together).
@@ -355,7 +351,7 @@ Do these steps together, on a shared screen if possible. Shrihan runs the code; 
 2. Write in `docs/validation/README.md`: which method, why, the metrics table, and where it works badly.
 3. Set `method_version` in the pipeline to match (for example `A-1.0`).
 
-### Step E — Check the final calendar makes sense (after Phase 6)
+### Step E — Check the final calendar makes sense (step S26)
 1. Open the app for each pilot region.
 2. Does the fire season in the calendar match Step A.2? It should.
 3. Is there a jump in colour around 2012 that is not explained by a real event? If yes, harmonization is not working well enough — go back to Step C.
