@@ -26,15 +26,15 @@ Rules for entries:
 
 ## Entries
 
-### 2026-11-14 — S03 FIRMS key — DONE
+### 2026-11-14 — S03 FIRMS key; Colab private-repo fix — DONE
 - **Who / AI:** Shrihan using Claude
-- **Did:** Shrihan has a FIRMS key. `.env` with the key is committed on `main` (commit `c2dd4b5`, 47 bytes, checked by name and size only; the AI never saw the contents). Shrihan also reports adding the key to Colab Secrets as `FIRMS_MAP_KEY` with notebook access on (not verified by the AI). `.env.example` (empty template) is also in the repo.
-- **Files changed:** `README.md` (S03 ticked, decision noted), `docs/HANDOFF.md`
-- **How to check it:** `git pull`, then `ls -la .env` shows a small file; do NOT print it. To test the key, run the S09 download script when it exists.
-- **Results / numbers:** none. The key has **not been tested** against FIRMS.
-- **Decisions and why:** The repo is private, so committing a free key was accepted by Shrihan, so Yash can use it without his own. Rejected: key only in `.env` ignored by git (the safer default).
-- **Problems / open questions:** (1) `CLAUDE.md` and `AGENTS.md` still say "`.env` ... are gitignored" and "never commit secrets", which now contradict the repo; to be updated. (2) If the repo is made public, the key is exposed in git history: request a new key. (3) The Colab notebook still cannot clone the private repo (cell 3, no login); decision pending between a Drive zip copy and a read-only token.
-- **Next step:** S04 (pilot regions, a decision for both) and S05 (verify FIRMS facts, web research only).
+- **Did:** Shrihan has a FIRMS key and reports adding it to Colab Secrets as `FIRMS_MAP_KEY` with notebook access on (not verified by the AI). An earlier commit (`c2dd4b5`) had put `.env` with the key on `main`; this change removes `.env` from the repo again (the AI never read its contents). Changed `notebooks/run_pipeline_colab.ipynb` cell 3 to unzip the repo from `My Drive/nasa-fire-calendar/repo.zip` instead of `git clone`, because the repo is private. Ticked S03 in README Section 10.
+- **Files changed:** `.env` (deleted), `notebooks/run_pipeline_colab.ipynb`, `README.md`, `docs/HANDOFF.md`
+- **How to check it:** `git ls-files | grep -x .env` prints nothing on this branch; in Python, `json.load` the notebook and `ast.parse` each code cell (all parse). Running the notebook in Colab has **not** been done.
+- **Results / numbers:** none. The key has not been tested against FIRMS; the new Colab cell has not been run.
+- **Decisions and why:** Key kept only in Colab Secrets and in each person's untracked local `.env`. Zip-from-Drive was chosen over a GitHub token in Colab, so no GitHub credential is needed there. Rejected: read-only token (more setup).
+- **Problems / open questions:** (1) The key is still visible in git history (commit `c2dd4b5`) to anyone with repo access; it is a free key, but request a new one if the repo goes public. (2) Anyone running locally must create their own untracked `.env` from `.env.example`. (3) The zip must be re-uploaded whenever code changes. (4) The pipeline scripts do not exist yet, so cell 6 onward is untested.
+- **Next step:** S04 (pilot regions) and S05 (verify FIRMS facts).
 
 ### 2026-11-14 — S01 Read the plan, S02 Tools installed — DONE
 - **Who / AI:** Shrihan using Claude (running in the cloud session, not on a personal laptop)

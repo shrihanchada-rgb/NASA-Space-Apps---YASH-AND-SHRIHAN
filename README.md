@@ -166,7 +166,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 ### Phase 0 — Setup
 - [x] **S01 Read the plan.** Needs: —. Do: read this README, `CLAUDE.md` or `AGENTS.md`, and `docs/HANDOFF.md`. Done when: you can say in one sentence what the project builds. Leave behind: a "STARTED" entry.
 - [x] **S02 Tools installed.** Needs: S01. Do: install Python 3.11+ and Node.js 20+ (check `python3 --version`, `node --version`). Done when: both print a version. Leave behind: versions in the handoff entry.
-- [x] **S03 FIRMS key.** Needs: S01. Do: request a free FIRMS MAP_KEY (page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link) and put it in `.env` as `FIRMS_MAP_KEY=...`. Done when: `.env` exists locally. Leave behind: `.env.example` with `FIRMS_MAP_KEY=` (empty) committed. **Decision (Shrihan, 2026-11-14):** `.env` with the key is committed on `main` because the repo is private, so Yash does not need his own key. If the repo is ever made public, request a new key first and remove `.env` from the repo. Colab cannot read `.env`; it reads Colab Secrets (`FIRMS_MAP_KEY`).
+- [x] **S03 FIRMS key.** Needs: S01. Do: request a free FIRMS MAP_KEY (page: https://firms.modaps.eosdis.nasa.gov/api/map_key/ — verify link) and put it in `.env` as `FIRMS_MAP_KEY=...`. Done when: `.env` exists locally. Leave behind: `.env.example` with `FIRMS_MAP_KEY=` (empty) committed. **Update (Shrihan, 2026-11-14):** `.env` was briefly committed and has been removed again. The key now lives in Colab Secrets (`FIRMS_MAP_KEY`), and anyone running locally keeps it in an untracked `.env` file. Because the key was in git history, treat it as exposed to anyone with repo access, and request a new key if the repo ever goes public.
 - [ ] **S04 Pilot regions agreed.** Needs: S01. Do: confirm the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal) or change them. Done when: final list written in Section 2.1.
 
 ### Phase 1 — Check the facts
@@ -368,10 +368,11 @@ For each region, write 3–5 short sentences on the methods page: peak months, m
 
 Downloading 25 years of FIRMS data and running the harmonization is heavy. Colab can do that on Google's machines instead of a laptop. The code still lives in this repo; Colab only runs it.
 
-**The notebook:** `notebooks/run_pipeline_colab.ipynb`. It clones this repo, installs packages, loads the FIRMS key from Colab Secrets, keeps `data/raw` and `data/interim` on Google Drive (so downloads survive a restart), runs the pipeline scripts you choose, runs the tests, and prints a summary. Status: written but never run; the pipeline scripts it calls do not exist yet.
+**The notebook:** `notebooks/run_pipeline_colab.ipynb`. It clones this repo, installs packages, loads the FIRMS key from Colab Secrets, keeps `data/raw` and `data/interim` on Google Drive (so downloads survive a restart), runs the pipeline scripts you choose, runs the tests, and prints a summary. Status: written but never run; the pipeline scripts it calls do not exist yet. Since the repo is private, it loads the code from `repo.zip` in Drive instead of cloning.
 
 ### 14.1 One-time setup (each person, once)
-1. Open the notebook in Colab: Colab → File → Open notebook → GitHub tab → paste `shrihanchada-rgb/NASA-Space-Apps---YASH-AND-SHRIHAN` → pick `notebooks/run_pipeline_colab.ipynb`.
+1. The repo is private, so Colab's GitHub tab may not list it. Reliable way: on GitHub open `notebooks/run_pipeline_colab.ipynb`, click Download raw file, then in Colab use File → Upload notebook.
+1a. Download the code: on GitHub click Code → Download ZIP, upload the file to your Drive as `My Drive/nasa-fire-calendar/repo.zip`. The notebook unzips it (no GitHub login needed). Re-upload a fresh zip whenever the code changes.
 2. Click the key icon (Secrets) in the left bar. Add a secret `FIRMS_MAP_KEY` with your FIRMS key (step S03) and turn on "Notebook access".
 3. Run the cells top to bottom once with `STEPS = []` to check setup works. Expect "nothing to run".
 
