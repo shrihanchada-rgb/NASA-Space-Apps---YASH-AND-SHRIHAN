@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "regions/<region_id>/daily.json",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "method_version": {
+      "type": "string"
+    },
+    "is_sample": {
+      "type": "boolean"
+    },
+    "region_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9-]+$"
+    },
+    "build_date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "start": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "end": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "columns": {
+      "type": "object",
+      "properties": {
+        "count_harm": {
+          "type": "array",
+          "items": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "count_raw_modis": {
+          "type": "array",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "count_raw_viirs": {
+          "type": "array",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "frp_sum": {
+          "type": "array",
+          "items": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      },
+      "required": [
+        "count_harm",
+        "count_raw_modis",
+        "count_raw_viirs",
+        "frp_sum"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "method_version",
+    "is_sample",
+    "region_id",
+    "build_date",
+    "start",
+    "end",
+    "columns"
+  ],
+  "additionalProperties": false
+}

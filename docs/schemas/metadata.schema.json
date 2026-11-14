@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "metadata.json",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "method_version": {
+      "type": "string"
+    },
+    "is_sample": {
+      "type": "boolean"
+    },
+    "build_date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "reference_scale": {
+      "type": "string"
+    },
+    "time_coverage": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "end": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "enum": [
+              "MODIS_SP",
+              "VIIRS_SNPP_SP",
+              "VIIRS_NOAA20_SP",
+              "VIIRS_NOAA21_SP",
+              "MODIS_NRT",
+              "VIIRS_SNPP_NRT",
+              "VIIRS_NOAA20_NRT",
+              "VIIRS_NOAA21_NRT"
+            ]
+          },
+          "first_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "last_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "n_detections_kept": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "source",
+          "first_date",
+          "last_date",
+          "n_detections_kept"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "filters": {
+      "type": "object",
+      "properties": {
+        "min_confidence": {
+          "enum": [
+            "low",
+            "nominal",
+            "high"
+          ]
+        },
+        "types_kept": {
+          "type": "array",
+          "items": {
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      },
+      "required": [
+        "min_confidence",
+        "types_kept"
+      ],
+      "additionalProperties": false
+    },
+    "grid_resolution_deg": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z0-9-]+$"
+      }
+    },
+    "sensor_transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "known_gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "sensor": {
+            "enum": [
+              "MODIS",
+              "VIIRS",
+              "all"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "sensor",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "r2": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "median_abs_pct_error": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "test_years": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "r2",
+        "median_abs_pct_error",
+        "test_years"
+      ],
+      "additionalProperties": false
+    },
+    "citation": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "method_version",
+    "build_date",
+    "is_sample",
+    "reference_scale",
+    "time_coverage",
+    "sources",
+    "filters",
+    "grid_resolution_deg",
+    "regions",
+    "sensor_transitions",
+    "known_gaps",
+    "validation",
+    "citation"
+  ],
+  "additionalProperties": false
+}

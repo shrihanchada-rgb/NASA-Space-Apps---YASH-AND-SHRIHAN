@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "regions.geojson",
+  "type": "object",
+  "required": [
+    "type",
+    "features"
+  ],
+  "properties": {
+    "type": {
+      "const": "FeatureCollection"
+    },
+    "features": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "properties": {
+          "type": {
+            "const": "Feature"
+          },
+          "geometry": {
+            "type": "object",
+            "required": [
+              "type",
+              "coordinates"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "Polygon",
+                  "MultiPolygon"
+                ]
+              }
+            }
+          },
+          "properties": {
+            "type": "object",
+            "required": [
+              "region_id",
+              "name",
+              "country",
+              "area_km2",
+              "bbox",
+              "boundary_source"
+            ],
+            "properties": {
+              "region_id": {
+                "type": "string",
+                "pattern": "^[A-Z0-9-]+$"
+              },
+              "name": {
+                "type": "string"
+              },
+              "country": {
+                "type": "string"
+              },
+              "area_km2": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "bbox": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number"
+                }
+              },
+              "boundary_source": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

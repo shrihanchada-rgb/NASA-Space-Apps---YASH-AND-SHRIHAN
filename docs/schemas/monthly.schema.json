@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "regions/<region_id>/monthly.json",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "method_version": {
+      "type": "string"
+    },
+    "is_sample": {
+      "type": "boolean"
+    },
+    "region_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9-]+$"
+    },
+    "region_name": {
+      "type": "string"
+    },
+    "build_date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "months": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "minimum": 2000
+          },
+          "month": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "count_harm": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "count_low": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "count_high": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "count_raw_modis": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "count_raw_viirs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "raw_by_satellite": {
+            "type": "object",
+            "propertyNames": {
+              "enum": [
+                "T",
+                "A",
+                "N",
+                "N20",
+                "N21"
+              ]
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "frp_sum_modis": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "frp_sum_viirs": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "share_high_confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "n_days_observed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          }
+        },
+        "required": [
+          "year",
+          "month",
+          "count_harm",
+          "count_low",
+          "count_high",
+          "count_raw_modis",
+          "count_raw_viirs",
+          "raw_by_satellite",
+          "frp_sum_modis",
+          "frp_sum_viirs",
+          "share_high_confidence",
+          "n_days_observed"
+        ],
+        "additionalProperties": false,
+        "if": {
+          "properties": {
+            "count_harm": {
+              "type": "null"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "count_low": {
+              "type": "null"
+            },
+            "count_high": {
+              "type": "null"
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "count_low": {
+              "type": "number"
+            },
+            "count_high": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "method_version",
+    "is_sample",
+    "region_id",
+    "region_name",
+    "build_date",
+    "months"
+  ],
+  "additionalProperties": false
+}
