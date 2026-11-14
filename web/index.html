@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fire Activity Calendar</title>
+  </head>
+  <body>
+    <div id="sample-banner" class="banner" role="status" hidden></div>
+    <header class="site-header">
+      <h1>Fire Activity Calendar</h1>
+      <p class="tagline">Harmonized MODIS + VIIRS hotspot history</p>
+    </header>
+
+    <div id="status" class="status" role="alert" hidden></div>
+
+    <div class="layout">
+      <aside class="sidebar" aria-label="Selection">
+        <section id="controls" class="panel"></section>
+        <section id="summary" class="panel" aria-live="polite"></section>
+      </aside>
+
+      <main class="content">
+        <section id="calendar" class="panel"></section>
+        <section class="panel">
+          <h2>Map</h2>
+          <div id="map" class="map" role="img" aria-label="Map of the selected region"></div>
+          <p id="map-note" class="note"></p>
+        </section>
+        <section id="charts" class="panel"></section>
+        <section id="downloads" class="panel"></section>
+      </main>
+    </div>
+
+    <footer id="footer" class="site-footer"></footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

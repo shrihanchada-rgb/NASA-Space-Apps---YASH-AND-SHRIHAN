@@ -8,7 +8,7 @@ Shrihan leads the backend data work (`pipeline/`, `data/`, `docs/data-notes.md`,
 
 ## Status
 
-Early stage. The data contract (`docs/data-contract.md`), its schemas, fake sample files (`web/fixtures/`), a validator, and tests exist. The FIRMS downloader (`pipeline/01_download.py`) works on real data; later pipeline steps and the website app are not written yet.
+Early stage. The data contract (`docs/data-contract.md`), its schemas, fake sample files (`web/fixtures/`), a validator, and tests exist. The FIRMS downloader (`pipeline/01_download.py`) works on real data; later pipeline steps are not written yet. The website backbone exists (`web/`): data loading, shared state, region/date selection, basic totals, and a map with region outlines; the calendar, charts and downloads are placeholders.
 
 `README.md` is the source of truth for scope, task order, and ownership. Read it fully before starting. Do not create a competing plan elsewhere; edit the README instead.
 
@@ -26,7 +26,18 @@ Install (once): `pip install -r requirements.txt`
 | Download one region-year (needs key, resumable) | `python3 pipeline/01_download.py --region US-CA --year 2023` |
 | See what a download would do, no key needed | `python3 pipeline/01_download.py --region US-CA --year 2023 --dry-run` |
 
-The key is read from the `FIRMS_MAP_KEY` environment variable (Colab Secrets) or a local `.env`; it is never printed. Raw files go to `data/raw/<SOURCE>/<region>/` (gitignored). Website (`web/` app) commands are added when it is scaffolded.
+The key is read from the `FIRMS_MAP_KEY` environment variable (Colab Secrets) or a local `.env`; it is never printed. Raw files go to `data/raw/<SOURCE>/<region>/` (gitignored). 
+
+Website (run inside `web/`; structure and rules in `web/README.md`):
+
+| What | Command |
+|---|---|
+| Install (once) | `npm install` |
+| Dev server on sample data | `npm run dev` |
+| Dev server on real data | `DATA_DIR=../data/processed npm run dev` |
+| Type check | `npm run typecheck` |
+| Unit tests / one file | `npm test` / `npx vitest run src/data/derive.test.ts` |
+| Build to `web/dist/` | `npm run build` |
 
 ## Start of every session
 
