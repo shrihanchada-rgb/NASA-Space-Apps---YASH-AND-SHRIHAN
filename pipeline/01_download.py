@@ -152,7 +152,11 @@ def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=No
             continue
         folder = out / source / region
         folder.mkdir(parents=True, exist_ok=True)
-        for day, n in chunks(*span):
+        todo = list(chunks(*span))
+        log(f"{source}: {span[0]} to {span[1]}, {len(todo)} chunks")
+        for k, (day, n) in enumerate(todo, start=1):
+            if k % 100 == 0:
+                log(f"  {source}: {k}/{len(todo)} chunks done")
             path = folder / f"{day.isoformat()}_{n}d.csv"
             stats["chunks"] += 1
             if path.exists():
