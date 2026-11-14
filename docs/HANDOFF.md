@@ -56,16 +56,16 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
-### 2026-11-14 — S10 Download everything — PAUSED (California done; 3 regions left)
+### 2026-11-14 — S10 Download everything — PAUSED (US-CA and BR-PA done; 2 regions left)
 - **Who / AI:** Shrihan ran Colab; Claude recorded results
-- **Did:** **US-CA is fully downloaded** (all 4 sources, full ranges). The run finished with `ok` and no 11-minute waits. VIIRS value formats confirmed and recorded in `docs/data-notes.md` §8. Short "rate limit: waiting N s" messages (normal pacing) are now only printed for waits of 30 s or more.
-- **Files changed:** `pipeline/01_download.py`, `docs/data-notes.md`, `docs/HANDOFF.md`
-- **How to check it:** `python3 -m pytest -q tests` → `24 passed`. In Drive: `raw/MODIS_SP/US-CA` (1,887 full-range files), `raw/VIIRS_SNPP_SP/US-CA` (1,062), `raw/VIIRS_NOAA20_SP/US-CA` (609), `raw/VIIRS_NOAA21_SP/US-CA` (250), plus the older 2023 test files in the first three.
-- **Results / numbers (US-CA box, before cleaning):** MODIS_SP 368,690; VIIRS_SNPP_SP 1,117,337; VIIRS_NOAA20_SP 773,314; VIIRS_NOAA21_SP 149,284 rows.
+- **Did:** **BR-PA fully downloaded** (all 4 sources, full ranges, finished `ok`, no 11-minute waits). US-CA was done earlier. Row counts and observations recorded in `docs/data-notes.md` §8.
+- **Files changed:** `docs/data-notes.md`, `docs/HANDOFF.md`
+- **How to check it:** in Drive, `raw/<SOURCE>/BR-PA/` has 1,887 / 1,062 / 609 / 250 files for MODIS_SP / VIIRS_SNPP_SP / VIIRS_NOAA20_SP / VIIRS_NOAA21_SP.
+- **Results / numbers:** BR-PA rows: MODIS_SP 2,707,098; VIIRS_SNPP_SP 5,348,275; VIIRS_NOAA20_SP 2,857,121; VIIRS_NOAA21_SP 1,206,395 (total 12,118,889). Aqua/Terra ratio 1.84 (California ~0.94).
 - **Decisions and why:** none new.
-- **Problems / open questions:** VIIRS `type` 2 is 9–17% of rows here: S12 must report per region how many are dropped. The 2023 test files use different 5-day windows: S11 must drop exact duplicate rows.
-- **Next step:** run Colab step 01 for `BR-PA`, then `AU-NSW-VIC`, then `PT` (same `--start 2000-11-01 --end 2026-08-31`). No new zip needed for that unless you want the quieter messages.
-- **If PAUSED — branch and resume command:** none needed; resume with the next region in Colab.
+- **Problems / open questions:** Terra vs Aqua imbalance differs by region → S15 must treat them separately (see data-notes). BR-PA box covers neighbouring states until clipping. 12 million rows for one region: S11 should process files in chunks to fit Colab memory (not measured yet).
+- **Next step:** Colab step 01 for `AU-NSW-VIC`, then `PT` (same `--start 2000-11-01 --end 2026-08-31`).
+- **If PAUSED — branch and resume command:** none; resume with the next region in Colab.
 
 ### 2026-11-14 — S09 Download one region-year — DONE
 - **Who / AI:** Shrihan ran the Colab notebook (step 01) with his key; Claude recorded results and updated code.

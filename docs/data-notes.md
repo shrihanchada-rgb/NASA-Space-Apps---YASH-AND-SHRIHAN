@@ -138,6 +138,19 @@ What this means:
 - Low-confidence (`l`) is about 5–6% of VIIRS rows here, so SP data **does** contain low-confidence pixels.
 - MODIS for the same box and full period: 368,690 rows (two satellites together), while each VIIRS satellite returned 2–3 times that over a shorter period.
 
+**Row counts per region (download box, before cleaning or clipping to the real boundary):**
+
+| Region | MODIS_SP | VIIRS_SNPP_SP | VIIRS_NOAA20_SP | VIIRS_NOAA21_SP | Total |
+|---|---|---|---|---|---|
+| US-CA | 368,690 | 1,117,337 | 773,314 | 149,284 | 2,408,625 |
+| BR-PA | 2,707,098 | 5,348,275 | 2,857,121 | 1,206,395 | 12,118,889 |
+
+Observations from BR-PA (2026-11-14 run):
+- **Aqua has 1.84 times as many MODIS rows as Terra** (1,754,646 vs 952,452). In California they were nearly equal (179,076 vs 189,614). Aqua passes in the early afternoon and Terra mid-morning (FAQ, section 1). A plausible reason, not checked: tropical burning peaks in the afternoon. Consequence for harmonization: the Terra-only period (Nov 2000 – Jun 2002) will undercount compared with later years, and that effect is region-dependent. S15 must handle Terra and Aqua separately or per region.
+- **`type` 2 (static land source) is only 0.3–0.5% of rows in BR-PA**, compared with 9–17% of VIIRS rows in California. The share of non-vegetation detections differs a lot by region.
+- VIIRS low confidence (`l`) is 6.7–7.0% of rows in BR-PA.
+- The BR-PA download box is a rectangle that also covers parts of neighbouring states, so these counts are larger than Pará itself until clipping (S11/S14).
+
 **FIRMS answers "Invalid MAP_KEY." when the limit is used up**, not only for a wrong key. A run that had already made about 2,000 successful requests was stopped by it. The downloader now waits and retries in that case.
 
 ## 9. Still unverified
