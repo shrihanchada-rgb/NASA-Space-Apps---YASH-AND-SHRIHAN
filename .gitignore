@@ -218,3 +218,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project data (raw downloads are large; keep out of git)
+data/raw/
+data/interim/
+node_modules/
+web/dist/
