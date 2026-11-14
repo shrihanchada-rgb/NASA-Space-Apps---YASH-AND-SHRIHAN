@@ -2,6 +2,10 @@
 
 The fire-calendar website. Vite + TypeScript, no UI framework. It reads only the files defined in `docs/data-contract.md`.
 
+**Design:** flat, Swiss-style dashboard (no gradients), one ember accent, light and dark themes from CSS variables in `src/styles.css`. Fonts: IBM Plex Sans (text) and IBM Plex Mono (dates, tags), OFL-1.1, bundled from npm (`@fontsource-variable/ibm-plex-sans`, `@fontsource/ibm-plex-mono`), so no font server is called. Design guidance came from the `ui-ux-pro-max` skill (`.claude/skills/`).
+
+**Map imagery:** NASA GIBS (free, no key): Blue Marble composite (default), MODIS Terra true colour for the selected end date, or plain. Place-name overlay is optional and off by default because NASA's label tiles sometimes return HTTP 500.
+
 ## Commands (run inside `web/`)
 
 | What | Command |
@@ -32,10 +36,11 @@ src/data/types.ts       TypeScript shapes of the data files (mirror of the data 
 src/data/loader.ts      the only place that fetches files
 src/data/derive.ts      pure calculations (range totals, peaks, presets, fire season, drawn areas); unit tested
 src/dom.ts              small helpers to build elements and format numbers
+src/icons.ts            small line icons (decorative, aria-hidden)
 src/components/         one file per page section
   controls.ts           region + date range
   summary.ts            totals for the selection
-  mapView.ts            MapLibre map with region outlines
+  mapView.ts            MapLibre map: GIBS imagery, region outlines, click + draw
   placeholder.ts        labelled empty section for a feature not built yet
 src/styles.css          all styles; colours are CSS variables with light and dark values
 ```
@@ -58,7 +63,7 @@ src/styles.css          all styles; colours are CSS variables with light and dar
 | Region search + dropdown, click region on map, draw a rectangle | Built | S20 (polygon drawing not built) |
 | Date presets (all, last 30 days, last 12 months, last full year, fire season) + custom range | Built | S20 |
 | Summary: harmonized total, peak month, peak year, FRP, % high confidence, days with no data, raw by sensor | Built | S20 |
-| Map | Region outlines, selection, drawn box; no basemap | S27 adds basemap + hotspot points |
+| Map | NASA GIBS satellite basemap (3 modes), region outlines, selection, drawn box | S27 adds hotspot points |
 | Burning activity calendar | Placeholder | S21 |
 | Charts | Placeholder | S22 |
 | CSV download | Placeholder | S23 |

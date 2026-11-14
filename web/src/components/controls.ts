@@ -85,7 +85,7 @@ export function mountControls(el: HTMLElement, ctx: AppContext): void {
     h('label', { htmlFor: 'region-select' }, 'Region'),
     region,
     noMatch,
-    h('p', { class: 'note' }, 'Or click a region on the map, or draw an area.'),
+    h('p', { class: 'note field-help' }, 'Or click a region on the map, or draw an area.'),
     h('h3', {}, 'Dates'),
     presetBox,
     h('div', { class: 'date-row' },
@@ -93,7 +93,7 @@ export function mountControls(el: HTMLElement, ctx: AppContext): void {
       h('div', {}, h('label', { htmlFor: 'date-end' }, 'To'), to),
     ),
     error,
-    h('p', { class: 'note' }, `Data covers ${start} to ${end}.`),
+    h('p', { class: 'note field-help' }, `Data covers ${start} to ${end}.`),
   );
   fillRegions();
   syncInputs();
