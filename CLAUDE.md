@@ -23,6 +23,10 @@ Shrihan and Yash work at different times, so the repo is the only memory. Do thi
 5. Before you stop: tick the step in README Section 10, write the handoff entry (template at the top of `docs/HANDOFF.md`: what you did, files changed, exact commands to check it, results, decisions and why, problems, next step), and make sure `main` still runs. If the step is unfinished, push the branch and write a `PAUSED` entry with the resume command.
 6. Say only what you verified. Show the person the commands you ran and their output.
 
+## Colab
+
+Heavy pipeline runs happen in Google Colab through `notebooks/run_pipeline_colab.ipynb` (README Section 14). You cannot control Colab: write and fix code in `pipeline/`, tell the person which `STEPS` to run, and ask them to paste the Colab output or summary back. Never put the FIRMS key or a GitHub token in a notebook cell.
+
 ## Project
 
 Harmonized MODIS + VIIRS active-fire hotspot series (about 2000 to present) plus a web app showing a burning-activity calendar for a chosen region and date range, with analytics and CSV export.
