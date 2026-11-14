@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-14 — S19 Website scaffold — DONE
+- **Who / AI:** Shrihan using Claude (this is Yash's half of the project; Yash should read `web/README.md`)
+- **Did:** Built the website backbone in `web/` with Vite + TypeScript (no UI framework) and MapLibre. It loads the sample data in `web/fixtures/`, shows a "SAMPLE DATA" banner, a region dropdown, a date range, basic totals for the selection, and a map with the region outline. Calendar, charts and downloads are labelled placeholders. Wrote `web/README.md` (commands, structure, rules for adding a feature).
+- **Files changed:** `web/` (package.json, package-lock.json, tsconfig.json, vite.config.ts, index.html, src/, README.md), `README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** `cd web && npm install && npm run typecheck && npm test` (9 tests pass), `npm run build` (succeeds), `npm run dev` and open the address: banner, totals 1,316 harmonized / 636 MODIS / 2,718 VIIRS for the full sample range, map with an orange rectangle.
+- **Results / numbers:** Checked in a real browser (Chromium, desktop 1280 px, phone 390 px, dark mode), dev server and built site: no console errors, no sideways scrolling. June 2024 (invented outage) shows "No data"; February 2023 (zero fires) shows 0; start date after end date shows an error message.
+- **Decisions and why:** Plain TypeScript with a small state store instead of React, to keep it simple for two people and two AIs. Data folder is chosen by `DATA_DIR` in `vite.config.ts` (default fixtures), so real data needs no code change. Map has no basemap yet: no tile provider chosen (licence check pending, `docs/sources.md`). Versions installed: Vite 8, TypeScript 7, Vitest 5, MapLibre GL 6.
+- **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
+- **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
+
 ### 2026-11-14 — S10 Download everything — PAUSED (California done; 3 regions left)
 - **Who / AI:** Shrihan ran Colab; Claude recorded results
 - **Did:** **US-CA is fully downloaded** (all 4 sources, full ranges). The run finished with `ok` and no 11-minute waits. VIIRS value formats confirmed and recorded in `docs/data-notes.md` §8. Short "rate limit: waiting N s" messages (normal pacing) are now only printed for waits of 30 s or more.

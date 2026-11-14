@@ -198,7 +198,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [ ] **S18 Validate command.** Needs: S17. Do: `07_validate.py` re-creates all validation plots and the metrics table in one command. Done when: it runs from scratch.
 
 ### Phase 5 — Website (can start after S08; does not need S10–S18)
-- [ ] **S19 Scaffold.** Needs: S08. Do: Vite + TypeScript app in `web/`, blank map loads. Done when: the run command is written in `CLAUDE.md` and `AGENTS.md`.
+- [x] **S19 Scaffold.** Needs: S08. Do: Vite + TypeScript app in `web/`, blank map loads. Done when: the run command is written in `CLAUDE.md` and `AGENTS.md`.
 - [ ] **S20 Pickers and summary.** Needs: S19. Do: region picker (dropdown + draw), date range with presets, summary panel from `web/fixtures/`.
 - [ ] **S21 Calendar.** Needs: S20. Do: years x months heatmap, 3 color modes, legend, tooltips, hatching for missing data (spec 3.1.4). Done when: it looks right for the sample region.
 - [ ] **S22 Charts.** Needs: S20. Do: monthly series, yearly totals, seasonal cycle.
