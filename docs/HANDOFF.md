@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-14 — S05 Verify FIRMS facts, S06 Fix the README — DONE
+- **Who / AI:** Shrihan using Claude (plus web search and direct downloads of official NASA pages)
+- **Did:** Read the FIRMS FAQ, the attributes page, the FIRMS API area and data-availability pages, and the official MODIS C6/C6.1 and VIIRS C2 user guides. Wrote `docs/data-notes.md` with every fact linked to its source. Corrected README Sections 0, 1, 2.1, 2.2, 2.3, 7, 10 (S03, S09), 13 and the rule lines in `CLAUDE.md` / `AGENTS.md`.
+- **Files changed:** `docs/data-notes.md` (new), `README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** open `docs/data-notes.md`; each fact has a source tag that maps to a URL at the top. Spot-check: the FIRMS FAQ section "For what dates are the fire data available?".
+- **Results / numbers:** Terra from 1 Nov 2000; Aqua from July 2002; S-NPP 20 Jan 2012 to 2 Nov 2026 (**ended**); NOAA-20 from 1 Apr 2018; NOAA-21 from 17 Jan 2024. Area API: max 5 days per call, 5000 transactions per 10 min. MODIS confidence classes: low < 30, nominal 30–79, high ≥ 80.
+- **Decisions and why:** (1) Calibration training years changed from 2012–2018 to **2014–2018**, because the FIRMS FAQ says early VIIRS data (first 18–24 months) had many bad scans. (2) Added a check of NOAA-20 vs S-NPP vs NOAA-21, because S-NPP has ended. (3) The session network was changed (new personal environment `nasa-space-apps-yash-and-shrihan` allowing `firms.modaps.eosdis.nasa.gov`, `www.earthdata.nasa.gov`, `earthdata.nasa.gov`) so official pages could be read.
+- **Problems / open questions:** See `docs/data-notes.md` §8: exact `_SP` CSV headers and `confidence` letters, `type` presence in VIIRS `_SP`, exact `_SP` date ranges, direct MAP_KEY URL, Terra/Aqua future status and orbit drift, LANCE Disclaimer. All need a real key and are part of S09.
+- **Next step:** S07 (write the data contract) and, in parallel by whoever is next, S09 (download one region-year, confirm the open items).
+
 ### 2026-11-14 — S04 Pilot regions agreed — DONE
 - **Who / AI:** Shrihan using Claude
 - **Did:** Shrihan reported that Shrihan and Yash agreed on the default pilot regions. Wrote them in README Section 2.1 and ticked S04. Added a "set up your own FIRMS key" section to `AGENTS.md` for Yash.

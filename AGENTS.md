@@ -31,7 +31,7 @@ Heavy pipeline runs happen in Google Colab through `notebooks/run_pipeline_colab
 
 Harmonized MODIS + VIIRS active-fire hotspot series (about 2000 to present) plus a web app showing a burning-activity calendar for a chosen region and date range, with analytics and CSV export.
 
-- **Pipeline:** `pipeline/01_download` to `07_validate` turn raw NASA FIRMS CSVs into the app files in `data/processed/`. MODIS-equivalent counts are the reference scale; the conversion is learned on the 2012+ overlap. Compare candidate methods A, B, C with train 2012–2018 / test 2019–2023 (README Section 13 Step C) and write the winner and its metrics in `docs/validation/README.md`.
+- **Pipeline:** `pipeline/01_download` to `07_validate` turn raw NASA FIRMS CSVs into the app files in `data/processed/`. MODIS-equivalent counts are the reference scale; the conversion is learned on the 2012+ overlap. Compare candidate methods A, B, C with train 2014–2018 / test 2019–2023 (README Section 13 Step C) and write the winner and its metrics in `docs/validation/README.md`.
 - **Web app:** reads only the files defined in the data contract (README Section 11.4, `docs/data-contract.md`). Build against `web/fixtures/` until real data exists; switching to `data/processed/` must need no app changes.
 - **Calendar:** years x months heatmap; log-count, percentile, and anomaly color modes; `count_harm: null` means missing data and is hatched, never zero.
 
@@ -40,7 +40,7 @@ Data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web.
 ## Yash: set up your own FIRMS key (once, before any download step)
 
 Shrihan's key is not in the repo. Before running anything that downloads FIRMS data (step S09 onward), Yash must:
-1. Request a free key at https://firms.modaps.eosdis.nasa.gov/api/map_key/ (link to be confirmed in `docs/data-notes.md`).
+1. Request a free key at https://firms.modaps.eosdis.nasa.gov/api/map_key/ (use the "Get MAP_KEY" link on https://firms.modaps.eosdis.nasa.gov/api/area/).
 2. Colab: add it in Colab Secrets (key icon in the left sidebar), name `FIRMS_MAP_KEY`, with "Notebook access" on.
 3. Laptop: `cp .env.example .env`, open `.env`, write `FIRMS_MAP_KEY=<key>`, save. Check `git check-ignore -v .env` prints a line. Never commit `.env`.
 4. Never paste the key into chat, a notebook cell, or `docs/HANDOFF.md`.
@@ -52,6 +52,6 @@ If you are Codex and Yash has not confirmed this, remind him before any download
 - Never invent data. Sample fixtures must be marked `"is_sample": true`. If real data is missing, stop and say so.
 - Every harmonized value ships with `count_raw`, `count_harmonized`, `method_version`, and an uncertainty band.
 - Use FIRMS standard-processing (SP) archive data for history; near-real-time data is only for the "current fire" feature, labeled provisional.
-- Sensor start dates, FIRMS column names, and confidence mapping are unverified until `docs/data-notes.md` (Task 1.1) exists. Do not hard-code them before then.
+- Use the verified facts in `docs/data-notes.md` (sensor dates, API limits, columns, confidence, `type`, citation). Items in its "Still unverified" section must be checked on the first real download (S09) before code depends on them. S-NPP ended on 2 Nov 2026.
 - Changing the data contract needs both people's agreement; flag it rather than changing it alone.
 - Tests must not download data. `.env` (FIRMS MAP_KEY) and `data/raw/` are gitignored; never put secrets in website code.
