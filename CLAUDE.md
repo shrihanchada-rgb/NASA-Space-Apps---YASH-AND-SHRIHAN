@@ -22,8 +22,11 @@ Install (once): `pip install -r requirements.txt`
 | Check a data folder against the data contract | `python3 scripts/validate_data.py web/fixtures` (or `data/processed`) |
 | Run all tests | `python3 -m pytest -q tests` |
 | Run one test | `python3 -m pytest -q tests/test_contract.py -k missing_month` |
+| FIRMS date ranges per source (needs key) | `python3 pipeline/01_download.py --check-availability` |
+| Download one region-year (needs key, resumable) | `python3 pipeline/01_download.py --region US-CA --year 2023` |
+| See what a download would do, no key needed | `python3 pipeline/01_download.py --region US-CA --year 2023 --dry-run` |
 
-Pipeline (`pipeline/`) and website (`web/`) commands are added here when those are scaffolded.
+The key is read from the `FIRMS_MAP_KEY` environment variable (Colab Secrets) or a local `.env`; it is never printed. Raw files go to `data/raw/<SOURCE>/<region>/` (gitignored). Website (`web/` app) commands are added when it is scaffolded.
 
 ## Start of every session
 

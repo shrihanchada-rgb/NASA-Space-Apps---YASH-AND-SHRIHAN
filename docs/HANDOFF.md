@@ -26,6 +26,17 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-14 — S09 Download one region-year — PAUSED (needs a run with a real key)
+- **Who / AI:** Shrihan using Claude
+- **Did:** Wrote `pipeline/config.py` (sources with FAQ dates, approximate download boxes for the 4 pilot regions, API limits) and `pipeline/01_download.py` (5-day chunks, resumable, retries on server errors, rate limit kept under 4,000 day-requests per 10 minutes, stops on any non-CSV answer, key masked in all messages, `--check-availability` saves `data/raw/data_availability.csv`). Added 10 tests in `tests/test_download.py` (no network). Colab notebook now passes per-step options via `STEP_ARGS` (default for step 01: `--check-availability --region US-CA --year 2023`).
+- **Files changed:** `pipeline/__init__.py`, `pipeline/config.py`, `pipeline/01_download.py`, `tests/test_download.py`, `notebooks/run_pipeline_colab.ipynb`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `17 passed`. `python3 pipeline/01_download.py --region US-CA --year 2023 --dry-run` → 73 chunks each for MODIS_SP, VIIRS_SNPP_SP, VIIRS_NOAA20_SP; NOAA-21 skipped (starts 2024). With a fake key, FIRMS answered `HTTP 400: Invalid MAP_KEY.` and the script stopped with the key masked and no file written.
+- **Results / numbers:** **No real data downloaded yet.** The cloud session has no key, and the FIRMS key goes inside the URL, so the session's secure-credential feature (which adds headers) cannot be used for it.
+- **Decisions and why:** stdlib only (urllib) for the downloader. Download boxes are generous rectangles; clipping to real boundaries happens later. We count every requested day as one transaction to respect "larger transactions may count as multiple requests".
+- **Problems / open questions:** The 4 bounding boxes are approximate and not checked against an official boundary file.
+- **Next step (for a person):** In Colab, set `STEPS = ["01"]` (keep the default `STEP_ARGS`) and run all cells. Paste into a new entry: the data availability table, the row counts, and the `header:` line printed for each source. Then update `docs/data-notes.md` §8 with the real headers and dates, and tick S09.
+- **If PAUSED — branch and resume command:** code is merged to `main`; resume by running the Colab notebook as above.
+
 ### 2026-11-14 — S08 Fake sample data — DONE
 - **Who / AI:** Shrihan using Claude
 - **Did:** Wrote `scripts/make_sample_fixtures.py`, which creates FAKE files in `web/fixtures/` exactly following `docs/data-contract.md`: 1 region (`US-CA`, rectangle boundary), 3 years (2023-01-01 to 2025-12-31), 3,354 invented detections, then daily/monthly/baseline built from those detections so all files agree. Wrote `scripts/validate_data.py` (schemas + cross-file checks) and `tests/test_contract.py`. Added `requirements.txt`.
