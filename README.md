@@ -119,14 +119,14 @@ web/fixtures/          # small fake sample files that follow the data contract
 ## 6. Work breakdown and ownership
 | # | Task | Owner | Depends on | Done when |
 |---|------|-------|-----------|-----------|
-| 1.1 | Verify sensor dates, columns, confidence mapping against FIRMS docs; write `docs/data-notes.md` | Shrihan (Claude) | — | Facts in this README confirmed/corrected |
-| 1.2 | Download + clean pilot regions (01–03) | Shrihan (Claude) | 1.1 | Unified schema files exist, tests pass |
-| 1.3 | Grid/dedupe + calibration experiments A/B/C (04–05) | Shrihan (Claude) | 1.2 | Metrics table comparing methods |
-| 1.4 | Validation + aggregation outputs (06–07) | Shrihan (Claude) | 1.3 | Data products in 2.4 generated |
-| 2.0 | Data contract + sample fixture files (Section 11.3) | Yash (Codex) + Shrihan review | — | `web/fixtures/` exists and Shrihan approved it |
-| 2.1 | App scaffold, region + date selection, summary panel | Yash (Codex) | 2.0 | Works on fixture JSON |
-| 2.2 | Calendar heatmap with 3 color modes | Yash (Codex) | 2.1 | Matches spec 3.1.4 |
-| 2.3 | Charts, map, CSV export, methods page | Yash (Codex) | 2.1, 1.4 | Spec 3.1 complete |
+| 1.1 | Verify sensor dates, columns, confidence mapping against FIRMS docs; write `docs/data-notes.md` | Shrihan | — | Facts in this README confirmed/corrected |
+| 1.2 | Download + clean pilot regions (01–03) | Shrihan | 1.1 | Unified schema files exist, tests pass |
+| 1.3 | Grid/dedupe + calibration experiments A/B/C (04–05) | Shrihan | 1.2 | Metrics table comparing methods |
+| 1.4 | Validation + aggregation outputs (06–07) | Shrihan | 1.3 | Data products in 2.4 generated |
+| 2.0 | Data contract + sample fixture files (Section 11.3) | Yash + Shrihan review | — | `web/fixtures/` exists and Shrihan approved it |
+| 2.1 | App scaffold, region + date selection, summary panel | Yash | 2.0 | Works on fixture JSON |
+| 2.2 | Calendar heatmap with 3 color modes | Yash | 2.1 | Matches spec 3.1.4 |
+| 2.3 | Charts, map, CSV export, methods page | Yash | 2.1, 1.4 | Spec 3.1 complete |
 | 3.1 | Integrate real data, current-fire comparison, polish, demo script | both | 1.4, 2.3 | End-to-end demo |
 
 Before starting a row, add a line to `docs/CLAIMS.md` (format is in that file). One branch per task. The full step-by-step version of this table is the checklist in Section 10.
@@ -146,20 +146,21 @@ Pipeline reproduces from raw; validation report published; web app deployed; cal
 
 ## 9. Team roles and responsibilities
 
-Two people, two AI tools. Each person owns one half of the project and uses one AI.
+Two people, two AI tools. The people lead one half each. The AIs are not tied to a person or a half: Claude and Codex can both work on the website or the pipeline, and either person can use either AI. Tasks are assigned in Section 6; who does a task is flexible if the team agrees.
 
 | | **Yash** | **Shrihan** |
 |---|---|---|
-| AI tool | Codex | Claude (Claude Code) |
-| Owns folder | `web/` (the website) | `pipeline/` and `data/` (the data work) |
+| AI tools | Claude or Codex, whichever fits the task | Claude or Codex, whichever fits the task |
+| Leads | `web/` (the website) | `pipeline/` and `data/` (the data work) |
 | Main job | Build the web app: map, region picker, date picker, burning calendar, charts, CSV download, methods page | Download FIRMS data, clean it, harmonize MODIS + VIIRS, check the results, produce the files the app reads |
 | Also owns | The data contract fixtures (`web/fixtures/`), keeping `README.md` checklist up to date, the demo | `docs/data-notes.md` (verified facts), `docs/validation/` (plots + numbers that prove harmonization works) |
 | Reviews | Shrihan's pull requests (reads the plots, asks "does this make sense?") | Yash's pull requests (checks the app shows the data correctly) |
 | Shared | Data analysis (Section 13), final demo, presentation | Same |
 
 Rules for the split:
-- You only edit files in your own folder. If you need a change in the other person's folder, ask them (or open an issue).
+- The folder you lead is the one you review most closely. Anyone can edit any folder if the task needs it. Tell the other person in the daily sync or in the pull request when you touch their half.
 - Shared files (`README.md`, `docs/CLAIMS.md`, `CLAUDE.md`, `AGENTS.md`) can be edited by both, but keep each change small and in its own pull request so you do not overwrite each other.
+- If two people want the same task, check `docs/CLAIMS.md`; first claim wins, or split it.
 - The only thing that connects the two halves is the data contract (Section 11.3). As long as both sides follow it, you can work at the same time without waiting for each other.
 
 ---
@@ -176,25 +177,25 @@ Tick a box (`- [x]`) in a pull request when the step is done. Owner is in bracke
 - [ ] [Both] Agree on the 4 pilot regions (default: California, Pará in Brazil, NSW/Victoria in Australia, Portugal). Write the final list in Section 2.1.
 - [ ] [Both] Agree on daily sync time (Section 11.1).
 
-### Phase 1 — Check the facts (Shrihan, with Claude)
+### Phase 1 — Check the facts (Shrihan)
 - [ ] [Shrihan] Read the FIRMS documentation for MODIS C6.1 and VIIRS 375 m active fire products.
 - [ ] [Shrihan] Write `docs/data-notes.md` with: start date of each satellite, exact CSV column names for each sensor, what each confidence value means, what `type` values mean, data licence and how to cite FIRMS.
 - [ ] [Shrihan] Fix anything in this README that turned out wrong (Sections 0, 2.1, 7).
 - [ ] [Yash] Review `docs/data-notes.md` and merge.
 
-### Phase 2 — Data contract (Yash, with Codex; Shrihan reviews)
+### Phase 2 — Data contract (Yash; Shrihan reviews)
 - [ ] [Yash] Write the JSON schema for each app file in Section 2.4 into `docs/data-contract.md`, starting from the example in Section 11.3.
 - [ ] [Yash] Make small fake sample files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly. Mark them clearly as fake (`"is_sample": true`).
 - [ ] [Shrihan] Review: "Can my pipeline produce exactly this?" Change the contract now if not. After merge, changes to the contract need both people to agree.
 
-### Phase 3 — Get and clean data (Shrihan, with Claude)
+### Phase 3 — Get and clean data (Shrihan)
 - [ ] [Shrihan] `pipeline/01_download.py`: download MODIS and VIIRS archive data for one pilot region and one year first. Check the file opens and has rows.
 - [ ] [Shrihan] Extend to all pilot regions and all years (2000→now). Keep raw files in `data/raw/` (not committed).
 - [ ] [Shrihan] `02_clean.py`: convert both sensors into the single schema in Section 2.2. Write a test that loads 5 known rows and checks the output.
 - [ ] [Shrihan] `03_filter.py`: remove low-confidence and non-vegetation detections; print how many were removed per sensor per year.
 - [ ] [Shrihan] Do the sanity checks in Section 13, Step A. Save the plots in `docs/validation/`.
 
-### Phase 4 — Build the app on fake data (Yash, with Codex) — runs at the same time as Phases 3–5
+### Phase 4 — Build the app on fake data (Yash) — runs at the same time as Phases 3–5
 - [ ] [Yash] Scaffold `web/` (Vite + TypeScript). Page loads with a blank map.
 - [ ] [Yash] Region picker (dropdown + draw on map) and date range picker with presets.
 - [ ] [Yash] Summary panel reading from `web/fixtures/`.
@@ -203,7 +204,7 @@ Tick a box (`- [x]`) in a pull request when the step is done. Owner is in bracke
 - [ ] [Yash] CSV download of the current query (columns in Section 3.1.8).
 - [ ] [Yash] Check the page works on a phone-sized screen and with keyboard only.
 
-### Phase 5 — Harmonize (Shrihan, with Claude; analysis with Yash)
+### Phase 5 — Harmonize (Shrihan; analysis with Yash)
 - [ ] [Shrihan] `04_dedupe_and_grid.py`: put detections on the grid; test that no detection is lost or counted twice.
 - [ ] [Shrihan] `05_calibrate.py`: implement Candidate A first, then B and C (Section 2.3).
 - [ ] [Both] Do the analysis in Section 13, Steps B–D. Decide which method wins. Write the decision and the numbers in `docs/validation/README.md`.
@@ -266,19 +267,19 @@ Rules:
 
 ## 12. How to prompt the AIs
 
-Shrihan uses Claude Code; Yash uses Codex. Both tools read their instruction file automatically (`CLAUDE.md` for Claude, `AGENTS.md` for Codex), so you do not need to re-explain the project every time. You do need to be specific about the task.
+Either person can use either AI on any task: the AI follows the task, not the person. Claude Code can work on the website or the pipeline, and so can Codex. Both tools read their instruction file automatically (`CLAUDE.md` for Claude, `AGENTS.md` for Codex), so you do not need to re-explain the project every time. You do need to be specific about the task.
 
 ### 12.1 Rules for good prompts (both AIs)
 1. **One task per prompt.** Give the task ID from Section 10 ("Do task 2.2"), not "build the app".
 2. **Say what goes in and what comes out.** Name the input files and the exact output file and format.
 3. **Say how you will check it.** "Done when the test passes", "done when the calendar shows 3 years from `web/fixtures/`".
-4. **Say what not to touch.** "Only edit files in `web/`."
+4. **Say which files the task should change.** "Edit files in `web/` for this task." Keep it small so changes are easy to review.
 5. **Forbid fake data.** "Do not invent numbers. If data is missing, stop and tell me."
 6. **Ask for proof.** "Show me the commands you ran and their output."
 7. **Ask it to ask.** "If something is unclear, ask me before guessing."
 8. **Small steps.** If the AI's answer is very long or changes many files, ask it to split the work.
 
-### 12.2 Prompt template — Yash → Codex (website)
+### 12.2 Example prompt — website task (works for Claude or Codex)
 ```
 Task: <ID and name from README Section 10, e.g. 2.2 Burning activity calendar>
 Read first: README.md Sections 3.1.4 and 11.3, docs/data-contract.md
@@ -286,21 +287,21 @@ Input: web/fixtures/monthly_region.sample.json
 Output: a calendar component in web/src/, shown on the main page
 Must: 3 color modes (log count, percentile, anomaly), legend, tooltip with count/rank/anomaly,
       hatching for null months, keyboard accessible.
-Only edit: web/
+Edit: web/ for this task
 Do not: change the data contract, invent data, add a backend.
 Done when: `npm run dev` shows the calendar for the sample region and `npm test` passes.
 Show me: the commands you ran and their output, and a screenshot if you can.
 If anything is unclear, ask me first.
 ```
 
-### 12.3 Prompt template — Shrihan → Claude (data pipeline)
+### 12.3 Example prompt — data pipeline task (works for Claude or Codex)
 ```
 Task: <ID and name from README Section 10, e.g. 1.2 Clean MODIS + VIIRS data>
-Read first: CLAUDE.md, README.md Section 2.2, docs/data-notes.md
+Read first: README.md Section 2.2, docs/data-notes.md
 Input: data/raw/<sensor>/<year>.csv
 Output: data/interim/clean_<sensor>_<year>.parquet with columns exactly:
         lat, lon, date, time_utc, sensor, satellite, confidence_class, frp, daynight, type
-Only edit: pipeline/ and tests under pipeline/tests/
+Edit: pipeline/ and tests under pipeline/tests/ for this task
 Do not: hard-code facts not in docs/data-notes.md, download data in tests, invent rows.
 Done when: `pytest pipeline/tests -k clean` passes and the script prints rows in/out per sensor.
 Show me: the commands you ran and their output.
