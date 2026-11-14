@@ -84,10 +84,45 @@ From [ATTR] and [VIIRS-UG]: `0` = presumed vegetation fire, `1` = active volcano
 
 The app's methods page and CSV header should include the "NASA FIRMS" citation line above.
 
-## 8. Still unverified (do these in S09, with the real key)
+## 8. Confirmed on the first real download (S09, 2026-11-14)
 
-1. Exact CSV header names and value formats for `MODIS_SP`, `VIIRS_SNPP_SP`, `VIIRS_NOAA20_SP`, `VIIRS_NOAA21_SP` (especially `confidence` letters and whether `type` is present).
-2. Exact `_SP` date ranges from `/api/data_availability/` (and how far `_SP` lags behind today).
+Shrihan ran `pipeline/01_download.py --check-availability --region US-CA --year 2023` in Colab with his key. Output pasted into `docs/HANDOFF.md`.
+
+**FIRMS `/api/data_availability/` (exact answer):**
+
+| data_id | min_date | max_date |
+|---|---|---|
+| MODIS_SP | 2000-11-01 | 2026-08-31 |
+| VIIRS_SNPP_SP | 2012-01-20 | 2026-07-31 |
+| VIIRS_NOAA20_SP | 2018-04-01 | 2026-07-31 |
+| VIIRS_NOAA21_SP | **2023-03-01** | 2026-07-31 |
+| MODIS_NRT | 2026-09-01 | 2026-11-14 |
+| VIIRS_SNPP_NRT | 2026-08-01 | 2026-11-02 |
+| VIIRS_NOAA20_NRT | 2026-08-01 | 2026-11-14 |
+| VIIRS_NOAA21_NRT | 2024-01-17 | 2026-11-14 |
+| LANDSAT_NRT | 2022-06-20 | 2026-11-14 |
+| GOES_NRT | 2022-08-09 | 2026-11-14 |
+| BA_MODIS | 2000-11-01 | 2026-08-01 |
+| BA_VIIRS | 2012-03-01 | 2026-08-01 |
+
+What this means:
+- **Standard-processing data lags.** On 2026-11-14 the newest SP data was 2026-08-31 (MODIS) and 2026-07-31 (VIIRS). Months after that exist only as NRT. The calendar's last months must either use NRT (labelled provisional) or be shown as not yet available.
+- **NOAA-21 SP starts 2023-03-01**, earlier than the FAQ's 17 Jan 2024. The pipeline downloads what FIRMS offers; whether to use NOAA-21 before 2024-01-17 for harmonization is a decision for S15 (open).
+- `pipeline/01_download.py` now reads these dates from `data/raw/data_availability.csv` when it exists.
+- FIRMS also lists `BA_MODIS` and `BA_VIIRS` (likely burned area, not read up on) and `GOES_NRT`. Not used yet; see `docs/sources.md`.
+
+**CSV headers (exact, from the files):**
+- `MODIS_SP`: `latitude,longitude,brightness,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_t31,frp,daynight,type`
+- `VIIRS_SNPP_SP` and `VIIRS_NOAA20_SP`: `latitude,longitude,bright_ti4,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_ti5,frp,daynight,type`
+- So: there is an `instrument` column, and **`type` is present in both MODIS and VIIRS SP data**. `VIIRS_NOAA21_SP` header not seen yet (no 2023 run of it).
+
+**Row counts, California box (approximate box, before any filtering), 2023:** MODIS_SP 8,438; VIIRS_SNPP_SP 38,691; VIIRS_NOAA20_SP 39,541. VIIRS returned about 4.6 times as many rows per satellite as MODIS (Terra + Aqua combined) for this box and year. One region-year; not a general ratio.
+
+## 9. Still unverified
+
+1. The values inside `confidence` (MODIS numbers? VIIRS letters `l`/`n`/`h`?), `type`, `satellite`, `version`. The downloader now prints a value summary per source; it will show on the next run (S10).
+2. `VIIRS_NOAA21_SP` header (expected same as other VIIRS).
 3. The direct MAP_KEY request URL.
-4. Current mission status of Terra and Aqua beyond the [FAQ] "to the present", including any orbit drift changing overpass times. Not found on the pages read.
+4. Current mission status of Terra and Aqua beyond "to the present", including any orbit drift.
 5. The LANCE Disclaimer text.
+6. What `BA_MODIS` / `BA_VIIRS` are exactly.

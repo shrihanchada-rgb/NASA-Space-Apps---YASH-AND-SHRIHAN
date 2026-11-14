@@ -11,6 +11,7 @@ Examples:
 """
 import argparse
 import collections
+import csv
 import datetime as dt
 import os
 import sys
@@ -55,10 +56,34 @@ def chunks(start, end, size=config.MAX_DAY_RANGE):
         d += dt.timedelta(days=n)
 
 
-def clip_to_source(source, start, end):
-    first, last = config.SOURCES[source]
+def source_dates(source, availability=None):
+    """(first, last) dates for a source: from data/raw/data_availability.csv if present, else config."""
+    path = availability if availability is not None else RAW / "data_availability.csv"
+    if path and Path(path).exists():
+        for row in csv.DictReader(Path(path).read_text().splitlines()):
+            if row.get("data_id") == source:
+                return dt.date.fromisoformat(row["min_date"]), dt.date.fromisoformat(row["max_date"])
+    return config.SOURCES[source]
+
+
+def clip_to_source(source, start, end, availability=None):
+    first, last = source_dates(source, availability)
     s, e = max(start, first), min(end, last) if last else end
     return (s, e) if s <= e else None
+
+
+SUMMARY_COLUMNS = ("satellite", "instrument", "confidence", "version", "daynight", "type")
+
+
+def value_summary(texts, columns=SUMMARY_COLUMNS, top=8):
+    """Count the values seen in a few columns, to confirm formats (e.g. confidence letters)."""
+    counts = {c: collections.Counter() for c in columns}
+    for text in texts:
+        for row in csv.DictReader(text.splitlines()):
+            for c in columns:
+                if c in row:
+                    counts[c][row[c]] += 1
+    return {c: counts[c].most_common(top) for c in columns if counts[c]}
 
 
 class RateLimiter:
@@ -119,7 +144,8 @@ def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=No
     summary = {}
     for source in sources:
         span = clip_to_source(source, start, end)
-        stats = {"chunks": 0, "skipped": 0, "rows": 0, "header": None}
+        stats = {"chunks": 0, "skipped": 0, "rows": 0, "header": None, "values": {}}
+        texts = []
         summary[source] = stats
         if span is None:
             log(f"{source}: no data in {start}..{end} (outside source dates), skipped")
@@ -140,6 +166,7 @@ def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=No
                 tmp = path.with_suffix(".part")
                 tmp.write_text(text)
                 tmp.rename(path)
+            texts.append(text)
             lines = [ln for ln in text.splitlines() if ln.strip()]
             if lines:
                 stats["header"] = stats["header"] or lines[0]
@@ -147,6 +174,9 @@ def download(region, start, end, sources, key, out=RAW, get=http_get, limiter=No
         log(f"{source}: {stats['chunks']} chunks ({stats['skipped']} already on disk), {stats['rows']} rows")
         if stats["header"]:
             log(f"  header: {stats['header']}")
+        stats["values"] = value_summary(texts)
+        for col, vals in stats["values"].items():
+            log(f"  {col}: " + ", ".join(f"{v!r} x{n}" for v, n in vals))
     return summary
 
 

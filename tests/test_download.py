@@ -24,10 +24,11 @@ def test_year_needs_73_chunks():
     assert len(list(dl.chunks(D(2023, 1, 1), D(2023, 12, 31)))) == 73
 
 
-def test_clip_to_source_dates():
-    assert dl.clip_to_source("VIIRS_NOAA21_SP", D(2023, 1, 1), D(2023, 12, 31)) is None
-    assert dl.clip_to_source("VIIRS_SNPP_SP", D(2026, 10, 1), D(2026, 12, 31)) == (D(2026, 10, 1), D(2026, 11, 2))
-    assert dl.clip_to_source("MODIS_SP", D(2000, 1, 1), D(2000, 12, 31)) == (D(2000, 11, 1), D(2000, 12, 31))
+def test_clip_to_source_dates_from_config():
+    none = Path("/nonexistent/availability.csv")  # force the config fallback, whatever is in data/raw
+    assert dl.clip_to_source("VIIRS_NOAA21_SP", D(2022, 1, 1), D(2022, 12, 31), none) is None
+    assert dl.clip_to_source("VIIRS_SNPP_SP", D(2026, 10, 1), D(2026, 12, 31), none) == (D(2026, 10, 1), D(2026, 11, 2))
+    assert dl.clip_to_source("MODIS_SP", D(2000, 1, 1), D(2000, 12, 31), none) == (D(2000, 11, 1), D(2000, 12, 31))
 
 
 def test_key_is_masked_in_errors():
@@ -93,3 +94,17 @@ def test_rate_limiter_waits_when_budget_used():
 def test_url_has_bbox_days_and_date():
     url = dl.area_url("K", "VIIRS_NOAA20_SP", [-9.7, 36.8, -6.0, 42.3], D(2023, 8, 1), 5)
     assert url.endswith("/area/csv/K/VIIRS_NOAA20_SP/-9.7,36.8,-6,42.3/5/2023-08-01")
+
+
+def test_source_dates_prefer_availability_file(tmp_path):
+    f = tmp_path / "avail.csv"
+    f.write_text("data_id,min_date,max_date\nVIIRS_NOAA21_SP,2023-03-01,2026-07-31\n")
+    assert dl.source_dates("VIIRS_NOAA21_SP", f) == (D(2023, 3, 1), D(2026, 7, 31))
+    assert dl.clip_to_source("VIIRS_NOAA21_SP", D(2026, 1, 1), D(2026, 12, 31), f) == (D(2026, 1, 1), D(2026, 7, 31))
+    assert dl.source_dates("MODIS_SP", f)[0] == D(2000, 11, 1)  # not in file -> config fallback
+
+
+def test_value_summary_counts_formats():
+    text = HEADER + "\n1,2,300,1,1,2023-08-01,1030,T,MODIS,80,6.1,290,5.5,D,0\n1,2,300,1,1,2023-08-01,1030,A,MODIS,20,6.1,290,5.5,N,2\n"
+    v = dl.value_summary([text])
+    assert dict(v["satellite"]) == {"T": 1, "A": 1} and dict(v["type"]) == {"0": 1, "2": 1}

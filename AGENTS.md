@@ -8,7 +8,7 @@ Shrihan leads the backend data work (`pipeline/`, `data/`, `docs/data-notes.md`,
 
 ## Status
 
-Early stage. The data contract (`docs/data-contract.md`), its schemas, fake sample files (`web/fixtures/`), a validator, and tests exist. The pipeline (`pipeline/`) and website app are not written yet.
+Early stage. The data contract (`docs/data-contract.md`), its schemas, fake sample files (`web/fixtures/`), a validator, and tests exist. The FIRMS downloader (`pipeline/01_download.py`) works on real data; later pipeline steps and the website app are not written yet.
 
 `README.md` is the source of truth for scope, task order, and ownership. Read it fully before starting. Do not create a competing plan elsewhere; edit the README instead.
 
@@ -68,6 +68,6 @@ If you are Codex and Yash has not confirmed this, remind him before any download
 - Never invent data. Sample fixtures must be marked `"is_sample": true`. If real data is missing, stop and say so.
 - Every harmonized value ships with raw counts, `count_harm`, its band (`count_low`/`count_high`), and `method_version`, exactly as in `docs/data-contract.md`. Validate output against `docs/schemas/`.
 - Use FIRMS standard-processing (SP) archive data for history; near-real-time data is only for the "current fire" feature, labeled provisional.
-- Use the verified facts in `docs/data-notes.md` (sensor dates, API limits, columns, confidence, `type`, citation). Items in its "Still unverified" section must be checked on the first real download (S09) before code depends on them. S-NPP ended on 2 Nov 2026.
+- Use the verified facts in `docs/data-notes.md` (sensor dates, API limits, columns, confidence, `type`, citation). Items in its "Still unverified" section must be checked before code depends on them. Standard-processing data lags by a few months (SP ended 2026-07-31 / 2026-08-31 when checked on 2026-11-14). S-NPP ended on 2 Nov 2026.
 - Changing the data contract needs both people's agreement; flag it rather than changing it alone.
 - Tests must not download data. `.env` (FIRMS MAP_KEY) and `data/raw/` are gitignored; never put secrets in website code.
