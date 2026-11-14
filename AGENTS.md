@@ -39,6 +39,10 @@ Website (run inside `web/`; structure and rules in `web/README.md`):
 | Unit tests / one file | `npm test` / `npx vitest run src/data/derive.test.ts` |
 | Build to `web/dist/` | `npm run build` |
 
+## Design reference
+
+A UI/UX rule library is in `.claude/skills/ui-ux-pro-max/` (third-party, MIT). Codex does not load it automatically; read `references/quick-reference.md` there, or run its offline search: `python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain chart`. Its advice is input, not a rule: the data contract and README spec win when they disagree.
+
 ## Start of every session
 
 Shrihan and Yash work at different times, so the repo is the only memory. Do this every time:
