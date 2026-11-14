@@ -26,16 +26,15 @@ Rules for entries:
 
 ## Entries
 
-### 2026-11-14 — S09 Download one region-year — PAUSED (needs a run with a real key)
-- **Who / AI:** Shrihan using Claude
-- **Did:** Wrote `pipeline/config.py` (sources with FAQ dates, approximate download boxes for the 4 pilot regions, API limits) and `pipeline/01_download.py` (5-day chunks, resumable, retries on server errors, rate limit kept under 4,000 day-requests per 10 minutes, stops on any non-CSV answer, key masked in all messages, `--check-availability` saves `data/raw/data_availability.csv`). Added 10 tests in `tests/test_download.py` (no network). Colab notebook now passes per-step options via `STEP_ARGS` (default for step 01: `--check-availability --region US-CA --year 2023`).
-- **Files changed:** `pipeline/__init__.py`, `pipeline/config.py`, `pipeline/01_download.py`, `tests/test_download.py`, `notebooks/run_pipeline_colab.ipynb`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`
-- **How to check it:** `python3 -m pytest -q tests` → `17 passed`. `python3 pipeline/01_download.py --region US-CA --year 2023 --dry-run` → 73 chunks each for MODIS_SP, VIIRS_SNPP_SP, VIIRS_NOAA20_SP; NOAA-21 skipped (starts 2024). With a fake key, FIRMS answered `HTTP 400: Invalid MAP_KEY.` and the script stopped with the key masked and no file written.
-- **Results / numbers:** **No real data downloaded yet.** The cloud session has no key, and the FIRMS key goes inside the URL, so the session's secure-credential feature (which adds headers) cannot be used for it.
-- **Decisions and why:** stdlib only (urllib) for the downloader. Download boxes are generous rectangles; clipping to real boundaries happens later. We count every requested day as one transaction to respect "larger transactions may count as multiple requests".
-- **Problems / open questions:** The 4 bounding boxes are approximate and not checked against an official boundary file.
-- **Next step (for a person):** In Colab, set `STEPS = ["01"]` (keep the default `STEP_ARGS`) and run all cells. Paste into a new entry: the data availability table, the row counts, and the `header:` line printed for each source. Then update `docs/data-notes.md` §8 with the real headers and dates, and tick S09.
-- **If PAUSED — branch and resume command:** code is merged to `main`; resume by running the Colab notebook as above.
+### 2026-11-14 — S09 Download one region-year — DONE
+- **Who / AI:** Shrihan ran the Colab notebook (step 01) with his key; Claude recorded results and updated code.
+- **Did:** Real FIRMS download worked for California 2023. Recorded the data availability table, exact CSV headers and row counts in `docs/data-notes.md` §8. Downloader now reads source dates from `data/raw/data_availability.csv` and prints a value summary (satellite, instrument, confidence, version, daynight, type) per source. NOAA-21 fallback start changed to 2023-03-01 (FIRMS availability).
+- **Files changed:** `pipeline/01_download.py`, `pipeline/config.py`, `tests/test_download.py`, `docs/data-notes.md`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `19 passed`. In Colab, the raw files are in `My Drive/nasa-fire-calendar/raw/<SOURCE>/US-CA/` (73 files each for MODIS_SP, VIIRS_SNPP_SP, VIIRS_NOAA20_SP).
+- **Results / numbers:** Colab output: `MODIS_SP: 73 chunks, 8438 rows`; `VIIRS_SNPP_SP: 73 chunks, 38691 rows`; `VIIRS_NOAA20_SP: 73 chunks, 39541 rows`; NOAA-21 skipped (old fallback date). SP data ends 2026-08-31 (MODIS) and 2026-07-31 (VIIRS).
+- **Decisions and why:** Use FIRMS's own availability dates over the FAQ dates, because they describe what the API actually serves. Whether NOAA-21 data before 2024-01-17 is used in harmonization is left for S15.
+- **Problems / open questions:** Values inside `confidence` etc. not seen yet (summary prints on next run). The newest ~3 months are not in SP data: the calendar must label them (decide in S17/S21). The Colab copy of the code is the `repo.zip` in Drive: **upload a fresh zip after every code change**, or Colab runs old code.
+- **Next step:** S10 download everything. In Colab: fresh `repo.zip`, then `STEPS = ["01"]` and `STEP_ARGS = {"01": "--check-availability --region US-CA --start 2000-11-01 --end 2026-08-31"}`; repeat for `BR-PA`, `AU-NSW-VIC`, `PT`. Paste the summaries.
 
 ### 2026-11-14 — S08 Fake sample data — DONE
 - **Who / AI:** Shrihan using Claude

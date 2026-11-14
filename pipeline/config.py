@@ -2,12 +2,14 @@
 import datetime as dt
 
 # FIRMS standard-processing sources and the dates the FIRMS FAQ gives for each satellite.
-# The exact _SP ranges come from /api/data_availability/ (run 01_download.py --check-availability).
+# These are fallbacks. When data/raw/data_availability.csv exists (01_download.py --check-availability),
+# its min/max dates are used instead. On 2026-11-14 FIRMS reported SP ranges ending 2026-07-31 (VIIRS)
+# and 2026-08-31 (MODIS), and VIIRS_NOAA21_SP starting 2023-03-01 (earlier than the FAQ date).
 SOURCES = {
     "MODIS_SP": (dt.date(2000, 11, 1), None),          # Terra from 1 Nov 2000; Aqua from July 2002
     "VIIRS_SNPP_SP": (dt.date(2012, 1, 20), dt.date(2026, 11, 2)),  # S-NPP ended 2 Nov 2026
     "VIIRS_NOAA20_SP": (dt.date(2018, 4, 1), None),
-    "VIIRS_NOAA21_SP": (dt.date(2024, 1, 17), None),
+    "VIIRS_NOAA21_SP": (dt.date(2023, 3, 1), None),  # FIRMS availability; FAQ says 17 Jan 2024
 }
 
 # Download boxes: [west, south, east, north]. These are APPROXIMATE boxes drawn generously around

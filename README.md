@@ -184,7 +184,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [x] **S08 Fake sample data.** Needs: S07. Do: make small fake files in `web/fixtures/` (1 region, 3 years) that follow the schema exactly, with `"is_sample": true`. Done when: a script or test validates them against the contract.
 
 ### Phase 3 — Get and clean data
-- [ ] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors (run it locally or in Colab, Section 14). First call `/api/data_availability/` to get the exact `_SP` date ranges, and check the CSV headers, `confidence` format and presence of `type` against `docs/data-notes.md` §8; update that file with what you find. Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.
+- [x] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors (run it locally or in Colab, Section 14). First call `/api/data_availability/` to get the exact `_SP` date ranges, and check the CSV headers, `confidence` format and presence of `type` against `docs/data-notes.md` §8; update that file with what you find. Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.
 - [ ] **S10 Download everything.** Needs: S09. Do: extend to all pilot regions and years (2000 to now), resumable. Done when: a table of files and row counts is in the handoff entry. Raw files stay in `data/raw/` (not committed), so write how to re-create them.
 - [ ] **S11 Clean.** Needs: S10. Do: `02_clean.py` into the single schema (Section 2.2) plus a test on 5 known rows. Done when: test passes.
 - [ ] **S12 Filter.** Needs: S11. Do: `03_filter.py`; print how many were removed per sensor per year. Done when: counts are in `docs/validation/`.
@@ -301,9 +301,9 @@ Read first: README.md Section 2.2, docs/data-notes.md, docs/HANDOFF.md (newest e
 Input: data/raw/<sensor>/<year>.csv
 Output: data/interim/clean_<sensor>_<year>.parquet with columns exactly:
         lat, lon, date, time_utc, sensor, satellite, confidence_class, frp, daynight, type
-Edit: pipeline/ and tests under pipeline/tests/ for this task
+Edit: pipeline/ and tests under tests/ for this task
 Do not: hard-code facts not in docs/data-notes.md, download data in tests, invent rows.
-Done when: `pytest pipeline/tests -k clean` passes and the script prints rows in/out per sensor.
+Done when: `python3 -m pytest -q tests -k clean` passes and the script prints rows in/out per sensor.
 Show me: the commands you ran and their output.
 If a column is missing or different from docs/data-notes.md, stop and tell me.
 Last: tick the step in README Section 10 and add an entry to docs/HANDOFF.md
