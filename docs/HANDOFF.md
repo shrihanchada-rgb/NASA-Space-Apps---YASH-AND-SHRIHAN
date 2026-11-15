@@ -56,6 +56,17 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — S10 Download everything — PAUSED (US-CA, BR-PA, AU-NSW-VIC done; PT left)
+- **Who / AI:** Shrihan ran Colab; Claude recorded results
+- **Did:** **AU-NSW-VIC fully downloaded** (all 4 sources, full ranges, finished `ok`, no 11-minute waits, only short rate-limit pauses). Row counts and observations added to `docs/data-notes.md` §8.
+- **Files changed:** `docs/data-notes.md`, `docs/HANDOFF.md`
+- **How to check it:** in Drive, `raw/<SOURCE>/AU-NSW-VIC/` has 1,887 / 1,062 / 609 / 250 files for MODIS_SP / VIIRS_SNPP_SP / VIIRS_NOAA20_SP / VIIRS_NOAA21_SP.
+- **Results / numbers:** AU-NSW-VIC rows: MODIS_SP 629,515; VIIRS_SNPP_SP 1,817,213; VIIRS_NOAA20_SP 1,223,995; VIIRS_NOAA21_SP 310,146 (total 3,980,869). Aqua/Terra ratio 1.86.
+- **Decisions and why:** none new.
+- **Problems / open questions:** the box includes strips of Queensland and South Australia until clipping.
+- **Next step:** Colab step 01 for `PT` (`--check-availability --region PT --start 2000-11-01 --end 2026-08-31`), then tick S10.
+- **If PAUSED — branch and resume command:** none; resume with `PT` in Colab.
+
 ### 2026-11-14 — S10 Download everything — PAUSED (US-CA and BR-PA done; 2 regions left)
 - **Who / AI:** Shrihan ran Colab; Claude recorded results
 - **Did:** **BR-PA fully downloaded** (all 4 sources, full ranges, finished `ok`, no 11-minute waits). US-CA was done earlier. Row counts and observations recorded in `docs/data-notes.md` §8.

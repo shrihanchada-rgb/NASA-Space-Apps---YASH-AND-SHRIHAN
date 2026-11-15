@@ -144,12 +144,20 @@ What this means:
 |---|---|---|---|---|---|
 | US-CA | 368,690 | 1,117,337 | 773,314 | 149,284 | 2,408,625 |
 | BR-PA | 2,707,098 | 5,348,275 | 2,857,121 | 1,206,395 | 12,118,889 |
+| AU-NSW-VIC | 629,515 | 1,817,213 | 1,223,995 | 310,146 | 3,980,869 |
 
 Observations from BR-PA (2026-11-14 run):
 - **Aqua has 1.84 times as many MODIS rows as Terra** (1,754,646 vs 952,452). In California they were nearly equal (179,076 vs 189,614). Aqua passes in the early afternoon and Terra mid-morning (FAQ, section 1). A plausible reason, not checked: tropical burning peaks in the afternoon. Consequence for harmonization: the Terra-only period (Nov 2000 – Jun 2002) will undercount compared with later years, and that effect is region-dependent. S15 must handle Terra and Aqua separately or per region.
 - **`type` 2 (static land source) is only 0.3–0.5% of rows in BR-PA**, compared with 9–17% of VIIRS rows in California. The share of non-vegetation detections differs a lot by region.
 - VIIRS low confidence (`l`) is 6.7–7.0% of rows in BR-PA.
 - The BR-PA download box is a rectangle that also covers parts of neighbouring states, so these counts are larger than Pará itself until clipping (S11/S14).
+
+Observations from AU-NSW-VIC (2026-11-15 run):
+- **Aqua has 1.86 times as many MODIS rows as Terra** (409,204 vs 220,311), close to BR-PA (1.84) and unlike California (~0.94). So the Terra/Aqua imbalance is not only tropical; S15 still needs Terra and Aqua handled separately or per region.
+- `type` 2 (static land source) is 2.3% of MODIS rows and 2.2–3.3% of VIIRS rows; `type` 3 (offshore) is under 0.2%.
+- VIIRS low confidence (`l`) is 4.7% (S-NPP, NOAA-20) and 5.9% (NOAA-21) of rows.
+- MODIS `version` again mixes `6.03` (559,083) and `61.03` (70,432).
+- The box [140.8, -39.3, 153.8, -28.0] also covers a strip of southern Queensland (north of about -29) and of South Australia (west of 141°E), plus sea, until clipping.
 
 **FIRMS answers "Invalid MAP_KEY." when the limit is used up**, not only for a wrong key. A run that had already made about 2,000 successful requests was stopped by it. The downloader now waits and retries in that case.
 
