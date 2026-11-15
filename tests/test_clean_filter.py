@@ -404,24 +404,57 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import validate_data  # noqa: E402
 
 H = {"method": "A1", "method_version": "A1-1.0", "k_month": {m: 0.25 for m in range(1, 13)}, "band": (0.8, 1.2),
-     "terra_factor": {m: 2.0 for m in range(1, 13)}, "terra_factor_kind": "one factor (F0)", "terra_band": (0.9, 1.3),
+     "terra_factor": {m: 2.0 for m in range(1, 13)}, "aqua_factor": {m: 3.0 for m in range(1, 13)},
+     "terra_factor_kind": "one factor (F0)", "terra_band": (0.9, 1.3),
      "validation": {"r2": 0.99, "median_abs_pct_error": 12.0, "test_years": "2019-2023"}}
+RANGES = {"MODIS_SP": (dt.date(2000, 11, 1), dt.date(2026, 12, 31)), "VIIRS_SNPP_SP": (dt.date(2012, 1, 20), dt.date(2027, 3, 31)),
+          "VIIRS_NOAA20_SP": (dt.date(2018, 4, 1), dt.date(2027, 6, 30)), "VIIRS_NOAA21_SP": (dt.date(2023, 3, 1), dt.date(2027, 6, 30))}
+OUTAGES = [{"satellite": "A", "start": "2015-06-01", "end": "2015-06-10", "days": 10, "evidence": "test"},
+           {"satellite": "N", "start": "2015-07-01", "end": "2015-07-05", "days": 5, "evidence": "test"},
+           {"satellite": "T", "start": "2001-06-15", "end": "2001-07-02", "days": 18, "evidence": "test"}]
 
 
 def weight_rows(rows):
     return grid_rows([(d, s, 10.5, 20.5, "D", 1.0) for d, s in rows])
 
 
-def test_weights_blend_and_modis_first():
-    df = weight_rows([("2001-05-01", "T"), ("2005-05-01", "T"), ("2005-05-01", "A"),
-                      ("2015-05-01", "T"), ("2015-05-01", "N"), ("2015-05-01", "N20"),
-                      ("2027-01-05", "N"), ("2027-01-05", "N20"), ("2027-06-05", "N20")])
-    last_modis, last_snpp = dt.date(2026, 12, 31), dt.date(2027, 3, 31)
-    w, kind = agg.weights(df, H, last_modis, last_snpp, policy="blend")
-    assert list(w) == [2.0, 1.0, 1.0, 0.5, 0.125, 0.0, 0.25, 0.0, 0.25]
-    assert list(kind) == ["terra_only", "modis", "modis", "modis", "viirs", "none", "viirs", "none", "viirs"]
-    w2, _ = agg.weights(df, H, last_modis, last_snpp, policy="modis_first")
-    assert list(w2) == [2.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.25, 0.0, 0.25]
+def test_weights_never_double_count_and_respect_outages():
+    df = weight_rows([("2001-05-01", "T"),                                           # Terra only: x2
+                      ("2005-05-01", "T"), ("2005-05-01", "A"),                      # both MODIS, no VIIRS yet: 1 each
+                      ("2015-05-01", "T"), ("2015-05-01", "N"),                      # both sensors: half each (S-NPP half of k)
+                      ("2019-05-01", "T"), ("2019-05-01", "N"), ("2019-05-01", "N20"),   # NOAA-20 never adds to the blend
+                      ("2015-06-05", "T"), ("2015-06-05", "N"),                      # Aqua outage: Terra x2, still blended
+                      ("2015-07-03", "T"), ("2015-07-03", "A"), ("2015-07-03", "N"),     # S-NPP outage: MODIS alone
+                      ("2027-01-05", "N"), ("2027-01-05", "N20"),                    # MODIS ended: S-NPP x k
+                      ("2027-06-05", "N20")])                                        # S-NPP ended too: NOAA-20 stands in
+    w, kind = agg.weights(df, agg.day_table(RANGES, OUTAGES, H, policy="blend"))
+    assert list(w) == [2.0, 1.0, 1.0, 0.5, 0.125, 0.5, 0.125, 0.0, 1.0, 0.125, 1.0, 1.0, 0.0, 0.25, 0.0, 0.25]
+    assert list(kind)[:5] == ["terra_only", "modis", "modis", "modis", "viirs"] and kind[8] == "terra_only" and kind[12] == "none"
+    w2, _ = agg.weights(df, agg.day_table(RANGES, OUTAGES, H, policy="modis_first"))
+    assert list(w2) == [2.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 1.0, 1.0, 0.0, 0.25, 0.0, 0.25]
+    t = agg.day_table(RANGES, OUTAGES, H)
+    assert not t.loc["2001-06-20", "observed"] and t.loc["2001-07-03", "observed"]   # Terra outage before Aqua: no data at all
+
+
+def test_find_outages_rules(tmp_path):
+    rows = []
+    def add(day, **counts):
+        for sat, n in counts.items():
+            if n:
+                rows.append({"region_id": "PT", "date": day.isoformat(), "satellite": sat, "n_clean": n})
+    d0 = dt.date(2019, 1, 1)
+    for i in range(120):
+        day = d0 + dt.timedelta(days=i)
+        terra = 0 if 20 <= i < 30 else (0 if i % 2 else 6)        # a 10-day run of zeros, and normal single empty days
+        aqua = 0 if 60 <= i < 63 else 5                           # a 3-day run: too short to call an outage
+        snpp = 0 if 80 <= i < 84 else (8 if i == 90 else 60)      # 4 empty days; one day far below NOAA-20
+        add(day, T=terra, A=aqua, N=snpp, N20=70)
+    f = tmp_path / "daily_counts.csv"
+    pd.DataFrame(rows).to_csv(f, index=False)
+    rng = {"MODIS_SP": (d0, d0 + dt.timedelta(days=119)), "VIIRS_SNPP_SP": (d0, d0 + dt.timedelta(days=119)),
+           "VIIRS_NOAA20_SP": (d0, d0 + dt.timedelta(days=119)), "VIIRS_NOAA21_SP": (d0, d0 + dt.timedelta(days=119))}
+    got = {(o["satellite"], o["start"], o["days"]) for o in agg.find_outages("PT", rng, f) if o["satellite"] != "N21"}
+    assert got == {("T", "2019-01-20", 11), ("N", "2019-03-22", 4), ("N", "2019-04-01", 1)}
 
 
 def test_aggregate_writes_valid_contract_files(tmp_path):
@@ -440,7 +473,7 @@ def test_aggregate_writes_valid_contract_files(tmp_path):
         + [viirs_row("2015-08-10", lat=f"10.5{i}", lon="20.5") for i in range(1, 8)])
     put("VIIRS_NOAA20_SP", 2015, [viirs_row("2015-08-10", sat="N20", lat="10.5", lon="20.5")])
     mask = square_mask()
-    r = agg.build_region("PT", out, H, "2026-11-15", filtered=fi, availability=avail, mask=mask, polygons=SQUARE, log=lambda *_: None)
+    r = agg.build_region("PT", out, H, "2026-11-15", filtered=fi, availability=avail, outages=[], mask=mask, polygons=SQUARE, log=lambda *_: None)
     meta = {"schema_version": "1.0", "method_version": "A1-1.0", "build_date": "2026-11-15", "is_sample": False, "reference_scale": "x",
             "time_coverage": {"start": "2000-11-01", "end": "2015-12-31"}, "sources": r["sources"],
             "filters": {"min_confidence": "nominal", "types_kept": [0]}, "grid_resolution_deg": 0.25, "regions": ["PT"],

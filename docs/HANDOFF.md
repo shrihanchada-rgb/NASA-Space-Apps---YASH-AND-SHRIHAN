@@ -56,6 +56,29 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — Audit of the harmonized California data; satellite outages fixed — DONE
+- **Who / AI:** Shrihan asked for double counting and errors to be ruled out; Claude
+- **Did:**
+  - Wrote `pipeline/06b_audit_processed.py`: 21 independent checks of `data/processed/` (duplicates, totals against S14, every row's weight, one-estimate-not-two, files agree, no jump in 2012, baseline).
+  - The first run failed one check: 2024 harmonized was 12% below observed MODIS. Cause: S-NPP delivered no data on 24–28 Jul 2024 (and other days), and empty files were read as "no fires".
+  - Fixed `06_aggregate.py`: it now finds satellite outages from `data/interim_extract/daily_counts.csv` and treats them as missing data. A single MODIS satellite is scaled when the other is out (Aqua-only factor 1.947 added). Rebuilt `data/processed/`.
+- **Files changed:** `pipeline/06_aggregate.py`, `pipeline/06b_audit_processed.py` (new), `tests/test_clean_filter.py`, `data/processed/`, `data/processed/README.md`, `docs/data-contract.md`, `docs/validation/README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 pipeline/06b_audit_processed.py` → `All checks passed`. `python3 scripts/validate_data.py data/processed` → `0 problem(s)`. `python3 -m pytest -q tests` → `52 passed`.
+- **Results / numbers:**
+  - 64 outage periods (212 satellite-days): Terra 6, Aqua 2, S-NPP 37, NOAA-20 14, NOAA-21 5. The long ones match known outages.
+  - Harmonized total 303,867.5 (was 301,327.0). July 2024: 4,596. 2024 harmonized ÷ MODIS estimate went from 0.88 to 1.02.
+  - Harmonized ÷ MODIS estimate: exactly 1 for 2003–2011; 0.95–1.05 for 2012–2025; 1.11 for partial 2026.
+  - No duplicate detections; rows per satellite equal the S14 totals.
+- **Decisions and why:**
+  - Outage rules. VIIRS: a day with zero cleaned detections in the download box (VIIRS sees static heat sources there every day), or S-NPP under 25% of NOAA-20 when NOAA-20 saw 40 or more. MODIS: 5 or more empty days in a row while the other MODIS satellite saw 20 or more (10 or more days in the Terra-only period). Stricter for MODIS because single empty winter days are normal.
+  - Repeat views of one fire by one satellite are not removed: FIRMS counts them, and pre-2012 MODIS counts include them.
+- **Problems / open questions:**
+  - S15/S16 scores were computed before this fix and include outage errors (noted in `docs/validation/README.md`); not recomputed.
+  - Short MODIS outages of under 5 days are not detected.
+  - Outage detection for the archived regions was not done.
+- **Next step:** S21 calendar on `data/processed/`.
+- **If PAUSED — branch and resume command:** not paused.
+
 ### 2026-11-15 — Scope change to California only + S17 Aggregate — DONE
 - **Who / AI:** Shrihan decided the scope; Claude did the work in the Claude session (no Colab)
 - **Did:**

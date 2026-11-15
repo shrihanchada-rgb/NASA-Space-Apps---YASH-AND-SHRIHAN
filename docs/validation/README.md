@@ -83,6 +83,12 @@ For each region, the band is `prediction × low … prediction × high`. It is m
 6. **The method works on region totals.** It doesn't correct single grid cells: the cell-level power law (A2) was the worst method everywhere.
 7. **Only four regions were tested.** k differs a lot between them (0.16 to 0.39), so these numbers can't be used for other places without refitting.
 
+## Found after S16: satellite outages inside the test years (2026-11-15)
+
+- **What was found.** While auditing the California product, days were found on which a satellite delivered no data: for example S-NPP from 27 Jul to 10 Aug 2022 and on 24–28 Jul 2024, and Terra from 9 to 23 Oct 2022. The S15/S16 fits and scores above treated those days as "no fires".
+- **Effect on the scores.** The test scores in this page therefore include outage errors and are somewhat pessimistic (it explains California's low 2022 bias of 0.91). k was fitted on 2014–2018, where the only long outage is Terra's in Feb 2016, so k is little affected. The scores were not recomputed.
+- **Effect on the product.** `pipeline/06_aggregate.py` now handles outages as missing data (`data/processed/README.md`). With that, harmonized ÷ MODIS estimate for California is 0.95–1.05 in every year 2012–2025.
+
 ## What the plots show (`S16/<REGION>_compare.png`, four panels each)
 
 - **Top left, MODIS against S-NPP per month (log scales):** the points fall on a tight straight line in every region, over 2–3 orders of magnitude. A ratio is the right kind of conversion.

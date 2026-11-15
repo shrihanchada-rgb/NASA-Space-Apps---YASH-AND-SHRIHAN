@@ -33,6 +33,7 @@ Install (once): `pip install -r requirements.txt`
 | Fit harmonization methods (S15; runs from the repo) | `python3 pipeline/05_calibrate.py` |
 | Score methods, choose, plot (S16) | `python3 pipeline/05b_compare_methods.py` |
 | Build the website's files in `data/processed/` (S17; California) | `python3 pipeline/06_aggregate.py` |
+| Audit `data/processed/` for double counting and harmonization errors | `python3 pipeline/06b_audit_processed.py` |
 
 The key is read from the `FIRMS_MAP_KEY` environment variable (Colab Secrets) or a local `.env`; it is never printed. Raw files go to `data/raw/<SOURCE>/<region>/` (gitignored). 
 
@@ -138,6 +139,8 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
   - For an area the user draws, follow "Results for an area the user chooses" in `data/processed/README.md`.
   - Do not load all 27 hotspot files at once (131 MB): use `grid_monthly.csv` for the calendar and charts, and load hotspot files only for the years needed for the map and the download.
 - **Pipeline:** S18 (one validate command). Optional: NRT data for months after Aug 2026.
+- **After every rebuild of `data/processed/`,** run `python3 scripts/validate_data.py data/processed` and `python3 pipeline/06b_audit_processed.py`; both must pass. The audit checks double counting and the harmonization arithmetic.
+- **Satellite outages are missing data, not zero fires.** FIRMS files are simply empty on those days. `06_aggregate.py` finds them (`find_outages`) and writes `satellite_outages.csv`. Any new analysis of daily or monthly counts must do the same.
 - **Open, to confirm with the user:** the `blend` policy (alternative `modis_first`); the proposed extra files need Yash's agreement (`docs/data-contract.md` §8b).
 - **Limits to state in the app:** the range is approximate; conversion error grows after 2023; Terra-only months are less certain.
 - **Double counting:** follow the rules in `docs/pipeline-files.md`. Same fire seen by several satellites or neighbouring pixels is S14's job, not cleaning's.

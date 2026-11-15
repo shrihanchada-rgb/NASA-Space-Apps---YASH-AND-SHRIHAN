@@ -2,25 +2,31 @@
 
 Input:  data/interim/filtered/<REGION>/<SOURCE>/<YEAR>.parquet (from 03_filter.py)
         data/boundaries/regions_ne.geojson
+        data/interim_extract/daily_counts.csv (cleaned detections per satellite and day, to find outages)
         docs/validation/S16/params.json, choice.json, metrics.csv, terra_only.csv, terra_only_metrics.csv
         (the chosen harmonization and its numbers; refreshed by 05_calibrate.py / 05b_compare_methods.py)
 Output: data/processed/
   metadata.json, regions.geojson
   regions/<REGION>/monthly.json, daily.json, baseline.json, hotspots/<YEAR>.csv      (data contract 1.0)
-  regions/<REGION>/grid_cells.csv, grid_monthly.csv, harmonization_check.json        (extra files, see below)
+  regions/<REGION>/grid_cells.csv, grid_monthly.csv, harmonization_check.json, satellite_outages.csv  (extra files)
 
 How count_harm (MODIS-equivalent detections) is built, day by day (config.HARMONIZE_POLICY = "blend"):
-  1. MODIS (Terra + Aqua) and S-NPP VIIRS both have data (20 Jan 2012 - 31 Jul 2026):
-     count_harm = 0.5 x observed MODIS + 0.5 x k[calendar month] x S-NPP detections (method A1).
-     Both are estimates on the MODIS scale; averaging uses both sensors and halves the conversion error.
-  2. Only MODIS, Terra and Aqua both flying (4 Jul 2002 - 19 Jan 2012, and after S-NPP data ends):
-     count_harm = observed MODIS detections.
-  3. Terra only (1 Nov 2000 - 3 Jul 2002): count_harm = Terra detections x the Terra-only factor (S16).
-  4. No MODIS data for that day (after the MODIS record ends, or a known gap): count_harm =
-     k[calendar month] x S-NPP detections; NOAA-20 stands in when S-NPP has no data.
-  5. No data from any satellite: null.
-  With HARMONIZE_POLICY = "modis_first", rule 1 is replaced by rule 2 (VIIRS is then only used in rule 4).
-NOAA-20 and NOAA-21 detections are kept in the files (raw counts, map, downloads) with weight 0, except in rule 4.
+  First, which satellites have data that day. A satellite has no data before its first day, after its last,
+  and during an outage (find_outages below: the files are simply empty on those days, which must not be
+  read as "no fires").
+  MODIS estimate of the day:
+    Terra and Aqua both have data   observed MODIS detections (Terra + Aqua)
+    only Terra (before 4 Jul 2002, or an Aqua outage)   Terra detections x the Terra-only factor (S16)
+    only Aqua (a Terra outage)                          Aqua detections x the Aqua-only factor
+    neither                                             no MODIS estimate
+  VIIRS estimate of the day: k[calendar month] x S-NPP detections (method A1), if S-NPP has data.
+  count_harm:
+    both estimates exist   0.5 x MODIS estimate + 0.5 x VIIRS estimate  (one estimate from two sensors, never a sum)
+    only MODIS             the MODIS estimate
+    only VIIRS             the VIIRS estimate (NOAA-20 x k stands in if S-NPP has no data but NOAA-20 has)
+    neither                null (no data)
+  With HARMONIZE_POLICY = "modis_first", "both" uses the MODIS estimate alone.
+NOAA-20 and NOAA-21 detections are kept in the files (raw counts, map, downloads) with weight 0, except as stand-in.
 Every detection gets a harmonized_weight so that the weights of any set of detections add up to its
 count_harm. This is what lets the website compute harmonized numbers for any area the user draws.
 
@@ -58,6 +64,7 @@ SCHEMA_VERSION = "1.0"
 AQUA_FIRST = config.SATELLITE_FIRST_DAY["A"]          # 4 July 2002
 CITATION = ("We acknowledge the use of imagery from the NASA LANCE FIRMS (https://earthdata.nasa.gov/firms), "
             "part of the NASA Earth Science Data and Information System (ESDIS).")
+SAT_NAME = {"T": "MODIS Terra", "A": "MODIS Aqua", "N": "S-NPP VIIRS", "N20": "NOAA-20 VIIRS", "N21": "NOAA-21 VIIRS"}
 COUNTRY = {"US-CA": "United States", "BR-PA": "Brazil", "AU-NSW-VIC": "Australia", "PT": "Portugal"}
 HOTSPOT_COLUMNS = ["date", "time_utc", "latitude", "longitude", "sensor", "satellite", "confidence", "frp", "daynight",
                    "harmonized_weight", "region_id"]
@@ -87,6 +94,10 @@ def load_harmonization(region, folder=S16):
     use_f1 = bool(tm.get("F1", 1e9) < tm.get("F0", 1e9) - 2.0)
     t = params["terra_only"]
     f_month = {m: float(t["F1"][str(m)]) if use_f1 else float(t["F0"]) for m in range(1, 13)}
+    fit = pd.read_csv(folder / "terra_only.csv")
+    fit = fit[(fit["region_id"] == region) & (fit["split"] == "train")]
+    aqua = float(fit["M"].sum() / fit["A"].sum())   # Terra + Aqua from Aqua alone, same fitting years
+    a_month = {m: aqua for m in range(1, 13)}
     # Range for Terra-only months: middle 80 % of (Terra + Aqua) / estimate over the fitting years.
     to = pd.read_csv(folder / "terra_only.csv")
     to = to[(to["region_id"] == region) & (to["split"] == "train") & (to["M"] >= 10)]
@@ -97,7 +108,7 @@ def load_harmonization(region, folder=S16):
     row = metrics[(metrics["region_id"] == region) & (metrics["method"] == winner)].iloc[0]
     return {"method": winner, "method_version": choice["method_version"], "k_month": k_month,
             "band": (float(band["low_factor"]), float(band["high_factor"])),
-            "terra_factor": f_month, "terra_factor_kind": "per calendar month (F1)" if use_f1 else "one factor (F0)",
+            "terra_factor": f_month, "aqua_factor": a_month, "terra_factor_kind": "per calendar month (F1)" if use_f1 else "one factor (F0)",
             "terra_band": (min(tb[0], 1.0), max(tb[1], 1.0)),
             "validation": {"r2": float(row["r2"]), "median_abs_pct_error": float(row["mape"]),
                            "test_years": f"{choice['test_years'][0]}-{choice['test_years'][1]}"}}
@@ -107,33 +118,113 @@ def source_ranges(availability=None):
     return {s: common.source_dates(s, availability) for s in common.SOURCES}
 
 
-def weights(df, h, modis_last, snpp_last, gaps=(), snpp_first=None, policy=None):
-    """harmonized_weight per detection (see module docstring). gaps: (first_day, last_day) with no MODIS data."""
+DAILY_COUNTS = common.ROOT / "data" / "interim_extract" / "daily_counts.csv"
+MODIS_RUN_DAYS = 5          # a MODIS satellite outage: at least this many days in a row without any detection ...
+MODIS_RUN_OTHER = 20        # ... while the other MODIS satellite saw at least this many in those days
+TERRA_ONLY_RUN_DAYS = 10    # before Aqua there is no other satellite to compare with: require a longer run
+VIIRS_PARTIAL = (40, 0.25)  # S-NPP counts as "no data" if NOAA-20 saw >= 40 that day and S-NPP under 25 % of it
+
+
+def find_outages(region, ranges, daily_counts=DAILY_COUNTS):
+    """Days on which a satellite delivered no data although it was in service. Returns a list of dicts.
+
+    Uses all cleaned detections (every type and confidence) in the download box: VIIRS sees dozens of static
+    heat sources in California every day, so a day with zero S-NPP detections is an outage, not a quiet day.
+    MODIS sees few detections in winter, so single empty days are normal; only long empty runs that the other
+    MODIS satellite contradicts are counted as outages.
+    """
+    d = pd.read_csv(daily_counts)
+    d = d[d["region_id"] == region]
+    c = d.pivot_table(index="date", columns="satellite", values="n_clean", aggfunc="sum")
+    first = min(r[0] for r in ranges.values())
+    last = max(r[1] for r in ranges.values())
+    c = c.reindex(pd.date_range(first, last, freq="D").strftime("%Y-%m-%d")).fillna(0)
+    for sat in ("T", "A", "N", "N20", "N21"):
+        if sat not in c:
+            c[sat] = 0.0
+    service = {"T": ranges["MODIS_SP"], "A": (max(ranges["MODIS_SP"][0], AQUA_FIRST), ranges["MODIS_SP"][1]),
+               "N": ranges["VIIRS_SNPP_SP"], "N20": ranges["VIIRS_NOAA20_SP"], "N21": ranges["VIIRS_NOAA21_SP"]}
+
+    def runs(flags):
+        out, cur = [], None
+        for day, v in flags.items():
+            if v:
+                cur = [day, day] if cur is None else [cur[0], day]
+            elif cur:
+                out.append(cur)
+                cur = None
+        return out + ([cur] if cur else [])
+
+    found = []
+    for sat, other in (("T", "A"), ("A", "T")):
+        w = c[(c.index >= service[sat][0].isoformat()) & (c.index <= service[sat][1].isoformat())]
+        for a, b in runs(w[sat] == 0):
+            n = (dt.date.fromisoformat(b) - dt.date.fromisoformat(a)).days + 1
+            seen = int(w.loc[a:b, other].sum())
+            before_aqua = sat == "T" and b < AQUA_FIRST.isoformat()
+            if (n >= MODIS_RUN_DAYS and seen >= MODIS_RUN_OTHER) or (before_aqua and n >= TERRA_ONLY_RUN_DAYS):
+                found.append({"satellite": sat, "start": a, "end": b, "days": n,
+                              "evidence": f"no detections for {n} days; the other MODIS satellite saw {seen}" if not before_aqua
+                              else f"no detections for {n} days in the Terra-only period"})
+    for sat in ("N", "N20", "N21"):
+        w = c[(c.index >= service[sat][0].isoformat()) & (c.index <= service[sat][1].isoformat())]
+        bad = w[sat] == 0
+        if sat == "N":
+            bad |= (w["N20"] >= VIIRS_PARTIAL[0]) & (w["N"] < VIIRS_PARTIAL[1] * w["N20"]) & (w.index >= service["N20"][0].isoformat())
+        for a, b in runs(bad):
+            n = (dt.date.fromisoformat(b) - dt.date.fromisoformat(a)).days + 1
+            found.append({"satellite": sat, "start": a, "end": b, "days": n,
+                          "evidence": "no (or under 25 % of NOAA-20's) detections in the download box, where VIIRS sees heat sources every day"})
+    return sorted(found, key=lambda o: (o["start"], o["satellite"]))
+
+
+def day_table(ranges, outages, h, policy=None):
+    """One row per day: which satellites have data, and the weight each satellite's detections get."""
     policy = policy or config.HARMONIZE_POLICY
-    snpp_first = snpp_first or config.SATELLITE_FIRST_DAY["N"]
-    date = pd.to_datetime(df["date"]).dt.date
-    month = df["date"].str[5:7].astype(int)
-    no_modis = (date > modis_last)
-    for a, b in gaps:
-        no_modis |= (date >= a) & (date <= b)
-    modis = df["sensor"] == "MODIS"
-    terra_only = modis & (date < AQUA_FIRST)
-    snpp_day = (date >= snpp_first) & (date <= snpp_last)
-    # Days where both MODIS (Terra + Aqua) and S-NPP have data: each gives half of the estimate.
-    both = snpp_day & ~no_modis & (date >= AQUA_FIRST) if policy == "blend" else pd.Series(False, index=df.index)
+    first = min(r[0] for r in ranges.values())
+    last = max(r[1] for r in ranges.values())
+    days = pd.date_range(first, last, freq="D")
+    t = pd.DataFrame(index=days.strftime("%Y-%m-%d"))
+    day = np.array([x.date() for x in days])
+    service = {"T": ranges["MODIS_SP"], "A": (max(ranges["MODIS_SP"][0], AQUA_FIRST), ranges["MODIS_SP"][1]),
+               "N": ranges["VIIRS_SNPP_SP"], "N20": ranges["VIIRS_NOAA20_SP"], "N21": ranges["VIIRS_NOAA21_SP"]}
+    for sat, (a, b) in service.items():
+        t[f"has_{sat}"] = (day >= a) & (day <= b)
+    for o in outages:
+        t.loc[o["start"]:o["end"], f"has_{o['satellite']}"] = False
+    month = pd.Series([x.month for x in day], index=t.index)
+    both_modis = t["has_T"] & t["has_A"]
+    f_t = np.where(both_modis, 1.0, month.map(h["terra_factor"]))
+    f_a = np.where(both_modis, 1.0, month.map(h["aqua_factor"]))
+    has_modis = t["has_T"] | t["has_A"]
+    viirs_sat = np.where(t["has_N"], "N", np.where(t["has_N20"], "N20", ""))
+    k = month.map(h["k_month"])
+    blend = has_modis & t["has_N"] & (policy == "blend")
+    share_m = np.where(blend, 0.5, 1.0)
+    t["w_T"] = np.where(t["has_T"], f_t * share_m, 0.0)
+    t["w_A"] = np.where(t["has_A"], f_a * share_m, 0.0)
+    w_v = np.where(blend, 0.5 * k, np.where(~has_modis & (viirs_sat != ""), k, 0.0))
+    for sat in ("N", "N20", "N21"):
+        t[f"w_{sat}"] = np.where(viirs_sat == sat, w_v, 0.0)
+    t["modis_scaled"] = has_modis & ~both_modis        # one MODIS satellite standing in for two
+    t["has_modis"], t["has_viirs"] = has_modis, t["has_N"] | t["has_N20"] | t["has_N21"]
+    t["observed"] = t["has_modis"] | t["has_viirs"]
+    return t
+
+
+def weights(df, table):
+    """harmonized_weight per detection from the day table, and which part of the estimate it belongs to."""
     w = pd.Series(0.0, index=df.index)
-    w[modis] = 1.0
-    w[modis & both] = 0.5
-    w[terra_only] = month[terra_only].map(h["terra_factor"])
-    stand_in = np.where(date <= snpp_last, "N", "N20")
-    conv = (~modis) & no_modis & (df["satellite"] == stand_in)
-    w[conv] = month[conv].map(h["k_month"])
-    half = (~modis) & both & (df["satellite"] == "N")
-    w[half] = 0.5 * month[half].map(h["k_month"])
-    kind = pd.Series("modis", index=df.index)
-    kind[terra_only] = "terra_only"
-    kind[conv | half] = "viirs"
-    kind[(~modis) & ~(conv | half)] = "none"
+    for sat in ("T", "A", "N", "N20", "N21"):
+        m = df["satellite"] == sat
+        if m.any():
+            w[m] = df.loc[m, "date"].map(table[f"w_{sat}"]).to_numpy()
+    modis = df["sensor"] == "MODIS"
+    scaled = df["date"].map(table["modis_scaled"]).to_numpy()
+    kind = pd.Series("none", index=df.index)
+    kind[modis & (w > 0)] = "modis"
+    kind[modis & (w > 0) & scaled] = "terra_only"
+    kind[~modis & (w > 0)] = "viirs"
     return w.round(5), kind
 
 
@@ -177,13 +268,14 @@ def month_list(first, last):
     return out
 
 
-def build_region(region, out, h, build_date, filtered=None, availability=None, gaps=(), mask=None, polygons=None, log=print):
+def build_region(region, out, h, build_date, filtered=None, availability=None, outages=None, mask=None, polygons=None,
+                 daily_counts=DAILY_COUNTS, log=print):
     ranges = source_ranges(availability)
-    modis_first, modis_last = ranges["MODIS_SP"]
-    viirs_first = min(ranges[s][0] for s in common.SOURCES if s.startswith("VIIRS"))
-    viirs_last = max(ranges[s][1] for s in common.SOURCES if s.startswith("VIIRS"))
+    if outages is None:
+        outages = find_outages(region, ranges, daily_counts)
+    table = day_table(ranges, outages, h)
+    start, end = dt.date.fromisoformat(table.index[0]), dt.date.fromisoformat(table.index[-1])
     snpp_last = ranges["VIIRS_SNPP_SP"][1]
-    start, end = min(modis_first, viirs_first), max(modis_last, viirs_last)
     polygons = polygons if polygons is not None else grid04.load_polygons(region)
     mask = mask or grid04.RegionMask(region, polygons)
     rdir = Path(out) / "regions" / region
@@ -193,7 +285,7 @@ def build_region(region, out, h, build_date, filtered=None, availability=None, g
 
     daily_parts, cell_parts, n_by_source, range_by_source = [], [], {}, {}
     for year, df in region_points(region, mask, filtered):
-        df["harmonized_weight"], df["kind"] = weights(df, h, modis_last, snpp_last, gaps, ranges["VIIRS_SNPP_SP"][0])
+        df["harmonized_weight"], df["kind"] = weights(df, table)
         df["region_id"] = region
         hs = df[HOTSPOT_COLUMNS].copy()
         hs["latitude"], hs["longitude"], hs["frp"] = hs["latitude"].round(5), hs["longitude"].round(5), hs["frp"].round(2)
@@ -221,13 +313,9 @@ def build_region(region, out, h, build_date, filtered=None, availability=None, g
         log(f"  {region} {year}: {len(df):,} detections, count_harm {df['harmonized_weight'].sum():,.1f}")
 
     days = pd.date_range(start, end, freq="D")
-    d = pd.concat(daily_parts).reindex(days.strftime("%Y-%m-%d")).fillna(0.0) if daily_parts else pd.DataFrame(index=days.strftime("%Y-%m-%d"))
+    d = pd.concat(daily_parts).reindex(table.index).fillna(0.0) if daily_parts else pd.DataFrame(index=table.index)
     day = np.array([x.date() for x in days])
-    has_modis = (day >= modis_first) & (day <= modis_last)
-    for a, b in gaps:
-        has_modis &= ~((day >= a) & (day <= b))
-    has_viirs = (day >= viirs_first) & (day <= viirs_last)
-    observed = has_modis | has_viirs
+    has_modis, has_viirs, observed = table["has_modis"].to_numpy(), table["has_viirs"].to_numpy(), table["observed"].to_numpy()
 
     def col(name, ok, nd=None, integer=False):
         v = d[name].to_numpy() if name in d else np.zeros(len(d))
@@ -266,7 +354,8 @@ def build_region(region, out, h, build_date, filtered=None, availability=None, g
             "share_high_confidence": round(float(g["n_high"].sum()) / total, 4) if total else None,
             "n_days_observed": int(g["observed"].sum())})
         snpp = int(g["sat_N"].sum()) if "sat_N" in g else 0
-        if dt.date(y, m, 1) > ranges["VIIRS_SNPP_SP"][0] and (y, m) <= (snpp_last.year, snpp_last.month) and len(gm) == len(g):
+        tm_ = table[d["ym"].to_numpy() == f"{y}-{m:02d}"]
+        if bool((tm_["has_T"] & tm_["has_A"] & tm_["has_N"]).all()):
             eq = h["k_month"][m] * snpp
             check.append({"year": y, "month": m, "modis_observed": nm, "snpp_detections": snpp, "modis_equivalent_from_snpp": r2(eq),
                           "range_low": r2(eq * h["band"][0]), "range_high": r2(eq * h["band"][1])})
@@ -298,7 +387,10 @@ def build_region(region, out, h, build_date, filtered=None, availability=None, g
     gm_["count_harm"], gm_["frp_sum"] = gm_["count_harm"].round(3), gm_["frp_sum"].round(1)
     gm_.to_csv(rdir / "grid_monthly.csv", index=False)
     (rdir / "harmonization_check.json").write_text(json.dumps({
-        **head, "build_date": build_date, "method": h["method"], "k_by_calendar_month": {str(k): round(v, 4) for k, v in h["k_month"].items()},
+        **head, "build_date": build_date, "method": h["method"], "policy": config.HARMONIZE_POLICY,
+        "k_by_calendar_month": {str(k): v for k, v in h["k_month"].items()},
+        "terra_only_factor_by_month": {str(k): v for k, v in h["terra_factor"].items()},
+        "aqua_only_factor_by_month": {str(k): v for k, v in h["aqua_factor"].items()},
         "range_factors": list(h["band"]), "note": "modis_equivalent_from_snpp = k[month] x S-NPP detections; the range should hold about 80 % of months "
         "(it held fewer on the test years, see docs/validation/README.md). policy: " + config.HARMONIZE_POLICY + ".",
         "months": check}, separators=(",", ":")) + "\n")
@@ -309,8 +401,9 @@ def build_region(region, out, h, build_date, filtered=None, availability=None, g
                               "boundary_source": "Natural Earth 10m admin-1 states and provinces (naturalearthdata.com)"}}
     sources = [{"source": s, "first_date": ranges[s][0].isoformat(), "last_date": ranges[s][1].isoformat(),
                 "n_detections_kept": int(n_by_source.get(s, 0))} for s in common.SOURCES]
+    pd.DataFrame(outages, columns=["satellite", "start", "end", "days", "evidence"]).to_csv(rdir / "satellite_outages.csv", index=False)
     return {"feature": feature, "sources": sources, "start": start, "end": end, "n_months": len(months),
-            "count_harm_total": sum(x["count_harm"] or 0 for x in months), "grid_rows": len(gm_), "gaps": gaps}
+            "count_harm_total": sum(x["count_harm"] or 0 for x in months), "grid_rows": len(gm_), "outages": outages}
 
 
 def region_bbox(polygons):
@@ -328,6 +421,7 @@ def build(regions, out=PROCESSED, filtered=None, s16=S16, availability=None, bui
         hs[region] = load_harmonization(region, s16)
         log(f"{region}: method {hs[region]['method_version']}, Terra-only factor {hs[region]['terra_factor_kind']}")
         results[region] = build_region(region, out, hs[region], build_date, filtered, availability, log=log)
+        log(f"{region}: {len(results[region]['outages'])} satellite outage periods handled as missing data")
     first = hs[regions[0]]
     sources = results[regions[0]]["sources"] if len(regions) == 1 else [
         {**s, "n_detections_kept": sum(r["sources"][i]["n_detections_kept"] for r in results.values())}
@@ -342,8 +436,9 @@ def build(regions, out=PROCESSED, filtered=None, s16=S16, availability=None, bui
             "filters": {"min_confidence": config.FILTER_MIN_CONFIDENCE, "types_kept": list(config.FILTER_TYPES_KEPT)},
             "grid_resolution_deg": config.GRID_DEG, "regions": list(regions),
             "sensor_transitions": [{"date": d, "label": l} for d, l in TRANSITIONS],
-            "known_gaps": [{"start": a.isoformat(), "end": b.isoformat(), "sensor": "MODIS", "note": "No MODIS data in the FIRMS archive"}
-                           for r in results.values() for a, b in r["gaps"]],
+            "known_gaps": [{"start": o["start"], "end": o["end"], "sensor": "MODIS" if o["satellite"] in ("T", "A") else "VIIRS",
+                            "note": f"{SAT_NAME[o['satellite']]} delivered no data ({o['days']} days). The harmonized count uses the other satellites."}
+                           for r in results.values() for o in r["outages"] if o["days"] >= 3],
             "validation": first["validation"], "citation": CITATION}
     (out / "metadata.json").write_text(json.dumps(meta, indent=1) + "\n")
     (out / "regions.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": [r["feature"] for r in results.values()]},

@@ -70,7 +70,116 @@
    "label": "NOAA-21 VIIRS starts"
   }
  ],
- "known_gaps": [],
+ "known_gaps": [
+  {
+   "start": "2001-06-15",
+   "end": "2001-07-02",
+   "sensor": "MODIS",
+   "note": "MODIS Terra delivered no data (18 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2002-03-19",
+   "end": "2002-03-28",
+   "sensor": "MODIS",
+   "note": "MODIS Terra delivered no data (10 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2002-07-30",
+   "end": "2002-08-07",
+   "sensor": "MODIS",
+   "note": "MODIS Aqua delivered no data (9 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2003-12-16",
+   "end": "2003-12-26",
+   "sensor": "MODIS",
+   "note": "MODIS Terra delivered no data (11 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2004-11-22",
+   "end": "2004-11-27",
+   "sensor": "MODIS",
+   "note": "MODIS Terra delivered no data (6 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2016-02-13",
+   "end": "2016-02-27",
+   "sensor": "MODIS",
+   "note": "MODIS Terra delivered no data (15 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2022-03-31",
+   "end": "2022-04-19",
+   "sensor": "MODIS",
+   "note": "MODIS Aqua delivered no data (20 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2022-07-27",
+   "end": "2022-08-10",
+   "sensor": "VIIRS",
+   "note": "S-NPP VIIRS delivered no data (15 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2022-10-09",
+   "end": "2022-10-23",
+   "sensor": "MODIS",
+   "note": "MODIS Terra delivered no data (15 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2023-07-19",
+   "end": "2023-07-22",
+   "sensor": "VIIRS",
+   "note": "NOAA-20 VIIRS delivered no data (4 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2024-05-30",
+   "end": "2024-06-03",
+   "sensor": "VIIRS",
+   "note": "S-NPP VIIRS delivered no data (5 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2024-07-10",
+   "end": "2024-07-16",
+   "sensor": "VIIRS",
+   "note": "S-NPP VIIRS delivered no data (7 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2024-07-24",
+   "end": "2024-07-28",
+   "sensor": "VIIRS",
+   "note": "S-NPP VIIRS delivered no data (5 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2024-11-03",
+   "end": "2024-11-05",
+   "sensor": "VIIRS",
+   "note": "S-NPP VIIRS delivered no data (3 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2025-07-05",
+   "end": "2025-07-07",
+   "sensor": "VIIRS",
+   "note": "S-NPP VIIRS delivered no data (3 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2026-03-10",
+   "end": "2026-03-12",
+   "sensor": "VIIRS",
+   "note": "S-NPP VIIRS delivered no data (3 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2026-04-28",
+   "end": "2026-04-30",
+   "sensor": "VIIRS",
+   "note": "S-NPP VIIRS delivered no data (3 days). The harmonized count uses the other satellites."
+  },
+  {
+   "start": "2026-07-11",
+   "end": "2026-07-16",
+   "sensor": "VIIRS",
+   "note": "S-NPP VIIRS delivered no data (6 days). The harmonized count uses the other satellites."
+  }
+ ],
  "validation": {
   "r2": 0.992,
   "median_abs_pct_error": 11.8,
