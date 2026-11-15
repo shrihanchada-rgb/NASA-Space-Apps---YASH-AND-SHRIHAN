@@ -177,7 +177,10 @@ Observations from PT (2026-11-15 run):
 - **MODIS_SP `version` is `6.03` up to 2022-12-31 and `61.03` from 2023-01-01** in all four regions.
 - **The only duplicate rows are the US-CA S09 overlap.** Exactly 8,438 / 38,691 / 39,541 rows were dropped (MODIS / S-NPP / NOAA-20), equal to the S09 test-year counts.
 - **S-NPP alone / MODIS (Terra + Aqua) kept-detection ratio is fairly steady by region** (2013–2025): BR-PA 3.1–4.4, PT 2.5–3.9, US-CA 3.0–4.7, AU-NSW-VIC 3.7–5.6. The VIIRS-total / MODIS ratio jumps when NOAA-20 (2018) and NOAA-21 (2023) are added.
-- **PT MODIS_SP has no rows at all for Dec 2025 – Jan 2026.** The 13 raw files are header-only (127 bytes). Other regions do have MODIS detections in those months, and VIIRS saw 161 / 121 in PT. Whether this is a real quiet spell or a FIRMS archive gap is unknown.
+- **PT MODIS_SP has no rows at all for Dec 2025 – Jan 2026.** The 13 raw files are header-only (127 bytes). Expected from VIIRS daytime counts: about 6–20. No NASA outage notice was found. **Probably a FIRMS archive gap, not proven**; treat it as missing (`null`). Details: `docs/validation/S13/README.md`, follow-up section.
+- **AU-NSW-VIC April peak:** small (median FRP 22 MW), daytime-only fires inside NSW/VIC, 97% outside the Queensland/SA strips. This fits autumn planned or agricultural burning (not checked against a source).
+- **The Aqua/Terra ratio depends on season:** AU-NSW-VIC 1.1–1.3 in summer, 3–4.5 in autumn. The yearly ratio correlates 0.80 with the autumn share. Terra/Aqua corrections must depend on region and season.
+- **NASA says Terra and Aqua are drifting from their designed orbits** (overpass times change) and will shut down from late 2026 / early 2027 ([NASA Earthdata](https://www.earthdata.nasa.gov/data/alerts-outages/transition-from-modis-viirs)).
 
 ## 9. Still unverified
 

@@ -56,6 +56,19 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — S13 follow-up: three oddities checked — DONE (not a checklist step)
+- **Who / AI:** Shrihan asked; Claude downloaded sample cleaned files from Drive and analysed them; web search for NASA MODIS outage notices
+- **Did:** Checked the AU April peak, the AU Aqua/Terra ratio, and the PT MODIS Dec 2025 – Jan 2026 zeros. Results added to `docs/validation/S13/README.md` (follow-up section) and `docs/data-notes.md`.
+- **Files changed:** `docs/validation/S13/README.md`, `docs/data-notes.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** read the follow-up section. The numbers come from `docs/validation/S13/monthly_counts.csv` plus parquet files from Drive `interim/clean/AU-NSW-VIC/MODIS_SP/` (10 years) and `interim/clean/PT/*/2024–2026`.
+- **Results / numbers:**
+  - AU April: 2.9% in the Queensland strip, median FRP 22 MW, 4% at night, Aqua/Terra 5.7.
+  - AU yearly Aqua/Terra correlates 0.80 with the autumn share.
+  - PT Dec–Jan: 0 MODIS against about 6–20 expected. No NASA notice found.
+- **Decisions and why:** proposed treating PT MODIS Dec 2025 and Jan 2026 as `null` plus `known_gaps` (to be applied in S17).
+- **Problems / open questions:** neither the AU planned-burning explanation nor the PT archive gap is confirmed by an official source.
+- **Next step:** S14.
+
 ### 2026-11-15 — S11–S13 Clean, filter, sanity checks — DONE
 - **Who / AI:** Shrihan ran Colab (`STEPS = ["02", "03", "03b"]`, zip of branch `step/S11-S13-clean-filter-checks`); Claude wrote the code, copied the results from Drive and wrote the readings
 - **Did:** All 18,888,356 raw rows were cleaned into one schema, filtered, and checked. The reports and plots were copied from Drive into `docs/validation/S13/`, with the readings in `docs/validation/S13/README.md`. S12 and S13 ticked.
