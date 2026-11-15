@@ -114,7 +114,7 @@ What this means:
 **CSV headers (exact, from the files):**
 - `MODIS_SP`: `latitude,longitude,brightness,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_t31,frp,daynight,type`
 - `VIIRS_SNPP_SP` and `VIIRS_NOAA20_SP`: `latitude,longitude,bright_ti4,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_ti5,frp,daynight,type`
-- So: there is an `instrument` column, and **`type` is present in both MODIS and VIIRS SP data**. `VIIRS_NOAA21_SP` header not seen yet (no 2023 run of it).
+- So: there is an `instrument` column, and **`type` is present in both MODIS and VIIRS SP data**. `VIIRS_NOAA21_SP` has the same header as the other VIIRS sources (seen in the S10 runs).
 
 **Row counts, California box (approximate box, before any filtering), 2023:** MODIS_SP 8,438; VIIRS_SNPP_SP 38,691; VIIRS_NOAA20_SP 39,541. VIIRS returned about 4.6 times as many rows per satellite as MODIS (Terra + Aqua combined) for this box and year. One region-year; not a general ratio.
 
@@ -160,6 +160,8 @@ Observations from AU-NSW-VIC (2026-11-15 run):
 - The box [140.8, -39.3, 153.8, -28.0] also covers a strip of southern Queensland (north of about -29) and of South Australia (west of 141°E), plus sea, until clipping.
 
 **FIRMS answers "Invalid MAP_KEY." when the limit is used up**, not only for a wrong key. A run that had already made about 2,000 successful requests was stopped by it. The downloader now waits and retries in that case.
+
+**PT run (2026-11-15): 11-minute limit waits about every 500 chunks**, while the earlier regions had none. The PT box costs the same per request as the others: all four boxes fit in one 60°×60° tile. Cause **not verified**. Most likely a second Colab session (laptop and phone) using the same key, since the limit is per key. If waits continue with one session, lower `TRANSACTION_BUDGET` in `pipeline/config.py`.
 
 ## 9. Still unverified
 
