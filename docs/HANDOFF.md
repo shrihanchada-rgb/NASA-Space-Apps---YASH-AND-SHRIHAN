@@ -56,6 +56,18 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — S10 Download everything — DONE (all 4 regions)
+- **Who / AI:** Shrihan ran Colab; Claude recorded results
+- **Did:** **PT fully downloaded** (all 4 sources, full ranges, finished `ok`). All four pilot regions are now downloaded. Results added to `docs/data-notes.md` §8; `AGENTS.md`/`CLAUDE.md` status updated; S10 ticked in README.
+- **Files changed:** `docs/data-notes.md`, `docs/HANDOFF.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`
+- **How to check it:** Claude confirmed via the Drive connector that `raw/<SOURCE>/PT/` folders exist for all 4 sources (file counts not listed; too many for the connector). To count files and rows, run the counting cell from the 2026-11-15 chat (also easy to rewrite: count `*.csv` and data lines per `raw/<SOURCE>/<REGION>/`). Expected files per region: 1,887 / 1,062 / 609 / 250 (US-CA has 73 extra in the first three, from S09).
+- **Results / numbers:** PT rows: MODIS_SP 102,903; VIIRS_SNPP_SP 158,096; VIIRS_NOAA20_SP 78,298; VIIRS_NOAA21_SP 40,676 (total 379,973). All regions together: 18,888,356 rows before cleaning.
+- **How to re-create the raw files** (they are not in git): in Colab, step 01 with `--check-availability --region <ID> --start 2000-11-01 --end 2026-08-31` for each of `US-CA`, `BR-PA`, `AU-NSW-VIC`, `PT` (README Section 14). FIRMS may by then offer later SP months; the end date above fixes the range used here.
+- **Decisions and why:** none new.
+- **Problems / open questions:** A first PT attempt saved its files to Colab's temporary disk because Drive was not mounted; they were lost and the mount then failed with `ValueError`. Fixed by deleting the runtime and running all again. The successful run had 4 FIRMS 11-minute limit waits (cause not verified). The notebook should refuse to download unless Drive is mounted (offered to the user, not done).
+- **Next step:** S11 Clean (`pipeline/02_clean.py`; requirements in `AGENTS.md`/`CLAUDE.md`, "Project state and lessons so far"). Website: S21 (calendar).
+- **If PAUSED — branch and resume command:** not paused.
+
 ### 2026-11-15 — S10 Download everything — PAUSED (US-CA, BR-PA, AU-NSW-VIC done; PT left)
 - **Who / AI:** Shrihan ran Colab; Claude recorded results
 - **Did:** **AU-NSW-VIC fully downloaded** (all 4 sources, full ranges, finished `ok`, no 11-minute waits, only short rate-limit pauses). Row counts and observations added to `docs/data-notes.md` §8.

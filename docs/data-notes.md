@@ -145,6 +145,7 @@ What this means:
 | US-CA | 368,690 | 1,117,337 | 773,314 | 149,284 | 2,408,625 |
 | BR-PA | 2,707,098 | 5,348,275 | 2,857,121 | 1,206,395 | 12,118,889 |
 | AU-NSW-VIC | 629,515 | 1,817,213 | 1,223,995 | 310,146 | 3,980,869 |
+| PT | 102,903 | 158,096 | 78,298 | 40,676 | 379,973 |
 
 Observations from BR-PA (2026-11-14 run):
 - **Aqua has 1.84 times as many MODIS rows as Terra** (1,754,646 vs 952,452). In California they were nearly equal (179,076 vs 189,614). Aqua passes in the early afternoon and Terra mid-morning (FAQ, section 1). A plausible reason, not checked: tropical burning peaks in the afternoon. Consequence for harmonization: the Terra-only period (Nov 2000 – Jun 2002) will undercount compared with later years, and that effect is region-dependent. S15 must handle Terra and Aqua separately or per region.
@@ -158,6 +159,15 @@ Observations from AU-NSW-VIC (2026-11-15 run):
 - VIIRS low confidence (`l`) is 4.7% (S-NPP, NOAA-20) and 5.9% (NOAA-21) of rows.
 - MODIS `version` again mixes `6.03` (559,083) and `61.03` (70,432).
 - The box [140.8, -39.3, 153.8, -28.0] also covers a strip of southern Queensland (north of about -29) and of South Australia (west of 141°E), plus sea, until clipping.
+
+Observations from PT (2026-11-15 run):
+- **Aqua and Terra are nearly equal** (51,801 vs 51,102; ratio 1.01), like California (~0.94), unlike BR-PA (1.84) and AU-NSW-VIC (1.86).
+- `type` 2 (static land source) is 1.2% of MODIS rows and 4.8–7.8% of VIIRS rows; `type` 3 (offshore) is 0.4–0.7% of VIIRS rows (the box includes Atlantic coast).
+- VIIRS low confidence (`l`) is 4.8–6.4% of rows.
+- MODIS `version`: `6.03` 87,246, `61.03` 15,657.
+- The box [-9.7, 36.8, -6.0, 42.3] also covers a strip of western Spain (east of the border, about -6.2 to -7.5°) and sea, until clipping.
+- **This run had 4 FIRMS limit waits** (11 min each; 3 in MODIS_SP near chunks 500/1000/1500, 1 in VIIRS_SNPP_SP near chunk 100) and several of the downloader's own pacing waits of 248–422 s. Earlier regions had no FIRMS limit waits. One Colab session was in use by then; the cause is still **not verified**. Possibly an earlier PT attempt (whose files went to Colab's temporary disk because Drive was not connected) had used the key's limit shortly before. It finished complete anyway.
+- The Colab run used a `repo.zip` uploaded before PR #18 (it still prints short "rate limit: waiting N s" pauses). PR #18 changed only that message, so the download itself is the same code.
 
 **FIRMS answers "Invalid MAP_KEY." when the limit is used up**, not only for a wrong key. A run that had already made about 2,000 successful requests was stopped by it. The downloader now waits and retries in that case.
 
