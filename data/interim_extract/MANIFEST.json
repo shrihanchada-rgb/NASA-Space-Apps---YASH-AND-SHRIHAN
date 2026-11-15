@@ -1,0 +1,37 @@
+{
+ "built_utc": "2026-11-15T07:23:51Z",
+ "regions": [
+  "US-CA",
+  "BR-PA",
+  "AU-NSW-VIC",
+  "PT"
+ ],
+ "daily_counts_rows": 91044,
+ "n_clean_total": 18888356,
+ "n_kept_total": 17385676,
+ "filter": {
+  "types_kept": [
+   0
+  ],
+  "min_confidence": "nominal"
+ },
+ "samples": {
+  "US-CA__MODIS_SP.csv": 200,
+  "US-CA__VIIRS_SNPP_SP.csv": 200,
+  "US-CA__VIIRS_NOAA20_SP.csv": 200,
+  "US-CA__VIIRS_NOAA21_SP.csv": 200,
+  "BR-PA__MODIS_SP.csv": 200,
+  "BR-PA__VIIRS_SNPP_SP.csv": 200,
+  "BR-PA__VIIRS_NOAA20_SP.csv": 200,
+  "BR-PA__VIIRS_NOAA21_SP.csv": 200,
+  "AU-NSW-VIC__MODIS_SP.csv": 200,
+  "AU-NSW-VIC__VIIRS_SNPP_SP.csv": 200,
+  "AU-NSW-VIC__VIIRS_NOAA20_SP.csv": 200,
+  "AU-NSW-VIC__VIIRS_NOAA21_SP.csv": 200,
+  "PT__MODIS_SP.csv": 200,
+  "PT__VIIRS_SNPP_SP.csv": 200,
+  "PT__VIIRS_NOAA20_SP.csv": 200,
+  "PT__VIIRS_NOAA21_SP.csv": 200
+ },
+ "note": "Raw detections in the rectangular download boxes, not clipped to region borders, not harmonized."
+}

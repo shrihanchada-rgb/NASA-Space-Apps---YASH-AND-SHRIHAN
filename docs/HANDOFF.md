@@ -56,6 +56,20 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — Interim data extract filled — DONE
+- **Who / AI:** Shrihan ran Colab `STEPS = ["03c"]` (493 s); Claude copied Drive `interim/extract/` into `data/interim_extract/` with the Drive connector and checked it
+- **Did:** Committed `daily_counts.csv` (91,044 rows), `coverage.csv`, `MANIFEST.json` and 16 sample files (200 rows each). 5.2 MB in total.
+- **Files changed:** `data/interim_extract/*`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -c "import pandas as pd; d=pd.read_csv('data/interim_extract/daily_counts.csv'); print(len(d), d.n_clean.sum(), d.n_kept.sum())"` → `91044 18888356 17385676`.
+- **Results / numbers:**
+  - Totals per region and source equal the S13 `clean_summary.csv` / `filter_counts.csv`.
+  - Monthly counts per satellite equal the S13 `monthly_counts.csv`.
+  - No missing download days.
+- **Decisions and why:** none new.
+- **Problems / open questions:** none.
+- **Next step:** S14 (data) or S21 calendar (website). Both can now use `data/interim_extract/` ("use interim data").
+- **If PAUSED — branch and resume command:** not paused.
+
 ### 2026-11-15 — Interim data extract + "use interim data" instructions — PAUSED (waiting for Colab `03c` run)
 - **Who / AI:** Shrihan asked; Claude
 - **Did:**
