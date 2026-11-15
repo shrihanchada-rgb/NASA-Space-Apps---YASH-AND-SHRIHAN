@@ -132,7 +132,7 @@ April detections, compared with Dec–Jan, in the 10 sample years:
 **Facts:**
 - **FIRMS sent empty files.** All 13 MODIS_SP/PT raw files from 2025-12-05 to 2026-01-29 are header-only.
 - **MODIS does have data around that gap:** 66 detections in Nov 2025 (both satellites) and 39 in Feb 2026.
-- **VIIRS saw fires over Portugal every day-week of the gap.** Kept daytime VIIRS detections (3 satellites together): 32 in Dec 2025 and 19 in Jan 2026.
+- **VIIRS kept seeing fires in the PT box during the gap.** Kept daytime VIIRS detections (3 satellites together): 32 in Dec 2025 and 19 in Jan 2026.
 - **In the other months of 2025–2026, MODIS kept detections were 0.12–0.39 times the daytime VIIRS count.** For Dec–Jan that predicts about 6–20 MODIS detections; 0 were recorded.
 - **The other regions have normal MODIS data in those months,** with both day and night detections. For example, AU-NSW-VIC Dec 2025 had Aqua 504 day / 68 night and Terra 196 / 293.
 - **No NASA notice of a MODIS outage covering Dec 2025 – Jan 2026 was found** in a web search. The closest notices are about other dates:
