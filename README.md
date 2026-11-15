@@ -36,8 +36,8 @@ NASA FIRMS has two active-fire records: MODIS (Terra from 1 Nov 2000, Aqua from 
 
 ### 2.2 Steps (each step = one script in `pipeline/`, with a unit test)
 1. `01_download.py` — fetch per source/region in 5-day requests into `data/raw/<SOURCE>/<region>/<YYYY-MM-DD>_<n>d.csv` (one file per request; in Colab this folder is on Drive). Resumable: existing files are skipped. Prints row counts and value summaries per source.
-2. `02_clean.py` — normalize to one schema: `lat, lon, date, time_utc, sensor, satellite, confidence_class (low/nominal/high), frp, daynight, type`. Map MODIS numeric confidence → low (<30), nominal (30–79), high (≥80), as in the MODIS user guide; VIIRS classes as-is. Drop `type != 0` (non-vegetation fire: volcano, static source, offshore) by default; keep as a flag.
-3. `03_filter.py` — drop low-confidence by default (configurable). Record how many dropped per sensor/year.
+2. `02_clean.py` — normalize to one schema (exact columns: `docs/pipeline-files.md`), one parquet file per region, source and year. Map MODIS `Terra`/`Aqua` → `T`/`A`; MODIS numeric confidence → low (<30), nominal (30–79), high (≥80), as in the MODIS user guide; VIIRS `l`/`n`/`h` → low/nominal/high. Drop exact duplicate rows. Keep every `type` (filtering is step 3).
+3. `03_filter.py` — drop non-vegetation `type` (keep 0) and then low confidence, by default (configurable). Record how many dropped per sensor/year for each rule. Then `03b_sanity_checks.py` (S13) makes the Step A plots and tables.
 4. `04_dedupe_and_grid.py` — assign each detection to a fixed grid (start: 0.25°; also keep 0.1° option) and to day. Within a sensor, merge same-day detections of the same satellite pass to avoid double counting adjacent-overpass pixels (rule documented and tested).
 5. `05_calibrate.py` — core harmonization (see 2.3).
 6. `06_aggregate.py` — build the app tables (see 2.4).
@@ -186,7 +186,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 ### Phase 3 — Get and clean data
 - [x] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors (run it locally or in Colab, Section 14). First call `/api/data_availability/` to get the exact `_SP` date ranges, and check the CSV headers, `confidence` format and presence of `type` against `docs/data-notes.md` §8; update that file with what you find. Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.
 - [x] **S10 Download everything.** Needs: S09. Do: extend to all pilot regions and years (2000 to now), resumable. Done when: a table of files and row counts is in the handoff entry. Raw files stay in `data/raw/` (not committed), so write how to re-create them.
-- [ ] **S11 Clean.** Needs: S10. Do: `02_clean.py` into the single schema (Section 2.2) plus a test on 5 known rows. Done when: test passes.
+- [x] **S11 Clean.** Needs: S10. Do: `02_clean.py` into the single schema (Section 2.2) plus a test on 5 known rows. Done when: test passes.
 - [ ] **S12 Filter.** Needs: S11. Do: `03_filter.py`; print how many were removed per sensor per year. Done when: counts are in `docs/validation/`.
 - [ ] **S13 Sanity checks.** Needs: S12. Do: Section 13, Step A. Done when: plots saved in `docs/validation/` with a short written reading of each.
 

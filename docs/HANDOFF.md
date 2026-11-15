@@ -56,6 +56,26 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — S11–S13 Clean, filter, sanity checks — PAUSED (code done and tested; waiting for the Colab run)
+- **Who / AI:** Shrihan using Claude
+- **Did:** Wrote `pipeline/02_clean.py` (S11), `pipeline/03_filter.py` (S12), `pipeline/03b_sanity_checks.py` (S13, README Section 13 Step A) and `pipeline/common.py` (shared paths and the one cleaned schema). Documented the file layout, columns and double-counting rules in `docs/pipeline-files.md`. Tests use 5 real MODIS and 5 real VIIRS rows copied from the PT raw files in Drive, plus clearly marked synthetic edge cases. S11 ticked (its "done when" is the test); S12 and S13 need the real run.
+- **Files changed:** `pipeline/common.py` (new), `pipeline/02_clean.py` (new), `pipeline/03_filter.py` (new), `pipeline/03b_sanity_checks.py` (new), `pipeline/config.py`, `tests/test_clean_filter.py` (new), `requirements.txt` (matplotlib), `docs/pipeline-files.md` (new), `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `41 passed`.
+- **Results / numbers:** No real-data results yet. A simulated 26-year run (random data, not real) went through all three steps and produced the plots and tables.
+- **Decisions and why:**
+  - Cleaning keeps all `type` values and confidence classes. Filtering removes non-vegetation `type` first, then low confidence, so each removed row is counted once. README 2.2 updated to match.
+  - Exact duplicates are dropped in cleaning, and the number is reported.
+  - Files are one parquet per region, source and year, by row date, so no row is in two files.
+  - Default filter (`type` 0, confidence ≥ nominal) matches the data contract example.
+  - Zero-detection months are flagged "suspicious" only when the other sensor saw ≥ 100 detections that month. VIIRS sees several times more than MODIS, so small counts are not evidence of a gap.
+  - The S13 script is named `03b_...` so the Colab notebook can run it with `STEPS` without a notebook change.
+- **Problems / open questions:**
+  - Colab memory and run time on 18.9 M rows are not measured (processing is per region, source and year to keep memory small).
+  - Data is still in the rectangular download boxes, so counts include neighbouring areas.
+  - The same fire seen by several satellites is not merged (S14).
+- **Next step:** Shrihan uploads a fresh `repo.zip` of branch `step/S11-S13-clean-filter-checks` (GitHub: switch to that branch, Code → Download ZIP) to Drive, runs Colab with `STEPS = ["02", "03", "03b"]`, and pastes the output. Then Claude copies `interim/reports/` and `interim/validation/` from Drive into `docs/validation/S13/`, writes the readings, ticks S12 and S13, and the user merges.
+- **If PAUSED — branch and resume command:** branch `step/S11-S13-clean-filter-checks`; Colab `STEPS = ["02", "03", "03b"]`, `STEP_ARGS = {}`.
+
 ### 2026-11-15 — S10 Download everything — DONE (all 4 regions)
 - **Who / AI:** Shrihan ran Colab; Claude recorded results
 - **Did:** **PT fully downloaded** (all 4 sources, full ranges, finished `ok`). All four pilot regions are now downloaded. Results added to `docs/data-notes.md` §8; `AGENTS.md`/`CLAUDE.md` status updated; S10 ticked in README.

@@ -25,6 +25,9 @@ Install (once): `pip install -r requirements.txt`
 | FIRMS date ranges per source (needs key) | `python3 pipeline/01_download.py --check-availability` |
 | Download one region-year (needs key, resumable) | `python3 pipeline/01_download.py --region US-CA --year 2023` |
 | See what a download would do, no key needed | `python3 pipeline/01_download.py --region US-CA --year 2023 --dry-run` |
+| Clean raw files (S11), all regions or one | `python3 pipeline/02_clean.py` / `--region PT` |
+| Filter and count removals (S12) | `python3 pipeline/03_filter.py` |
+| Sanity-check plots and tables (S13) | `python3 pipeline/03b_sanity_checks.py` |
 
 The key is read from the `FIRMS_MAP_KEY` environment variable (Colab Secrets) or a local `.env`; it is never printed. Raw files go to `data/raw/<SOURCE>/<region>/` (gitignored). 
 
@@ -72,7 +75,7 @@ Data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web.
 
 Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers), `docs/HANDOFF.md` (what each session did). If these disagree, the newest `docs/HANDOFF.md` entry wins; then fix this section.
 
-**Steps ticked in README Section 10:** S01–S10, S19, S20. All four pilot regions are downloaded (S10 done 2026-11-15). Next pipeline step: S11 (clean).
+**Steps ticked in README Section 10:** S01–S11, S19, S20. All four pilot regions are downloaded (S10 done 2026-11-15). S11–S13 code is written and tested (`02_clean.py`, `03_filter.py`, `03b_sanity_checks.py`); S12 and S13 are ticked only after the real Colab run and the written reading (see the newest `docs/HANDOFF.md` entry). File layout and columns after cleaning: `docs/pipeline-files.md`.
 
 **Raw data: where it is and how much.** It is not in the repo. It is in Shrihan's Google Drive at `My Drive/nasa-fire-calendar/raw/<SOURCE>/<REGION>/<YYYY-MM-DD>_<n>d.csv`. Each file is one FIRMS request: 5 days, or fewer at the end of a range. The folder also holds `raw/data_availability.csv`, with FIRMS date ranges per source. In Colab, `data/raw` and `data/interim` are symlinks to that Drive folder. You cannot read Drive. Ask the person to run a counting cell and paste the output.
 
@@ -118,16 +121,9 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 - **GIBS place-name tiles sometimes return HTTP 500,** so place names are off by default. Next website step: S21 (calendar).
 
 **Next pipeline step:**
-- **S11 (`pipeline/02_clean.py`) must:**
-  - map Terra/Aqua to T/A
-  - apply confidence classes
-  - keep `type` as a column (filtering is S12)
-  - drop exact duplicate rows
-  - process in chunks
-  - record the MODIS 6.03 → 61.03 switch date
-  - include a test on 5 known rows
-
-  The test must not download data.
+- Run `STEPS = ["02", "03", "03b"]` in Colab (needs a fresh `repo.zip` of the branch or `main` that has these scripts).
+- Copy `interim/reports/*.csv` and `interim/validation/` from Drive into `docs/validation/S13/`, write the reading of each plot, then tick S12 and S13.
+- **Double counting:** follow the rules in `docs/pipeline-files.md`. Same fire seen by several satellites or neighbouring pixels is S14's job, not cleaning's.
 
 ## Rules
 
