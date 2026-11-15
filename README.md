@@ -107,6 +107,7 @@ Keep per-detection points in tiled/compressed files for CSV export (sharded by r
 README.md              # this plan
 pipeline/              # 01..07 scripts + tests
 data/raw|processed/    # raw is gitignored; processed small files tracked (or Releases)
+data/interim_extract/  # small committed extract of the cleaned/filtered data (full interim data is on Drive)
 docs/validation/       # plots + metrics
 docs/data-notes.md     # verified facts about FIRMS data (step S05)
 docs/data-contract.md  # exact shape of the files the app reads (step S07)

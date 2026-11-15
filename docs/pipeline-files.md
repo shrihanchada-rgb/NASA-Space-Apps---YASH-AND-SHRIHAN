@@ -16,6 +16,7 @@ In Colab, `data/raw/` and `data/interim/` are on Google Drive: `My Drive/nasa-fi
 | `data/interim/reports/clean_summary.csv`, `clean_versions.csv` | `02_clean.py` | — | one row per region-source-year / per version |
 | `data/interim/reports/filter_counts.csv`, `filter_summary.csv` | `03_filter.py` | — | removals per region-source-year / per region-sensor |
 | `data/interim/validation/` | `03b_sanity_checks.py` (S13) | — | plots and tables; copied into `docs/validation/S13/` |
+| `data/interim/extract/` | `03c_interim_extract.py` | — | small extract (daily counts, coverage, 200-row samples); copied into the committed folder `data/interim_extract/` |
 
 `<SOURCE>` is one of `MODIS_SP`, `VIIRS_SNPP_SP`, `VIIRS_NOAA20_SP`, `VIIRS_NOAA21_SP`. `<REGION>` is a region id from `pipeline/config.py` (`US-CA`, `BR-PA`, `AU-NSW-VIC`, `PT`). `<YEAR>` is the UTC year of `acq_date`.
 

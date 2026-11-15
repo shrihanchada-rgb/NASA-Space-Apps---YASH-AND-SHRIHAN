@@ -236,3 +236,27 @@ def test_pipeline_end_to_end_and_sanity_checks(tmp_path):
         assert (val / f).exists()
     text = (val / "checks_summary.md").read_text()
     assert "MODIS peak months" in text and "Missing-download ranges: 1" in text
+
+
+# ---------- interim extract (03c) ----------
+
+extract = load("extract", "03c_interim_extract.py")
+
+
+def test_interim_extract_counts_match_files(tmp_path):
+    raw, cl, fi, out = tmp_path / "raw", tmp_path / "clean", tmp_path / "filtered", tmp_path / "extract"
+    avail = tmp_path / "availability.csv"
+    avail.write_text("data_id,min_date,max_date\nVIIRS_SNPP_SP,2019-01-18,2019-01-27\n")
+    write_chunk(raw, "VIIRS_SNPP_SP", "PT", "2019-01-18", 5, VIIRS_HEADER, VIIRS_KNOWN)   # real rows
+    clean.clean_region_source("PT", "VIIRS_SNPP_SP", raw=raw, out=cl, log=lambda *_: None)
+    filt.run(["PT"], ["VIIRS_SNPP_SP"], "nominal", (0,), clean=cl, out=fi)
+    m = extract.build(["PT"], out=out, raw=raw, clean=cl, filtered=fi, availability=avail, log=lambda *_: None)
+    d = pd.read_csv(out / "daily_counts.csv")
+    assert m["n_clean_total"] == 5 and m["n_kept_total"] == 3          # 2 rows are type 2 / 3
+    assert int(d["n_clean"].sum()) == 5 and int(d["n_kept"].sum()) == 3
+    assert list(d.columns) == extract.DAILY_COLUMNS
+    assert d[d["date"] == "2019-01-18"]["n_clean"].sum() == 3
+    cov = pd.read_csv(out / "coverage.csv").iloc[0]
+    assert (cov["days_downloaded"], cov["days_missing"], cov["missing_first"]) == (5, 5, "2019-01-23")
+    s = pd.read_csv(out / "samples" / "PT__VIIRS_SNPP_SP.csv")
+    assert len(s) == 3 and list(s.columns) == list(common.CLEAN_COLUMNS)
