@@ -192,9 +192,9 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [x] **S13 Sanity checks.** Needs: S12. Do: Section 13, Step A. Done when: plots saved in `docs/validation/` with a short written reading of each.
 
 ### Phase 4 — Harmonize
-- [ ] **S14 Grid and dedupe.** Needs: S12. Do: `04_dedupe_and_grid.py`; test that no detection is lost or counted twice. Done when: test passes.
-- [ ] **S15 Calibration experiments.** Needs: S14. Do: `05_calibrate.py`, Candidate A first, then B and C (Section 2.3). Done when: all three run and save results.
-- [ ] **S16 Compare and choose.** Needs: S15. Do: Section 13, Steps B–D. Done when: `docs/validation/README.md` states the winning method, the metrics table, and where it works badly.
+- [x] **S14 Grid and dedupe.** Needs: S12. Do: `04_dedupe_and_grid.py`; test that no detection is lost or counted twice. Done when: test passes.
+- [x] **S15 Calibration experiments.** Needs: S14. Do: `05_calibrate.py`, Candidate A first, then B and C (Section 2.3). Done when: all three run and save results.
+- [x] **S16 Compare and choose.** Needs: S15. Do: Section 13, Steps B–D. Done when: `docs/validation/README.md` states the winning method, the metrics table, and where it works badly.
 - [ ] **S17 Aggregate.** Needs: S16, S07. Do: `06_aggregate.py` writes `data/processed/` following the contract exactly. Done when: output validates against the contract.
 - [ ] **S18 Validate command.** Needs: S17. Do: `07_validate.py` re-creates all validation plots and the metrics table in one command. Done when: it runs from scratch.
 

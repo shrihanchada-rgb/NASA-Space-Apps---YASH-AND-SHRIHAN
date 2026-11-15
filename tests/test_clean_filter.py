@@ -10,6 +10,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -324,3 +325,73 @@ def test_grid_region_run_writes_files_and_checks(tmp_path):
     assert sorted(zip(mon["year"], mon["month"], mon["n"])) == [(2019, 1, 1), (2019, 1, 1), (2019, 2, 1)]
     rm = grid.region_monthly("PT", m)
     assert list(rm["n"]) == [2, 1] and list(rm["cells_active"]) == [2, 1]
+
+
+# ---------- S15 calibrate / S16 compare (SYNTHETIC data with a known answer) ----------
+
+cal = load("cal", "05_calibrate.py")
+cmp_ = load("cmp_", "05b_compare_methods.py")
+
+
+def synthetic_grid(tmp_path, k_by_month=None):
+    """MODIS = k * S-NPP exactly, in two cells, Feb 2012 - Jul 2026. k may depend on the calendar month."""
+    folder = tmp_path / "monthly"
+    folder.mkdir(parents=True)
+    rows = {"T": [], "A": [], "N": []}
+    for y in range(2012, 2027):
+        for mo in range(1, 13):
+            if not ((2012, 2) <= (y, mo) <= (2026, 7)):
+                continue
+            for cell, base in ((400, 200), (401, 600)):
+                v = base * (1 + (mo % 6)) * (1 + (y % 3))
+                k = (k_by_month or {}).get(mo, 0.25)
+                m = round(v * k)
+                rows["N"].append((y, mo, cell, 800, v, v // 2))
+                rows["T"].append((y, mo, cell, 800, m // 2, m // 2))
+                rows["A"].append((y, mo, cell, 800, m - m // 2, m - m // 2))
+    for sat, r in rows.items():
+        pd.DataFrame(r, columns=cal.CELL_KEYS + ["n", "n_px1km"]).to_parquet(folder / f"PT__{sat}.parquet", index=False)
+    return folder
+
+
+def test_calibrate_recovers_a_known_ratio(tmp_path):
+    folder = synthetic_grid(tmp_path)
+    full, terra, meta = cal.run(["PT"], folder, out=tmp_path / "cal", log=lambda *_: None)
+    p = meta["regions"]["PT"]
+    assert abs(p["A0"]["k"] - 0.25) < 1e-6 and abs(p["B0"]["k"] - 0.5) < 1e-3
+    assert abs(p["A2"]["b"] - 1.0) < 0.01
+    assert set(full["split"]) == {"outside", "train", "test", "other"}
+    assert (full[full["split"] == "train"]["year"].between(2014, 2018)).all()
+    assert full[full["split"] == "outside"]["A0"].isna().all()          # no S-NPP: no prediction
+    te = full[full["split"] == "test"]
+    for m in ("A0", "A1", "A2", "B0", "B1"):
+        assert np.allclose(te[m], te["M"], rtol=0.02), m
+    metrics, choice, tm, _ = cmp_.run(cal=tmp_path / "cal", out=tmp_path / "cmp", region_monthly=False, plots=False, log=lambda *_: None)
+    assert choice["winner"] == "A0"                                      # all perfect: the simplest wins the tie
+    assert metrics[metrics["method"] == "A0"]["bias"].iloc[0] == 1.0
+    assert set(tm["method"]) == {"F0", "F1"}
+
+
+def test_terra_only_factor():
+    reg = pd.DataFrame([(y, mo, 100, 150) for y in range(2003, 2019) for mo in range(1, 13)], columns=["year", "month", "T", "A"])
+    reg["M"] = reg["T"] + reg["A"]
+    t, p = cal.terra_only(reg)
+    assert abs(p["F0"] - 2.5) < 1e-9 and np.allclose(t["F1"], t["M"])
+    assert set(t[t["split"] == "test"]["year"]) == set(range(2011, 2019))
+
+
+def test_seasonal_ratio_is_found_and_chosen(tmp_path):
+    k = {mo: (0.1 if mo in (3, 4, 5) else 0.4) for mo in range(1, 13)}
+    cal.run(["PT"], synthetic_grid(tmp_path, k), out=tmp_path / "cal", log=lambda *_: None)
+    metrics, choice, _, _ = cmp_.run(cal=tmp_path / "cal", out=tmp_path / "cmp", region_monthly=False, plots=False, log=lambda *_: None)
+    assert choice["winner"] == "A1"
+    m = metrics.set_index("method")
+    assert m.loc["A1", "mape"] < 1 and m.loc["A0", "mape"] > 20
+    b = choice["band_by_region"]["PT"]
+    assert b["errors"] == "leave-one-year-out" and b["low_factor"] <= 1.0 <= b["high_factor"]
+
+
+def test_scores_definitions():
+    s = cmp_.scores([10, 20, 30, 5], [10, 20, 30, 50])
+    assert s["mape"] == 0.0 and s["bias"] == round(110 / 65, 3)          # the month with real 5 is not in mape
+    assert cmp_.scores([100, 200], [100, 200])["r2"] is None             # too few months

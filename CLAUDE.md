@@ -29,6 +29,9 @@ Install (once): `pip install -r requirements.txt`
 | Filter and count removals (S12) | `python3 pipeline/03_filter.py` |
 | Sanity-check plots and tables (S13) | `python3 pipeline/03b_sanity_checks.py` |
 | Small committed extract of the interim data (`data/interim_extract/`) | `python3 pipeline/03c_interim_extract.py` |
+| Clip to region outlines and grid (S14; needs Drive files, Colab) | `python3 pipeline/04_dedupe_and_grid.py` |
+| Fit harmonization methods (S15; runs from the repo) | `python3 pipeline/05_calibrate.py` |
+| Score methods, choose, plot (S16) | `python3 pipeline/05b_compare_methods.py` |
 
 The key is read from the `FIRMS_MAP_KEY` environment variable (Colab Secrets) or a local `.env`; it is never printed. Raw files go to `data/raw/<SOURCE>/<region>/` (gitignored). 
 
@@ -76,7 +79,10 @@ Data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web.
 
 Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers), `docs/HANDOFF.md` (what each session did). If these disagree, the newest `docs/HANDOFF.md` entry wins; then fix this section.
 
-**Steps ticked in README Section 10:** S01–S13, S19, S20. All four regions are downloaded, cleaned and filtered (18,888,356 rows cleaned, 2026-11-15). The cleaned and filtered files are on Drive in `interim/clean/` and `interim/filtered/`. File layout and columns: `docs/pipeline-files.md`. S13 plots and readings: `docs/validation/S13/README.md`. Read it before S14–S16: compare MODIS with **one VIIRS satellite**, not the VIIRS total, and treat Terra and Aqua separately.
+**Steps ticked in README Section 10:** S01–S16, S19, S20 (2026-11-15).
+- **Data:** all four regions are downloaded, cleaned, filtered (18,888,356 rows cleaned), clipped to real outlines and gridded (13,080,990 in-region detections). Full files are on Drive (`interim/clean/`, `interim/filtered/`, `interim/grid/`). Layout and columns: `docs/pipeline-files.md`.
+- **Harmonization is chosen: method A1, `method_version` `A1-1.0`.** MODIS-equivalent = k[region, calendar month] × S-NPP count. Results, limits and all numbers: `docs/validation/README.md`. Fitted values: `docs/validation/S16/params.json`.
+- **Read before S17:** `docs/validation/README.md` and `docs/validation/S13/README.md`.
 
 **Raw data: where it is and how much.** It is not in the repo. It is in Shrihan's Google Drive at `My Drive/nasa-fire-calendar/raw/<SOURCE>/<REGION>/<YYYY-MM-DD>_<n>d.csv`. Each file is one FIRMS request: 5 days, or fewer at the end of a range. The folder also holds `raw/data_availability.csv`, with FIRMS date ranges per source. In Colab, `data/raw` and `data/interim` are symlinks to that Drive folder. You cannot read Drive. Ask the person to run a counting cell and paste the output.
 
@@ -121,12 +127,13 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 - **Status.** S19 and S20 are done, plus a design refresh: flat style, no gradients, IBM Plex Sans/Mono, NASA GIBS satellite basemap. The user asked for no gradients and fonts that don't look AI-generated. Keep that.
 - **GIBS place-name tiles sometimes return HTTP 500,** so place names are off by default. Next website step: S21 (calendar).
 
-**Next pipeline step:**
-- S14 Grid and dedupe (`04_dedupe_and_grid.py`), reading `data/interim/filtered/`. Clipping to real region boundaries is still open (Natural Earth, `docs/sources.md`); decide whether it goes into S14.
-- Oddities, checked (`docs/validation/S13/README.md`, follow-up section):
-  - AU April peak = daytime low-intensity burning inside NSW/VIC.
-  - The Aqua/Terra ratio depends on the season, so Terra/Aqua corrections must be per region and season.
-  - PT MODIS Dec 2025 – Jan 2026 = probably an archive gap: treat it as `null` and put it in `known_gaps`.
+**Next pipeline step: S17 Aggregate (`06_aggregate.py`), writing `data/processed/` per the data contract.** Decisions already taken or still open:
+- **Use A1** (`docs/validation/S16/params.json`, `choice.json`) with the band factors per region. Call the band an approximate range: it held only 58–80% of test months.
+- **Where MODIS exists, `count_harm` should be the observed MODIS count** (Terra + Aqua); use converted VIIRS where MODIS is missing (PT Dec 2025 – Jan 2026) and after MODIS ends. Not decided with the user yet: ask before coding.
+- **Terra-only months (Nov 2000 – Jun 2002):** scale Terra by the factor in `params.json` (`terra_only`; F1 for AU-NSW-VIC, F0 elsewhere) and flag them.
+- **After S-NPP (ended 2 Nov 2026):** NOAA-20 is within about ±5–15% of S-NPP per region-year; no full test done.
+- **Conversion error grows after 2023** (typical error 13–28% in 2024–2026). State it on the methods page.
+- S17 needs daily values and hotspot CSVs, so it must run in Colab on the Drive files (`interim/grid/daily/`, `interim/filtered/`).
 - **Double counting:** follow the rules in `docs/pipeline-files.md`. Same fire seen by several satellites or neighbouring pixels is S14's job, not cleaning's.
 
 ## Using the interim data ("use interim data")

@@ -56,6 +56,33 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — S14–S16 Grid, calibrate, compare — DONE
+- **Who / AI:** Shrihan ran Colab step 04 (434 s); Claude wrote the code, downloaded the grid files from Drive, and ran S15 and S16 in the Claude session
+- **Did:**
+  - S14: clipped and gridded all regions in Colab (all `[OK]`).
+  - S15: `pipeline/05_calibrate.py` fits six candidate methods (A0, A1, A2, B0, B1, C) on 2014–2018.
+  - S16: `pipeline/05b_compare_methods.py` scores them on 2019–2023, chooses one, sets an uncertainty band, and plots. Summary in `docs/validation/README.md`.
+  - Quality run-through of the gridded data before fitting: all checks passed.
+- **Files changed:** `pipeline/05_calibrate.py` (new), `pipeline/05b_compare_methods.py` (new), `pipeline/04_dedupe_and_grid.py`, `tests/test_clean_filter.py`, `docs/validation/README.md` (new), `docs/validation/S16/` (new), `data/interim_extract/grid/` (new), `data/interim_extract/README.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `49 passed`. `python3 pipeline/05_calibrate.py && python3 pipeline/05b_compare_methods.py` reproduces `docs/validation/S16/` from the committed grid copy.
+- **Results / numbers:**
+  - Clipping: outside the real outline were 8.9% (US-CA), 32.8% (BR-PA), 6.8% (AU-NSW-VIC) and 27.2% (PT) of filtered rows; 13,080,990 detections gridded.
+  - **Chosen: A1 (ratio per calendar month), `A1-1.0`.** Test R² 0.992 / 0.984 / 0.993 / 0.906 and typical error 11.8 / 10.1 / 12.8 / 22.0% for US-CA / BR-PA / AU-NSW-VIC / PT.
+  - Band coverage on test months: 78 / 67 / 58 / 80% (target 80%).
+- **Decisions and why:**
+  - S-NPP alone represents VIIRS (satellite count changes otherwise fake jumps).
+  - Choice rule fixed before looking: lowest typical error in most regions, ties to the simpler method.
+  - Band from leave-one-year-out train errors; in-sample errors were too optimistic.
+  - S15/S16 could not run fully in the Claude session from raw files (10 MB Drive connector limit), so step 04 ran in Colab and its small monthly output was downloaded.
+- **Problems / open questions:**
+  - PT is weakest (bias 0.87). Error grows after 2023 (13–28%).
+  - Band too narrow in BR-PA and AU-NSW-VIC.
+  - NOAA-20/21 as S-NPP replacements are only checked by yearly ratios.
+  - Whether `count_harm` should be observed MODIS where it exists is not yet decided with the user.
+  - PT N20/N21 cell-level grid files were not copied into the repo.
+- **Next step:** S17 Aggregate (see "Next pipeline step" in `AGENTS.md`/`CLAUDE.md`). Website: S21 calendar.
+- **If PAUSED — branch and resume command:** not paused.
+
 ### 2026-11-15 — S14–S16 Grid, calibrate, compare — PAUSED (S14 code done; waiting for one Colab run of step 04)
 - **Who / AI:** Shrihan using Claude
 - **Did:** Wrote `pipeline/04_dedupe_and_grid.py` (S14): clips filtered detections to the real region outlines (`data/boundaries/regions_ne.geojson`, Natural Earth) and counts them per day / month, 0.25° cell and satellite, with a ~1 km de-duplicated count (`n_px1km`, also Candidate B's input). 3 new tests (45 pass). Smoke-tested on the real 200-row samples.

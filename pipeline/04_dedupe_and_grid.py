@@ -163,7 +163,8 @@ def compact(df):
     return df
 
 
-def run_region(region, filtered=common.FILTERED, out=GRID, mask=None, log=print):
+def run_region(region, filtered=None, out=None, mask=None, log=print):
+    filtered, out = filtered or common.FILTERED, out or GRID
     mask = mask or RegionMask(region)
     years = sorted({int(p.stem) for p in (Path(filtered) / region).glob("*/*.parquet")})
     summary, monthly = [], []
