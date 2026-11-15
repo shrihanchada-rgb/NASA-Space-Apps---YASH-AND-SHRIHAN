@@ -260,3 +260,67 @@ def test_interim_extract_counts_match_files(tmp_path):
     assert (cov["days_downloaded"], cov["days_missing"], cov["missing_first"]) == (5, 5, "2019-01-23")
     s = pd.read_csv(out / "samples" / "PT__VIIRS_SNPP_SP.csv")
     assert len(s) == 3 and list(s.columns) == list(common.CLEAN_COLUMNS)
+
+
+# ---------- S14 grid and dedupe ----------
+
+grid = load("grid", "04_dedupe_and_grid.py")
+# A square "region" 10.0-11.0 N, 20.0-21.0 E inside a download box 9.5-11.5 N, 19.5-21.5 E. SYNTHETIC.
+SQUARE = [[[[20.0, 10.0], [21.0, 10.0], [21.0, 11.0], [20.0, 11.0], [20.0, 10.0]]]]
+
+
+def grid_rows(rows):
+    """rows: (date, sat, lat, lon, daynight, frp) -> frame like the filtered files. SYNTHETIC."""
+    return pd.DataFrame(rows, columns=["date", "satellite", "latitude", "longitude", "daynight", "frp"]).assign(
+        sensor=lambda d: d["satellite"].map(lambda s: "MODIS" if s in ("T", "A") else "VIIRS"))
+
+
+def square_mask():
+    return grid.RegionMask("X", polygons=SQUARE, bbox=[19.5, 9.5, 21.5, 11.5])
+
+
+def test_region_mask_and_cells():
+    m = square_mask()
+    la, lo = grid.sub_index([10.5, 10.5, 9.9, 11.2], [20.5, 21.3, 20.5, 20.5])
+    assert list(m.contains(la, lo)) == [True, False, False, False]
+    cells = m.cells()
+    assert len(cells) == 16 and (cells["share_in_region"] == 1.0).all()   # 4 x 4 cells of 0.25 degrees
+
+
+def test_grid_counts_every_detection_once_and_clips():
+    df = grid_rows([
+        ("2020-01-01", "N", 10.501, 20.501, "D", 2.0),    # three VIIRS pixels in the same ~1 km box, same half-day
+        ("2020-01-01", "N", 10.503, 20.504, "D", 3.0),
+        ("2020-01-01", "N", 10.507, 20.508, "D", 1.0),
+        ("2020-01-01", "N", 10.507, 20.508, "N", 1.5),    # same box at night: a separate count
+        ("2020-01-01", "N", 10.530, 20.530, "D", 1.0),    # another box, same 0.25-degree cell
+        ("2020-01-01", "A", 10.505, 20.505, "D", 9.0),    # another satellite: its own row
+        ("2020-01-02", "N", 10.900, 20.100, "D", 1.0),    # another day and cell
+        ("2020-01-01", "N", 9.800, 20.500, "D", 7.0),     # outside the region (south)
+        ("2020-01-01", "T", 10.500, 21.200, "D", 7.0),    # outside the region (east)
+    ])
+    g, rows_in, outside = grid.grid_frame(df, square_mask())
+    assert (rows_in, outside, int(g["n"].sum())) == (9, 2, 7)       # nothing lost, nothing counted twice
+    row = g[(g["date"] == "2020-01-01") & (g["satellite"] == "N")].iloc[0]
+    assert (row["n"], row["n_night"], row["n_px1km"], row["frp_sum"]) == (5, 1, 3, 8.5)
+    assert grid.cell_id(row["lat_idx"], row["lon_idx"]) == "402_802"   # (10.5+90)/0.25, (20.5+180)/0.25
+    assert len(g) == 3 and set(g["satellite"]) == {"N", "A"}
+    m = grid.to_monthly(g)
+    assert int(m["n"].sum()) == 7 and int(m[m["satellite"] == "N"]["days_active"].sum()) == 2
+
+
+def test_grid_region_run_writes_files_and_checks(tmp_path):
+    fi, out = tmp_path / "filtered", tmp_path / "grid"
+    rows = [viirs_row("2019-01-18", lat="10.5", lon="20.5"), viirs_row("2019-01-18", lat="10.6", lon="20.9"),
+            viirs_row("2019-02-03", lat="10.5", lon="20.5"), viirs_row("2019-02-03", lat="12.0", lon="20.5")]
+    df = clean.normalize(frame(VIIRS_HEADER, rows), "PT", "VIIRS_SNPP_SP")
+    (fi / "PT" / "VIIRS_SNPP_SP").mkdir(parents=True)
+    df.to_parquet(fi / "PT" / "VIIRS_SNPP_SP" / "2019.parquet", index=False)
+    summary, m, cells = grid.run_region("PT", filtered=fi, out=out, mask=square_mask(), log=lambda *_: None)
+    assert (summary[0]["rows_in"], summary[0]["rows_outside_region"], summary[0]["rows_gridded"]) == (4, 1, 3)
+    daily = pd.read_parquet(out / "daily" / "PT" / "2019.parquet")
+    assert int(daily["n"].sum()) == 3
+    mon = pd.read_parquet(out / "monthly" / "PT__N.parquet")
+    assert sorted(zip(mon["year"], mon["month"], mon["n"])) == [(2019, 1, 1), (2019, 1, 1), (2019, 2, 1)]
+    rm = grid.region_monthly("PT", m)
+    assert list(rm["n"]) == [2, 1] and list(rm["cells_active"]) == [2, 1]

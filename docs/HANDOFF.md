@@ -56,6 +56,19 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — S14–S16 Grid, calibrate, compare — PAUSED (S14 code done; waiting for one Colab run of step 04)
+- **Who / AI:** Shrihan using Claude
+- **Did:** Wrote `pipeline/04_dedupe_and_grid.py` (S14): clips filtered detections to the real region outlines (`data/boundaries/regions_ne.geojson`, Natural Earth) and counts them per day / month, 0.25° cell and satellite, with a ~1 km de-duplicated count (`n_px1km`, also Candidate B's input). 3 new tests (45 pass). Smoke-tested on the real 200-row samples.
+- **Files changed:** `pipeline/04_dedupe_and_grid.py` (new), `pipeline/config.py`, `scripts/make_region_boundaries.py` (new), `data/boundaries/regions_ne.geojson` (new), `tests/test_clean_filter.py`, `docs/pipeline-files.md`, `docs/sources.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `45 passed`.
+- **Results / numbers:** none on full data yet. On the samples, 8–10% of rows fall outside the real outline in US-CA and AU-NSW-VIC, about 36% in BR-PA and 29% in PT (rectangular boxes include neighbours and sea).
+- **Decisions and why:**
+  - Tried to run everything in the Claude session instead of Colab: not possible, because the Drive connector refuses files over 10 MB and 7 filtered year files are larger. So step 04 runs once in Colab; its monthly grid files are small, and S15–S16 then run in the Claude session.
+  - AU-NSW-VIC includes ACT and Jervis Bay (enclaves in NSW). Lord Howe Island is outside the download box.
+- **Problems / open questions:** Natural Earth terms page still not read (docs/sources.md).
+- **Next step:** Shrihan: fresh `repo.zip` of branch `step/S14-S16-grid-harmonize`, Colab `STEPS = ["04"]`, paste output. Claude: download `interim/grid/monthly/*.parquet` and `region_monthly.csv` from Drive, write and run `05_calibrate.py` (S15) and the comparison (S16).
+- **If PAUSED — branch and resume command:** branch `step/S14-S16-grid-harmonize`; Colab `STEPS = ["04"]`, `STEP_ARGS = {}`.
+
 ### 2026-11-15 — Interim data extract filled — DONE
 - **Who / AI:** Shrihan ran Colab `STEPS = ["03c"]` (493 s); Claude copied Drive `interim/extract/` into `data/interim_extract/` with the Drive connector and checked it
 - **Did:** Committed `daily_counts.csv` (91,044 rows), `coverage.csv`, `MANIFEST.json` and 16 sample files (200 rows each). 5.2 MB in total.

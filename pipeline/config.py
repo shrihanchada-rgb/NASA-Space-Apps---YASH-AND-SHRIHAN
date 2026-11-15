@@ -45,3 +45,10 @@ SATELLITE_FIRST_DAY = {
     "T": dt.date(2000, 11, 1), "A": dt.date(2002, 7, 4),
     "N": dt.date(2012, 1, 20), "N20": dt.date(2018, 4, 1), "N21": dt.date(2023, 3, 1),
 }
+
+# --- Gridding and harmonization (steps S14-S16) ---
+GRID_DEG = 0.25          # analysis grid (data contract: grid_resolution_deg)
+SUBGRID_DEG = 0.01       # about 1 km: MODIS-footprint-sized boxes used for dedupe / Candidate B, and the clipping mask
+TRAIN_YEARS = (2014, 2018)   # README Section 13 Step C
+TEST_YEARS = (2019, 2023)
+VIIRS_REFERENCE_SATELLITE = "N"   # S-NPP: the only VIIRS satellite covering train and test years
