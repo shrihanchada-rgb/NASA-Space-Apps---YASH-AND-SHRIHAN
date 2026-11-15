@@ -20,7 +20,11 @@ The **full interim data** is 18,888,356 cleaned detections, as parquet files. It
 | `samples/<REGION>__<SOURCE>.csv` | 200 real filtered detections per region and source (fixed random sample), with the full cleaned columns | same |
 | `MANIFEST.json` | Build time, totals, filter used | same |
 
-**Status:** filled once `03c` has run in Colab and the output has been copied here. If `daily_counts.csv` is missing, this has not happened yet; see "How to refresh".
+**Status: filled (built 2026-11-15 07:23 UTC in Colab from the S11/S12 interim data).**
+- `daily_counts.csv`: 91,044 rows, holding 18,888,356 cleaned and 17,385,676 kept detections.
+- Checked against `docs/validation/S13/`: the totals per region and source match `clean_summary.csv` and `filter_counts.csv` exactly, and every monthly count per satellite matches `monthly_counts.csv`.
+- `coverage.csv`: every region and source has every day downloaded (0 missing days).
+- 16 sample files of 200 rows each.
 
 Monthly and yearly tables already exist in `docs/validation/S13/` (`monthly_counts.csv`, `yearly_counts.csv`, `filter_counts.csv`, `clean_summary.csv`, `clean_versions.csv`, `gaps.csv`).
 
