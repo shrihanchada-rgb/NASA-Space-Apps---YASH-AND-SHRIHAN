@@ -249,7 +249,7 @@ def main(argv=None):
     p.add_argument("--sources", nargs="+", choices=common.SOURCES, default=list(common.SOURCES))
     p.add_argument("--force", action="store_true", help="redo years that are already cleaned")
     a = p.parse_args(argv)
-    regions = a.region or common.regions_present(common.RAW, a.sources)
+    regions = a.region or [r for r in common.regions_present(common.RAW, a.sources) if r in config.ACTIVE_REGIONS]
     if not regions:
         raise SystemExit(f"No raw data found in {common.RAW}. Run step 01 first (and in Colab, check Drive is mounted).")
     t0 = time.time()

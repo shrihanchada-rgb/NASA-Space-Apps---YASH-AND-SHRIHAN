@@ -1,5 +1,7 @@
 # Interim data extract (small, committed)
 
+**California only since 2026-11-15.** The other three regions' rows and files moved to `archive/other_regions/interim_extract/`.
+
 This folder holds a small summary of the interim data in the repo, so anyone, and any AI (Claude or Codex), can work with the real cleaned and filtered data without Google Drive.
 
 The **full interim data** is 18,888,356 cleaned detections, as parquet files. It is too big for git and lives on Shrihan's Google Drive:
@@ -27,6 +29,16 @@ The **full interim data** is 18,888,356 cleaned detections, as parquet files. It
 - 16 sample files of 200 rows each.
 
 Monthly and yearly tables already exist in `docs/validation/S13/` (`monthly_counts.csv`, `yearly_counts.csv`, `filter_counts.csv`, `clean_summary.csv`, `clean_versions.csv`, `gaps.csv`).
+
+## Gridded data (`grid/`, from S14)
+
+| File | What it is |
+|---|---|
+| `grid/monthly/<REGION>__<SAT>.parquet` | In-region detections per month, 0.25° cell (`lat_idx`, `lon_idx`) and satellite: `n`, `n_night`, `n_px1km`, `frp_sum`, `days_active`. Columns explained in `docs/pipeline-files.md`. PT N20 and N21 cell files are not here (not copied); their region totals are in `region_monthly.csv`. |
+| `grid/region_monthly.csv` | Region totals per month and satellite, clipped to the real outlines |
+| `grid/region_cells.csv` | The cells of each region, with centre and the share of the cell inside the outline |
+
+These are clipped to the real region borders (`data/boundaries/regions_ne.geojson`); `daily_counts.csv` above is not. `pipeline/05_calibrate.py` reads `grid/monthly/` when the Drive copy is absent, so S15 and S16 can be re-run from the repo alone.
 
 ## How to read it correctly
 

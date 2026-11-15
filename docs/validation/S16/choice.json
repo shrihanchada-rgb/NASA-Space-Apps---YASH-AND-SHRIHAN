@@ -1,0 +1,61 @@
+{
+ "winner": "A1",
+ "method_version": "A1-1.0",
+ "wins_lowest_mape": {
+  "A0": 1,
+  "B0": 0,
+  "A1": 3,
+  "B1": 0,
+  "C": 0,
+  "A2": 0
+ },
+ "best_method_by_region": {
+  "US-CA": "A1",
+  "BR-PA": "A1",
+  "AU-NSW-VIC": "A1",
+  "PT": "A0"
+ },
+ "band_quantiles": [
+  0.1,
+  0.9
+ ],
+ "band_by_region": {
+  "US-CA": {
+   "low_factor": 0.812,
+   "high_factor": 1.319,
+   "train_months": 60,
+   "test_coverage": 0.783,
+   "errors": "leave-one-year-out"
+  },
+  "BR-PA": {
+   "low_factor": 0.764,
+   "high_factor": 1.185,
+   "train_months": 60,
+   "test_coverage": 0.667,
+   "errors": "leave-one-year-out"
+  },
+  "AU-NSW-VIC": {
+   "low_factor": 0.847,
+   "high_factor": 1.158,
+   "train_months": 60,
+   "test_coverage": 0.583,
+   "errors": "leave-one-year-out"
+  },
+  "PT": {
+   "low_factor": 0.682,
+   "high_factor": 1.543,
+   "train_months": 55,
+   "test_coverage": 0.8,
+   "errors": "leave-one-year-out"
+  }
+ },
+ "train_years": [
+  2014,
+  2018
+ ],
+ "test_years": [
+  2019,
+  2023
+ ],
+ "rule": "lowest test-year mape in the most regions; ties to the simpler method"
+}

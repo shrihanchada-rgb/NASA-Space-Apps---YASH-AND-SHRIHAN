@@ -143,7 +143,8 @@ def validate(folder):
                     if c["MODIS"] or c["VIIRS"]:
                         errors.append(f"{p} {m['year']}-{m['month']:02d}: hotspots exist but month is null")
                     continue
-                if m["count_raw_modis"] != c["MODIS"] or m["count_raw_viirs"] != c["VIIRS"]:
+                # A null raw count means "that sensor had no data this month": then there must be no rows of it.
+                if (m["count_raw_modis"] or 0) != c["MODIS"] or (m["count_raw_viirs"] or 0) != c["VIIRS"]:
                     errors.append(f"{p} {m['year']}-{m['month']:02d}: hotspot rows (MODIS {c['MODIS']}, VIIRS {c['VIIRS']}) != monthly raw counts")
                 if not close(c["w"], m["count_harm"]):
                     errors.append(f"{p} {m['year']}-{m['month']:02d}: sum of harmonized_weight {c['w']:.4f} != count_harm {m['count_harm']}")

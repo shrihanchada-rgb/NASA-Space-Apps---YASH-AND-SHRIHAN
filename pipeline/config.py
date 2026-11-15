@@ -22,6 +22,12 @@ REGIONS = {
     "PT": {"name": "Portugal (mainland)", "bbox": [-9.7, 36.8, -6.0, 42.3]},
 }
 
+# Project scope (decided by Shrihan, 2026-11-15): the product covers California only.
+# The other three regions stay defined above so their archived data and the 4-region validation can still be
+# re-run with --region, but every script works on ACTIVE_REGIONS by default.
+ACTIVE_REGIONS = ["US-CA"]
+ARCHIVED_REGIONS = ["BR-PA", "AU-NSW-VIC", "PT"]
+
 API_BASE = "https://firms.modaps.eosdis.nasa.gov/api"
 MAX_DAY_RANGE = 5                 # FIRMS area API allows 1..5 days per call
 TRANSACTION_LIMIT = 5000          # per MAP_KEY per 10 minutes
@@ -45,3 +51,15 @@ SATELLITE_FIRST_DAY = {
     "T": dt.date(2000, 11, 1), "A": dt.date(2002, 7, 4),
     "N": dt.date(2012, 1, 20), "N20": dt.date(2018, 4, 1), "N21": dt.date(2023, 3, 1),
 }
+
+# --- Gridding and harmonization (steps S14-S16) ---
+GRID_DEG = 0.25          # analysis grid (data contract: grid_resolution_deg)
+SUBGRID_DEG = 0.01       # about 1 km: MODIS-footprint-sized boxes used for dedupe / Candidate B, and the clipping mask
+TRAIN_YEARS = (2014, 2018)   # README Section 13 Step C
+TEST_YEARS = (2019, 2023)
+VIIRS_REFERENCE_SATELLITE = "N"   # S-NPP: the only VIIRS satellite covering train and test years
+
+# How MODIS and VIIRS are combined into count_harm on days when both have data (step 06):
+#   "blend"       half observed MODIS + half MODIS-equivalent from S-NPP (k[month] x S-NPP). Uses both sensors.
+#   "modis_first" observed MODIS only; converted VIIRS is used only where MODIS has no data.
+HARMONIZE_POLICY = "blend"

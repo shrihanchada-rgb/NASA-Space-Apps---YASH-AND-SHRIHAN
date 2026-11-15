@@ -56,6 +56,95 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — Audit of the harmonized California data; satellite outages fixed — DONE
+- **Who / AI:** Shrihan asked for double counting and errors to be ruled out; Claude
+- **Did:**
+  - Wrote `pipeline/06b_audit_processed.py`: 21 independent checks of `data/processed/` (duplicates, totals against S14, every row's weight, one-estimate-not-two, files agree, no jump in 2012, baseline).
+  - The first run failed one check: 2024 harmonized was 12% below observed MODIS. Cause: S-NPP delivered no data on 24–28 Jul 2024 (and other days), and empty files were read as "no fires".
+  - Fixed `06_aggregate.py`: it now finds satellite outages from `data/interim_extract/daily_counts.csv` and treats them as missing data. A single MODIS satellite is scaled when the other is out (Aqua-only factor 1.947 added). Rebuilt `data/processed/`.
+- **Files changed:** `pipeline/06_aggregate.py`, `pipeline/06b_audit_processed.py` (new), `tests/test_clean_filter.py`, `data/processed/`, `data/processed/README.md`, `docs/data-contract.md`, `docs/validation/README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 pipeline/06b_audit_processed.py` → `All checks passed`. `python3 scripts/validate_data.py data/processed` → `0 problem(s)`. `python3 -m pytest -q tests` → `52 passed`.
+- **Results / numbers:**
+  - 64 outage periods (212 satellite-days): Terra 6, Aqua 2, S-NPP 37, NOAA-20 14, NOAA-21 5. The long ones match known outages.
+  - Harmonized total 303,867.5 (was 301,327.0). July 2024: 4,596. 2024 harmonized ÷ MODIS estimate went from 0.88 to 1.02.
+  - Harmonized ÷ MODIS estimate: exactly 1 for 2003–2011; 0.95–1.05 for 2012–2025; 1.11 for partial 2026.
+  - No duplicate detections; rows per satellite equal the S14 totals.
+- **Decisions and why:**
+  - Outage rules. VIIRS: a day with zero cleaned detections in the download box (VIIRS sees static heat sources there every day), or S-NPP under 25% of NOAA-20 when NOAA-20 saw 40 or more. MODIS: 5 or more empty days in a row while the other MODIS satellite saw 20 or more (10 or more days in the Terra-only period). Stricter for MODIS because single empty winter days are normal.
+  - Repeat views of one fire by one satellite are not removed: FIRMS counts them, and pre-2012 MODIS counts include them.
+- **Problems / open questions:**
+  - S15/S16 scores were computed before this fix and include outage errors (noted in `docs/validation/README.md`); not recomputed.
+  - Short MODIS outages of under 5 days are not detected.
+  - Outage detection for the archived regions was not done.
+- **Next step:** S21 calendar on `data/processed/`.
+- **If PAUSED — branch and resume command:** not paused.
+
+### 2026-11-15 — Scope change to California only + S17 Aggregate — DONE
+- **Who / AI:** Shrihan decided the scope; Claude did the work in the Claude session (no Colab)
+- **Did:**
+  - **Scope:** the product is California only. `ACTIVE_REGIONS = ["US-CA"]`; scripts default to it. Other regions' committed data moved to `archive/other_regions/` (README there). Validation docs keep all four regions.
+  - **S17:** wrote `pipeline/06_aggregate.py` and built `data/processed/` for California: `metadata.json`, `regions.geojson`, `monthly.json`, `daily.json`, `baseline.json`, 27 hotspot CSVs with `harmonized_weight`, plus three extra files for user-chosen areas.
+  - Downloaded the 55 filtered California files from Drive with the connector and re-ran step 04 here (same totals as Colab: 1,903,272 in-region detections).
+  - Fixed `scripts/validate_data.py`: a null raw count now means "no rows of that sensor" (it wrongly compared null with 0).
+- **Files changed:** `pipeline/06_aggregate.py` (new), `pipeline/config.py`, `pipeline/02`–`05` (default regions), `scripts/validate_data.py`, `tests/test_clean_filter.py`, `data/processed/` (new, 131 MB), `archive/other_regions/` (new), `data/interim_extract/`, `docs/data-contract.md` (§8b proposed additions), `docs/pipeline-files.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `51 passed`. `python3 scripts/validate_data.py data/processed` → `0 problem(s)`. `cd web && DATA_DIR=../data/processed npm run dev`: no sample banner, "Method A1-1.0", California total 301,327.
+- **Results / numbers:**
+  - 310 months, 9,435 days; harmonized total 301,327; peak month Sep 2020 (26,632); peak year 2020 (48,425).
+  - Baseline 2001–2025: August mean 3,583, median 1,985.
+  - 174 overlap months: S-NPP-converted ÷ observed MODIS = 1.004 overall.
+  - Website loaded on the real files in Chromium with no console errors.
+- **Decisions and why:**
+  - **`blend` policy:** where MODIS and S-NPP both have data, `count_harm` is the average of observed MODIS and converted S-NPP. The user asked for MODIS and VIIRS to be harmonized together, and using both makes results for small chosen areas less noisy. Alternative `modis_first` is one setting.
+  - NOAA-20/21 rows get weight 0 (kept for raw counts, map, downloads), so the changing number of VIIRS satellites cannot cause jumps.
+  - Extra grid files are a proposed contract addition; contract 1.0 files are unchanged.
+- **Problems / open questions:**
+  - Hotspot files are large (131 MB; 2020 is 35 MB). The website must not load them all at once.
+  - The blend changes how the number is made at 20 Jan 2012 (bias on test years 1.03, so the step should be about 1–2%; not measured separately).
+  - Yash has not seen the scope change or §8b yet.
+  - Website features (calendar, charts, downloads, points) are still to build: S21–S23, S27.
+- **Next step:** S21 calendar on `data/processed/`.
+- **If PAUSED — branch and resume command:** not paused.
+
+### 2026-11-15 — S14–S16 Grid, calibrate, compare — DONE
+- **Who / AI:** Shrihan ran Colab step 04 (434 s); Claude wrote the code, downloaded the grid files from Drive, and ran S15 and S16 in the Claude session
+- **Did:**
+  - S14: clipped and gridded all regions in Colab (all `[OK]`).
+  - S15: `pipeline/05_calibrate.py` fits six candidate methods (A0, A1, A2, B0, B1, C) on 2014–2018.
+  - S16: `pipeline/05b_compare_methods.py` scores them on 2019–2023, chooses one, sets an uncertainty band, and plots. Summary in `docs/validation/README.md`.
+  - Quality run-through of the gridded data before fitting: all checks passed.
+- **Files changed:** `pipeline/05_calibrate.py` (new), `pipeline/05b_compare_methods.py` (new), `pipeline/04_dedupe_and_grid.py`, `tests/test_clean_filter.py`, `docs/validation/README.md` (new), `docs/validation/S16/` (new), `data/interim_extract/grid/` (new), `data/interim_extract/README.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `49 passed`. `python3 pipeline/05_calibrate.py && python3 pipeline/05b_compare_methods.py` reproduces `docs/validation/S16/` from the committed grid copy.
+- **Results / numbers:**
+  - Clipping: outside the real outline were 8.9% (US-CA), 32.8% (BR-PA), 6.8% (AU-NSW-VIC) and 27.2% (PT) of filtered rows; 13,080,990 detections gridded.
+  - **Chosen: A1 (ratio per calendar month), `A1-1.0`.** Test R² 0.992 / 0.984 / 0.993 / 0.906 and typical error 11.8 / 10.1 / 12.8 / 22.0% for US-CA / BR-PA / AU-NSW-VIC / PT.
+  - Band coverage on test months: 78 / 67 / 58 / 80% (target 80%).
+- **Decisions and why:**
+  - S-NPP alone represents VIIRS (satellite count changes otherwise fake jumps).
+  - Choice rule fixed before looking: lowest typical error in most regions, ties to the simpler method.
+  - Band from leave-one-year-out train errors; in-sample errors were too optimistic.
+  - S15/S16 could not run fully in the Claude session from raw files (10 MB Drive connector limit), so step 04 ran in Colab and its small monthly output was downloaded.
+- **Problems / open questions:**
+  - PT is weakest (bias 0.87). Error grows after 2023 (13–28%).
+  - Band too narrow in BR-PA and AU-NSW-VIC.
+  - NOAA-20/21 as S-NPP replacements are only checked by yearly ratios.
+  - Whether `count_harm` should be observed MODIS where it exists is not yet decided with the user.
+  - PT N20/N21 cell-level grid files were not copied into the repo.
+- **Next step:** S17 Aggregate (see "Next pipeline step" in `AGENTS.md`/`CLAUDE.md`). Website: S21 calendar.
+- **If PAUSED — branch and resume command:** not paused.
+
+### 2026-11-15 — S14–S16 Grid, calibrate, compare — PAUSED (S14 code done; waiting for one Colab run of step 04)
+- **Who / AI:** Shrihan using Claude
+- **Did:** Wrote `pipeline/04_dedupe_and_grid.py` (S14): clips filtered detections to the real region outlines (`data/boundaries/regions_ne.geojson`, Natural Earth) and counts them per day / month, 0.25° cell and satellite, with a ~1 km de-duplicated count (`n_px1km`, also Candidate B's input). 3 new tests (45 pass). Smoke-tested on the real 200-row samples.
+- **Files changed:** `pipeline/04_dedupe_and_grid.py` (new), `pipeline/config.py`, `scripts/make_region_boundaries.py` (new), `data/boundaries/regions_ne.geojson` (new), `tests/test_clean_filter.py`, `docs/pipeline-files.md`, `docs/sources.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `45 passed`.
+- **Results / numbers:** none on full data yet. On the samples, 8–10% of rows fall outside the real outline in US-CA and AU-NSW-VIC, about 36% in BR-PA and 29% in PT (rectangular boxes include neighbours and sea).
+- **Decisions and why:**
+  - Tried to run everything in the Claude session instead of Colab: not possible, because the Drive connector refuses files over 10 MB and 7 filtered year files are larger. So step 04 runs once in Colab; its monthly grid files are small, and S15–S16 then run in the Claude session.
+  - AU-NSW-VIC includes ACT and Jervis Bay (enclaves in NSW). Lord Howe Island is outside the download box.
+- **Problems / open questions:** Natural Earth terms page still not read (docs/sources.md).
+- **Next step:** Shrihan: fresh `repo.zip` of branch `step/S14-S16-grid-harmonize`, Colab `STEPS = ["04"]`, paste output. Claude: download `interim/grid/monthly/*.parquet` and `region_monthly.csv` from Drive, write and run `05_calibrate.py` (S15) and the comparison (S16).
+- **If PAUSED — branch and resume command:** branch `step/S14-S16-grid-harmonize`; Colab `STEPS = ["04"]`, `STEP_ARGS = {}`.
+
 ### 2026-11-15 — Interim data extract filled — DONE
 - **Who / AI:** Shrihan ran Colab `STEPS = ["03c"]` (493 s); Claude copied Drive `interim/extract/` into `data/interim_extract/` with the Drive connector and checked it
 - **Did:** Committed `daily_counts.csv` (91,044 rows), `coverage.csv`, `MANIFEST.json` and 16 sample files (200 rows each). 5.2 MB in total.

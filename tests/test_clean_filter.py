@@ -10,6 +10,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -260,3 +261,235 @@ def test_interim_extract_counts_match_files(tmp_path):
     assert (cov["days_downloaded"], cov["days_missing"], cov["missing_first"]) == (5, 5, "2019-01-23")
     s = pd.read_csv(out / "samples" / "PT__VIIRS_SNPP_SP.csv")
     assert len(s) == 3 and list(s.columns) == list(common.CLEAN_COLUMNS)
+
+
+# ---------- S14 grid and dedupe ----------
+
+grid = load("grid", "04_dedupe_and_grid.py")
+# A square "region" 10.0-11.0 N, 20.0-21.0 E inside a download box 9.5-11.5 N, 19.5-21.5 E. SYNTHETIC.
+SQUARE = [[[[20.0, 10.0], [21.0, 10.0], [21.0, 11.0], [20.0, 11.0], [20.0, 10.0]]]]
+
+
+def grid_rows(rows):
+    """rows: (date, sat, lat, lon, daynight, frp) -> frame like the filtered files. SYNTHETIC."""
+    return pd.DataFrame(rows, columns=["date", "satellite", "latitude", "longitude", "daynight", "frp"]).assign(
+        sensor=lambda d: d["satellite"].map(lambda s: "MODIS" if s in ("T", "A") else "VIIRS"))
+
+
+def square_mask():
+    return grid.RegionMask("X", polygons=SQUARE, bbox=[19.5, 9.5, 21.5, 11.5])
+
+
+def test_region_mask_and_cells():
+    m = square_mask()
+    la, lo = grid.sub_index([10.5, 10.5, 9.9, 11.2], [20.5, 21.3, 20.5, 20.5])
+    assert list(m.contains(la, lo)) == [True, False, False, False]
+    cells = m.cells()
+    assert len(cells) == 16 and (cells["share_in_region"] == 1.0).all()   # 4 x 4 cells of 0.25 degrees
+
+
+def test_grid_counts_every_detection_once_and_clips():
+    df = grid_rows([
+        ("2020-01-01", "N", 10.501, 20.501, "D", 2.0),    # three VIIRS pixels in the same ~1 km box, same half-day
+        ("2020-01-01", "N", 10.503, 20.504, "D", 3.0),
+        ("2020-01-01", "N", 10.507, 20.508, "D", 1.0),
+        ("2020-01-01", "N", 10.507, 20.508, "N", 1.5),    # same box at night: a separate count
+        ("2020-01-01", "N", 10.530, 20.530, "D", 1.0),    # another box, same 0.25-degree cell
+        ("2020-01-01", "A", 10.505, 20.505, "D", 9.0),    # another satellite: its own row
+        ("2020-01-02", "N", 10.900, 20.100, "D", 1.0),    # another day and cell
+        ("2020-01-01", "N", 9.800, 20.500, "D", 7.0),     # outside the region (south)
+        ("2020-01-01", "T", 10.500, 21.200, "D", 7.0),    # outside the region (east)
+    ])
+    g, rows_in, outside = grid.grid_frame(df, square_mask())
+    assert (rows_in, outside, int(g["n"].sum())) == (9, 2, 7)       # nothing lost, nothing counted twice
+    row = g[(g["date"] == "2020-01-01") & (g["satellite"] == "N")].iloc[0]
+    assert (row["n"], row["n_night"], row["n_px1km"], row["frp_sum"]) == (5, 1, 3, 8.5)
+    assert grid.cell_id(row["lat_idx"], row["lon_idx"]) == "402_802"   # (10.5+90)/0.25, (20.5+180)/0.25
+    assert len(g) == 3 and set(g["satellite"]) == {"N", "A"}
+    m = grid.to_monthly(g)
+    assert int(m["n"].sum()) == 7 and int(m[m["satellite"] == "N"]["days_active"].sum()) == 2
+
+
+def test_grid_region_run_writes_files_and_checks(tmp_path):
+    fi, out = tmp_path / "filtered", tmp_path / "grid"
+    rows = [viirs_row("2019-01-18", lat="10.5", lon="20.5"), viirs_row("2019-01-18", lat="10.6", lon="20.9"),
+            viirs_row("2019-02-03", lat="10.5", lon="20.5"), viirs_row("2019-02-03", lat="12.0", lon="20.5")]
+    df = clean.normalize(frame(VIIRS_HEADER, rows), "PT", "VIIRS_SNPP_SP")
+    (fi / "PT" / "VIIRS_SNPP_SP").mkdir(parents=True)
+    df.to_parquet(fi / "PT" / "VIIRS_SNPP_SP" / "2019.parquet", index=False)
+    summary, m, cells = grid.run_region("PT", filtered=fi, out=out, mask=square_mask(), log=lambda *_: None)
+    assert (summary[0]["rows_in"], summary[0]["rows_outside_region"], summary[0]["rows_gridded"]) == (4, 1, 3)
+    daily = pd.read_parquet(out / "daily" / "PT" / "2019.parquet")
+    assert int(daily["n"].sum()) == 3
+    mon = pd.read_parquet(out / "monthly" / "PT__N.parquet")
+    assert sorted(zip(mon["year"], mon["month"], mon["n"])) == [(2019, 1, 1), (2019, 1, 1), (2019, 2, 1)]
+    rm = grid.region_monthly("PT", m)
+    assert list(rm["n"]) == [2, 1] and list(rm["cells_active"]) == [2, 1]
+
+
+# ---------- S15 calibrate / S16 compare (SYNTHETIC data with a known answer) ----------
+
+cal = load("cal", "05_calibrate.py")
+cmp_ = load("cmp_", "05b_compare_methods.py")
+
+
+def synthetic_grid(tmp_path, k_by_month=None):
+    """MODIS = k * S-NPP exactly, in two cells, Feb 2012 - Jul 2026. k may depend on the calendar month."""
+    folder = tmp_path / "monthly"
+    folder.mkdir(parents=True)
+    rows = {"T": [], "A": [], "N": []}
+    for y in range(2012, 2027):
+        for mo in range(1, 13):
+            if not ((2012, 2) <= (y, mo) <= (2026, 7)):
+                continue
+            for cell, base in ((400, 200), (401, 600)):
+                v = base * (1 + (mo % 6)) * (1 + (y % 3))
+                k = (k_by_month or {}).get(mo, 0.25)
+                m = round(v * k)
+                rows["N"].append((y, mo, cell, 800, v, v // 2))
+                rows["T"].append((y, mo, cell, 800, m // 2, m // 2))
+                rows["A"].append((y, mo, cell, 800, m - m // 2, m - m // 2))
+    for sat, r in rows.items():
+        pd.DataFrame(r, columns=cal.CELL_KEYS + ["n", "n_px1km"]).to_parquet(folder / f"PT__{sat}.parquet", index=False)
+    return folder
+
+
+def test_calibrate_recovers_a_known_ratio(tmp_path):
+    folder = synthetic_grid(tmp_path)
+    full, terra, meta = cal.run(["PT"], folder, out=tmp_path / "cal", log=lambda *_: None)
+    p = meta["regions"]["PT"]
+    assert abs(p["A0"]["k"] - 0.25) < 1e-6 and abs(p["B0"]["k"] - 0.5) < 1e-3
+    assert abs(p["A2"]["b"] - 1.0) < 0.01
+    assert set(full["split"]) == {"outside", "train", "test", "other"}
+    assert (full[full["split"] == "train"]["year"].between(2014, 2018)).all()
+    assert full[full["split"] == "outside"]["A0"].isna().all()          # no S-NPP: no prediction
+    te = full[full["split"] == "test"]
+    for m in ("A0", "A1", "A2", "B0", "B1"):
+        assert np.allclose(te[m], te["M"], rtol=0.02), m
+    metrics, choice, tm, _ = cmp_.run(cal=tmp_path / "cal", out=tmp_path / "cmp", region_monthly=False, plots=False, log=lambda *_: None)
+    assert choice["winner"] == "A0"                                      # all perfect: the simplest wins the tie
+    assert metrics[metrics["method"] == "A0"]["bias"].iloc[0] == 1.0
+    assert set(tm["method"]) == {"F0", "F1"}
+
+
+def test_terra_only_factor():
+    reg = pd.DataFrame([(y, mo, 100, 150) for y in range(2003, 2019) for mo in range(1, 13)], columns=["year", "month", "T", "A"])
+    reg["M"] = reg["T"] + reg["A"]
+    t, p = cal.terra_only(reg)
+    assert abs(p["F0"] - 2.5) < 1e-9 and np.allclose(t["F1"], t["M"])
+    assert set(t[t["split"] == "test"]["year"]) == set(range(2011, 2019))
+
+
+def test_seasonal_ratio_is_found_and_chosen(tmp_path):
+    k = {mo: (0.1 if mo in (3, 4, 5) else 0.4) for mo in range(1, 13)}
+    cal.run(["PT"], synthetic_grid(tmp_path, k), out=tmp_path / "cal", log=lambda *_: None)
+    metrics, choice, _, _ = cmp_.run(cal=tmp_path / "cal", out=tmp_path / "cmp", region_monthly=False, plots=False, log=lambda *_: None)
+    assert choice["winner"] == "A1"
+    m = metrics.set_index("method")
+    assert m.loc["A1", "mape"] < 1 and m.loc["A0", "mape"] > 20
+    b = choice["band_by_region"]["PT"]
+    assert b["errors"] == "leave-one-year-out" and b["low_factor"] <= 1.0 <= b["high_factor"]
+
+
+def test_scores_definitions():
+    s = cmp_.scores([10, 20, 30, 5], [10, 20, 30, 50])
+    assert s["mape"] == 0.0 and s["bias"] == round(110 / 65, 3)          # the month with real 5 is not in mape
+    assert cmp_.scores([100, 200], [100, 200])["r2"] is None             # too few months
+
+
+# ---------- S17 aggregate (SYNTHETIC detections in the square test region) ----------
+
+agg = load("agg", "06_aggregate.py")
+sys.path.insert(0, str(ROOT / "scripts"))
+import validate_data  # noqa: E402
+
+H = {"method": "A1", "method_version": "A1-1.0", "k_month": {m: 0.25 for m in range(1, 13)}, "band": (0.8, 1.2),
+     "terra_factor": {m: 2.0 for m in range(1, 13)}, "aqua_factor": {m: 3.0 for m in range(1, 13)},
+     "terra_factor_kind": "one factor (F0)", "terra_band": (0.9, 1.3),
+     "validation": {"r2": 0.99, "median_abs_pct_error": 12.0, "test_years": "2019-2023"}}
+RANGES = {"MODIS_SP": (dt.date(2000, 11, 1), dt.date(2026, 12, 31)), "VIIRS_SNPP_SP": (dt.date(2012, 1, 20), dt.date(2027, 3, 31)),
+          "VIIRS_NOAA20_SP": (dt.date(2018, 4, 1), dt.date(2027, 6, 30)), "VIIRS_NOAA21_SP": (dt.date(2023, 3, 1), dt.date(2027, 6, 30))}
+OUTAGES = [{"satellite": "A", "start": "2015-06-01", "end": "2015-06-10", "days": 10, "evidence": "test"},
+           {"satellite": "N", "start": "2015-07-01", "end": "2015-07-05", "days": 5, "evidence": "test"},
+           {"satellite": "T", "start": "2001-06-15", "end": "2001-07-02", "days": 18, "evidence": "test"}]
+
+
+def weight_rows(rows):
+    return grid_rows([(d, s, 10.5, 20.5, "D", 1.0) for d, s in rows])
+
+
+def test_weights_never_double_count_and_respect_outages():
+    df = weight_rows([("2001-05-01", "T"),                                           # Terra only: x2
+                      ("2005-05-01", "T"), ("2005-05-01", "A"),                      # both MODIS, no VIIRS yet: 1 each
+                      ("2015-05-01", "T"), ("2015-05-01", "N"),                      # both sensors: half each (S-NPP half of k)
+                      ("2019-05-01", "T"), ("2019-05-01", "N"), ("2019-05-01", "N20"),   # NOAA-20 never adds to the blend
+                      ("2015-06-05", "T"), ("2015-06-05", "N"),                      # Aqua outage: Terra x2, still blended
+                      ("2015-07-03", "T"), ("2015-07-03", "A"), ("2015-07-03", "N"),     # S-NPP outage: MODIS alone
+                      ("2027-01-05", "N"), ("2027-01-05", "N20"),                    # MODIS ended: S-NPP x k
+                      ("2027-06-05", "N20")])                                        # S-NPP ended too: NOAA-20 stands in
+    w, kind = agg.weights(df, agg.day_table(RANGES, OUTAGES, H, policy="blend"))
+    assert list(w) == [2.0, 1.0, 1.0, 0.5, 0.125, 0.5, 0.125, 0.0, 1.0, 0.125, 1.0, 1.0, 0.0, 0.25, 0.0, 0.25]
+    assert list(kind)[:5] == ["terra_only", "modis", "modis", "modis", "viirs"] and kind[8] == "terra_only" and kind[12] == "none"
+    w2, _ = agg.weights(df, agg.day_table(RANGES, OUTAGES, H, policy="modis_first"))
+    assert list(w2) == [2.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 1.0, 1.0, 0.0, 0.25, 0.0, 0.25]
+    t = agg.day_table(RANGES, OUTAGES, H)
+    assert not t.loc["2001-06-20", "observed"] and t.loc["2001-07-03", "observed"]   # Terra outage before Aqua: no data at all
+
+
+def test_find_outages_rules(tmp_path):
+    rows = []
+    def add(day, **counts):
+        for sat, n in counts.items():
+            if n:
+                rows.append({"region_id": "PT", "date": day.isoformat(), "satellite": sat, "n_clean": n})
+    d0 = dt.date(2019, 1, 1)
+    for i in range(120):
+        day = d0 + dt.timedelta(days=i)
+        terra = 0 if 20 <= i < 30 else (0 if i % 2 else 6)        # a 10-day run of zeros, and normal single empty days
+        aqua = 0 if 60 <= i < 63 else 5                           # a 3-day run: too short to call an outage
+        snpp = 0 if 80 <= i < 84 else (8 if i == 90 else 60)      # 4 empty days; one day far below NOAA-20
+        add(day, T=terra, A=aqua, N=snpp, N20=70)
+    f = tmp_path / "daily_counts.csv"
+    pd.DataFrame(rows).to_csv(f, index=False)
+    rng = {"MODIS_SP": (d0, d0 + dt.timedelta(days=119)), "VIIRS_SNPP_SP": (d0, d0 + dt.timedelta(days=119)),
+           "VIIRS_NOAA20_SP": (d0, d0 + dt.timedelta(days=119)), "VIIRS_NOAA21_SP": (d0, d0 + dt.timedelta(days=119))}
+    got = {(o["satellite"], o["start"], o["days"]) for o in agg.find_outages("PT", rng, f) if o["satellite"] != "N21"}
+    assert got == {("T", "2019-01-20", 11), ("N", "2019-03-22", 4), ("N", "2019-04-01", 1)}
+
+
+def test_aggregate_writes_valid_contract_files(tmp_path):
+    fi, out = tmp_path / "filtered", tmp_path / "processed"
+    avail = tmp_path / "availability.csv"
+    avail.write_text("data_id,min_date,max_date\nMODIS_SP,2000-11-01,2015-12-31\nVIIRS_SNPP_SP,2012-01-20,2015-11-30\n"
+                     "VIIRS_NOAA20_SP,2015-06-01,2015-11-30\nVIIRS_NOAA21_SP,2015-06-01,2015-11-30\n")
+    def put(source, year, rows):
+        df = clean.normalize(frame(MODIS_HEADER if source == "MODIS_SP" else VIIRS_HEADER, rows), "PT", source)
+        (fi / "PT" / source).mkdir(parents=True, exist_ok=True)
+        df.to_parquet(fi / "PT" / source / f"{year}.parquet", index=False)
+    put("MODIS_SP", 2001, [modis_row("2001-08-10", lat="10.5", lon="20.5"), modis_row("2001-08-11", lat="10.6", lon="20.6")])
+    put("MODIS_SP", 2015, [modis_row("2015-08-10", lat="10.5", lon="20.5"), modis_row("2015-08-10", sat="Aqua", lat="10.5", lon="20.5"),
+                           modis_row("2015-08-10", lat="12.5", lon="20.5")])            # last row is outside the region
+    put("VIIRS_SNPP_SP", 2015, [viirs_row("2015-08-10", lat="10.5", lon="20.5") for _ in range(1)]
+        + [viirs_row("2015-08-10", lat=f"10.5{i}", lon="20.5") for i in range(1, 8)])
+    put("VIIRS_NOAA20_SP", 2015, [viirs_row("2015-08-10", sat="N20", lat="10.5", lon="20.5")])
+    mask = square_mask()
+    r = agg.build_region("PT", out, H, "2026-11-15", filtered=fi, availability=avail, outages=[], mask=mask, polygons=SQUARE, log=lambda *_: None)
+    meta = {"schema_version": "1.0", "method_version": "A1-1.0", "build_date": "2026-11-15", "is_sample": False, "reference_scale": "x",
+            "time_coverage": {"start": "2000-11-01", "end": "2015-12-31"}, "sources": r["sources"],
+            "filters": {"min_confidence": "nominal", "types_kept": [0]}, "grid_resolution_deg": 0.25, "regions": ["PT"],
+            "sensor_transitions": [], "known_gaps": [], "validation": H["validation"], "citation": "x"}
+    (out / "metadata.json").write_text(json.dumps(meta))
+    (out / "regions.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": [r["feature"]]}))
+    assert validate_data.validate(out) == []
+    months = {(m["year"], m["month"]): m for m in json.loads((out / "regions" / "PT" / "monthly.json").read_text())["months"]}
+    a = months[(2001, 8)]                     # Terra only: 2 detections x factor 2, band 0.9..1.3
+    assert (a["count_harm"], a["count_low"], a["count_high"], a["count_raw_modis"], a["count_raw_viirs"]) == (4.0, 3.6, 5.2, 2, None)
+    b = months[(2015, 8)]                     # blend: 0.5 x 2 MODIS + 0.5 x 0.25 x 8 S-NPP = 2.0; NOAA-20 row has weight 0
+    assert (b["count_harm"], b["count_raw_modis"], b["count_raw_viirs"]) == (2.0, 2, 9)
+    assert b["count_low"] == 1.8 and b["count_high"] == 2.2 and b["raw_by_satellite"] == {"T": 1, "A": 1, "N": 8, "N20": 1}
+    assert months[(2010, 3)]["count_harm"] == 0.0 and months[(2010, 3)]["count_raw_viirs"] is None   # observed, no fires
+    g = pd.read_csv(out / "regions" / "PT" / "grid_monthly.csv")
+    assert abs(g["count_harm"].sum() - 6.0) < 1e-6 and int(g["count_raw_modis"].sum()) == 4
+    hs = pd.read_csv(out / "regions" / "PT" / "hotspots" / "2015.csv")
+    assert len(hs) == 11 and abs(hs["harmonized_weight"].sum() - 2.0) < 1e-6
+    assert abs(agg.polygon_area_km2(SQUARE) - 12160) < 150       # 1 x 1 degree near 10.5 N
