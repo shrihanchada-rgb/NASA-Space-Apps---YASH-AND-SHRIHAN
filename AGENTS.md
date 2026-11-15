@@ -28,6 +28,7 @@ Install (once): `pip install -r requirements.txt`
 | Clean raw files (S11), all regions or one | `python3 pipeline/02_clean.py` / `--region PT` |
 | Filter and count removals (S12) | `python3 pipeline/03_filter.py` |
 | Sanity-check plots and tables (S13) | `python3 pipeline/03b_sanity_checks.py` |
+| Small committed extract of the interim data (`data/interim_extract/`) | `python3 pipeline/03c_interim_extract.py` |
 
 The key is read from the `FIRMS_MAP_KEY` environment variable (Colab Secrets) or a local `.env`; it is never printed. Raw files go to `data/raw/<SOURCE>/<region>/` (gitignored). 
 
@@ -137,6 +138,39 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
   - The Aqua/Terra ratio depends on the season, so Terra/Aqua corrections must be per region and season.
   - PT MODIS Dec 2025 – Jan 2026 = probably an archive gap: treat it as `null` and put it in `known_gaps`.
 - **Double counting:** follow the rules in `docs/pipeline-files.md`. Same fire seen by several satellites or neighbouring pixels is S14's job, not cleaning's.
+
+## Using the interim data ("use interim data")
+
+When the person says **"use interim data"**, "use the cleaned data", "use the real data", or similar, work from the cleaned and filtered FIRMS detections. Do not use the fake fixtures in `web/fixtures/`, and do not invent numbers. In order:
+
+1. **Start with the committed extract: `data/interim_extract/`.** Read its `README.md` first.
+   - `daily_counts.csv`: per region, source, satellite and day.
+   - `coverage.csv`: which days were downloaded.
+   - `samples/`: 200 real rows per region and source.
+   - Monthly and yearly tables, filter counts, gaps and version ranges are in `docs/validation/S13/`.
+   - These are enough for most analysis, charts, prototypes and website tests.
+2. **If the task needs individual detections** (gridding, maps, harmonization fits), the full files are the parquet files under `data/interim/clean/` and `data/interim/filtered/`.
+   - They are only on Google Drive (`My Drive/nasa-fire-calendar/interim/`) and in Colab, where `data/interim` is a link to Drive.
+   - Write the code in `pipeline/`, test it on `data/interim_extract/samples/` or synthetic rows, and ask the person to run it in Colab (`STEPS`) and paste the output.
+   - Claude Code may also download a few specific parquet files with the Google Drive connector, if it is connected. Codex cannot read Drive.
+3. **If `data/interim_extract/daily_counts.csv` does not exist yet,** say so. Ask the person to run `STEPS = ["03c"]` in Colab, then copy `interim/extract/` into the repo.
+
+The schema of every interim file is in `docs/pipeline-files.md` (fixed columns, one parquet file per region, source and year).
+
+**Rules for interpreting it** (from the real-data checks in `docs/validation/S13/README.md`):
+- **No-data versus zero.** A missing day inside the downloaded range is an observed 0. Outside the range it is no data. PT MODIS Dec 2025 – Jan 2026 is probably a FIRMS archive gap: treat it as no data (`null`) and list it in `known_gaps`.
+- **Counts are raw** and inside rectangular download boxes. They are not clipped and not harmonized.
+- **MODIS against VIIRS:**
+  - Compare MODIS (Terra + Aqua) with **one VIIRS satellite**. S-NPP ÷ MODIS is steady per region, about 3.1–4.4 (BR-PA), 2.5–3.9 (PT), 3.0–4.7 (US-CA) and 3.7–5.6 (AU-NSW-VIC) in 2013–2025.
+  - The VIIRS total ÷ MODIS jumps when NOAA-20 (2018) and NOAA-21 (2023) start. That is a sensor effect, not a fire change.
+- **Terra against Aqua:**
+  - The ratio depends on region **and** season. AU-NSW-VIC is 1.1–1.3 in summer and 3–4.5 in autumn; BR-PA is about 1.5–3; US-CA and PT are about 1.
+  - Autumn planned or agricultural burning is a daytime activity, seen far more by Aqua (13:30) than by Terra (10:30).
+  - Terra and Aqua are drifting from their designed orbits and will shut down from late 2026 / early 2027 (NASA).
+- **Seasons** (filtered detections): US-CA Jul–Oct (peak Aug); BR-PA Aug–Nov (peak Sep); PT peak Aug, small March peak; AU-NSW-VIC Dec–Jan wildfire season plus an April peak of small daytime burns inside NSW/VIC.
+- **Filters:** type 0 and confidence ≥ nominal remove 5.3–14.2% per region and sensor. VIIRS type 2 (static sources) is 9.4% in US-CA and 7.9% in PT, so quiet years lose a larger share.
+- **MODIS `version` `6.03`/`61.03`** switches on 2023-01-01, with no visible step in the counts.
+- **Biggest years** (not yet confirmed with sources): US-CA 2020/2021/2018; BR-PA (MODIS) 2007/2005/2004, and 2024 is the highest since 2010; AU-NSW-VIC 2019; PT (MODIS) 2005/2003/2017, (VIIRS) 2025.
 
 ## Rules
 

@@ -56,6 +56,22 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — Interim data extract + "use interim data" instructions — PAUSED (waiting for Colab `03c` run)
+- **Who / AI:** Shrihan asked; Claude
+- **Did:**
+  - Added `pipeline/03c_interim_extract.py`, which writes a small, committable extract of the cleaned and filtered data (daily counts per satellite, download coverage, 200-row real samples, manifest).
+  - Added the folder `data/interim_extract/` with a README. It holds this extract.
+  - Added a "Using the interim data" section to `AGENTS.md`/`CLAUDE.md`: what "use interim data" means, where the files are, and the rules for interpreting them (including all S13 findings).
+- **Files changed:** `pipeline/03c_interim_extract.py` (new), `tests/test_clean_filter.py`, `data/interim_extract/README.md` (new), `AGENTS.md`, `CLAUDE.md`, `docs/pipeline-files.md`, `README.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `42 passed`.
+- **Results / numbers:** none yet. The extract files exist only after the Colab run.
+- **Decisions and why:**
+  - Only a small extract goes into git. The full interim parquet (about 19 M rows) stays on Drive: too big for the repo, and Codex can read the extract.
+  - Daily counts keep only days with detections, plus `coverage.csv`, so "0 observed" and "no data" can be told apart.
+- **Problems / open questions:** none.
+- **Next step:** Shrihan uploads a fresh `repo.zip` of `main` and runs Colab `STEPS = ["03c"]`. Claude then copies Drive `interim/extract/` into `data/interim_extract/`.
+- **If PAUSED — branch and resume command:** on `main`; Colab `STEPS = ["03c"]`, `STEP_ARGS = {}`.
+
 ### 2026-11-15 — S13 follow-up: three oddities checked — DONE (not a checklist step)
 - **Who / AI:** Shrihan asked; Claude downloaded sample cleaned files from Drive and analysed them; web search for NASA MODIS outage notices
 - **Did:** Checked the AU April peak, the AU Aqua/Terra ratio, and the PT MODIS Dec 2025 – Jan 2026 zeros. Results added to `docs/validation/S13/README.md` (follow-up section) and `docs/data-notes.md`.
