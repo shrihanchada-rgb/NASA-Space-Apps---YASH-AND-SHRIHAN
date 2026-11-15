@@ -187,8 +187,8 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [x] **S09 Download one region-year.** Needs: S03, S05. Do: `pipeline/01_download.py` for one pilot region and one year, both sensors (run it locally or in Colab, Section 14). First call `/api/data_availability/` to get the exact `_SP` date ranges, and check the CSV headers, `confidence` format and presence of `type` against `docs/data-notes.md` §8; update that file with what you find. Done when: files open and have rows. Leave behind: the exact command and row counts in the handoff entry.
 - [x] **S10 Download everything.** Needs: S09. Do: extend to all pilot regions and years (2000 to now), resumable. Done when: a table of files and row counts is in the handoff entry. Raw files stay in `data/raw/` (not committed), so write how to re-create them.
 - [x] **S11 Clean.** Needs: S10. Do: `02_clean.py` into the single schema (Section 2.2) plus a test on 5 known rows. Done when: test passes.
-- [ ] **S12 Filter.** Needs: S11. Do: `03_filter.py`; print how many were removed per sensor per year. Done when: counts are in `docs/validation/`.
-- [ ] **S13 Sanity checks.** Needs: S12. Do: Section 13, Step A. Done when: plots saved in `docs/validation/` with a short written reading of each.
+- [x] **S12 Filter.** Needs: S11. Do: `03_filter.py`; print how many were removed per sensor per year. Done when: counts are in `docs/validation/`.
+- [x] **S13 Sanity checks.** Needs: S12. Do: Section 13, Step A. Done when: plots saved in `docs/validation/` with a short written reading of each.
 
 ### Phase 4 — Harmonize
 - [ ] **S14 Grid and dedupe.** Needs: S12. Do: `04_dedupe_and_grid.py`; test that no detection is lost or counted twice. Done when: test passes.

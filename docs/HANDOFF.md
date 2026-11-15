@@ -56,6 +56,28 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — S11–S13 Clean, filter, sanity checks — DONE
+- **Who / AI:** Shrihan ran Colab (`STEPS = ["02", "03", "03b"]`, zip of branch `step/S11-S13-clean-filter-checks`); Claude wrote the code, copied the results from Drive and wrote the readings
+- **Did:** All 18,888,356 raw rows were cleaned into one schema, filtered, and checked. The reports and plots were copied from Drive into `docs/validation/S13/`, with the readings in `docs/validation/S13/README.md`. S12 and S13 ticked.
+- **Files changed:** `docs/validation/S13/` (new: README, 8 plots, 9 tables), `docs/data-notes.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `41 passed`. Open `docs/validation/S13/*.png`. Re-create in Colab with `STEPS = ["02", "03", "03b"]` (02 takes about 19 min, 03 about 2 min, 03b about 1 min).
+- **Results / numbers:**
+  - All 16 clean lines were `[OK]`. Duplicates dropped only in US-CA (8,438 / 38,691 / 39,541, equal to the S09 test rows).
+  - MODIS version is `6.03` up to 2022-12-31, then `61.03`.
+  - Filter removed 5.3–14.2% per region and sensor (never above 50%).
+  - Peak months: US-CA Aug, BR-PA Sep, AU-NSW-VIC Apr and Dec–Jan, PT Aug.
+  - No missing downloads. PT MODIS has 0 rows in Dec 2025 – Jan 2026 (FIRMS sent header-only files).
+- **Decisions and why:**
+  - The suspicious-zero threshold is 100 detections from the other sensor. VIIRS sees about 3–13 times more than MODIS, so smaller numbers are not evidence of a gap.
+- **Problems / open questions:**
+  - The AU April peak is unexplained (planned burning, or the Queensland strip in the box?).
+  - The AU Aqua/Terra ratio varies 1.3–5.7.
+  - The PT Dec 2025 – Jan 2026 MODIS zeros are unexplained.
+  - Big-fire years are not yet checked against sources (Step E).
+  - Counts are still for the download boxes, not the real regions.
+- **Next step:** S14 grid and dedupe. Use one VIIRS satellite against MODIS, and Terra and Aqua separately (see the S13 README, "What this means"). Website: S21 calendar.
+- **If PAUSED — branch and resume command:** not paused.
+
 ### 2026-11-15 — S11–S13 Clean, filter, sanity checks — PAUSED (code done and tested; waiting for the Colab run)
 - **Who / AI:** Shrihan using Claude
 - **Did:** Wrote `pipeline/02_clean.py` (S11), `pipeline/03_filter.py` (S12), `pipeline/03b_sanity_checks.py` (S13, README Section 13 Step A) and `pipeline/common.py` (shared paths and the one cleaned schema). Documented the file layout, columns and double-counting rules in `docs/pipeline-files.md`. Tests use 5 real MODIS and 5 real VIIRS rows copied from the PT raw files in Drive, plus clearly marked synthetic edge cases. S11 ticked (its "done when" is the test); S12 and S13 need the real run.

@@ -1,0 +1,11 @@
+region_id,kind,source,satellite,start,end,detail
+PT,zero_month,MODIS_SP,T,2002-12,2002-12,0 detections from Terra; VIIRS saw 0
+PT,zero_month,MODIS_SP,T,2014-01,2014-01,0 detections from Terra; VIIRS saw 43
+PT,zero_month,MODIS_SP,T,2016-01,2016-01,0 detections from Terra; VIIRS saw 46
+PT,zero_month_suspicious,MODIS_SP,T,2025-12,2025-12,0 detections from Terra; VIIRS saw 161
+PT,zero_month_suspicious,MODIS_SP,T,2026-01,2026-01,0 detections from Terra; VIIRS saw 121
+PT,zero_month,MODIS_SP,A,2002-12,2002-12,0 detections from Aqua; VIIRS saw 0
+PT,zero_month,MODIS_SP,A,2009-01,2009-01,0 detections from Aqua; VIIRS saw 0
+PT,zero_month,MODIS_SP,A,2016-01,2016-01,0 detections from Aqua; VIIRS saw 46
+PT,zero_month_suspicious,MODIS_SP,A,2025-12,2025-12,0 detections from Aqua; VIIRS saw 161
+PT,zero_month_suspicious,MODIS_SP,A,2026-01,2026-01,0 detections from Aqua; VIIRS saw 121

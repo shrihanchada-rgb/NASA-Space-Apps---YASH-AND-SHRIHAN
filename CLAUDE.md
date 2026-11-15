@@ -75,7 +75,7 @@ Data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web.
 
 Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers), `docs/HANDOFF.md` (what each session did). If these disagree, the newest `docs/HANDOFF.md` entry wins; then fix this section.
 
-**Steps ticked in README Section 10:** S01–S11, S19, S20. All four pilot regions are downloaded (S10 done 2026-11-15). S11–S13 code is written and tested (`02_clean.py`, `03_filter.py`, `03b_sanity_checks.py`); S12 and S13 are ticked only after the real Colab run and the written reading (see the newest `docs/HANDOFF.md` entry). File layout and columns after cleaning: `docs/pipeline-files.md`.
+**Steps ticked in README Section 10:** S01–S13, S19, S20. All four regions are downloaded, cleaned and filtered (18,888,356 rows cleaned, 2026-11-15). The cleaned and filtered files are on Drive in `interim/clean/` and `interim/filtered/`. File layout and columns: `docs/pipeline-files.md`. S13 plots and readings: `docs/validation/S13/README.md`. Read it before S14–S16: compare MODIS with **one VIIRS satellite**, not the VIIRS total, and treat Terra and Aqua separately.
 
 **Raw data: where it is and how much.** It is not in the repo. It is in Shrihan's Google Drive at `My Drive/nasa-fire-calendar/raw/<SOURCE>/<REGION>/<YYYY-MM-DD>_<n>d.csv`. Each file is one FIRMS request: 5 days, or fewer at the end of a range. The folder also holds `raw/data_availability.csv`, with FIRMS date ranges per source. In Colab, `data/raw` and `data/interim` are symlinks to that Drive folder. You cannot read Drive. Ask the person to run a counting cell and paste the output.
 
@@ -121,8 +121,8 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 - **GIBS place-name tiles sometimes return HTTP 500,** so place names are off by default. Next website step: S21 (calendar).
 
 **Next pipeline step:**
-- Run `STEPS = ["02", "03", "03b"]` in Colab (needs a fresh `repo.zip` of the branch or `main` that has these scripts).
-- Copy `interim/reports/*.csv` and `interim/validation/` from Drive into `docs/validation/S13/`, write the reading of each plot, then tick S12 and S13.
+- S14 Grid and dedupe (`04_dedupe_and_grid.py`), reading `data/interim/filtered/`. Clipping to real region boundaries is still open (Natural Earth, `docs/sources.md`); decide whether it goes into S14.
+- Known oddities to carry forward: the AU-NSW-VIC April peak is unexplained, and PT MODIS has no rows for Dec 2025 – Jan 2026 (`docs/validation/S13/README.md`).
 - **Double counting:** follow the rules in `docs/pipeline-files.md`. Same fire seen by several satellites or neighbouring pixels is S14's job, not cleaning's.
 
 ## Rules

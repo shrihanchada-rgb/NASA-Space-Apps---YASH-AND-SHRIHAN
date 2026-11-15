@@ -173,6 +173,12 @@ Observations from PT (2026-11-15 run):
 
 **PT run (2026-11-15): 11-minute limit waits about every 500 chunks**, while the earlier regions had none. The PT box costs the same per request as the others: all four boxes fit in one 60°×60° tile. Cause **not verified**. Most likely a second Colab session (laptop and phone) using the same key, since the limit is per key. If waits continue with one session, lower `TRANSACTION_BUDGET` in `pipeline/config.py`.
 
+**From the cleaned data (S11–S13, 2026-11-15; details `docs/validation/S13/README.md`):**
+- **MODIS_SP `version` is `6.03` up to 2022-12-31 and `61.03` from 2023-01-01** in all four regions.
+- **The only duplicate rows are the US-CA S09 overlap.** Exactly 8,438 / 38,691 / 39,541 rows were dropped (MODIS / S-NPP / NOAA-20), equal to the S09 test-year counts.
+- **S-NPP alone / MODIS (Terra + Aqua) kept-detection ratio is fairly steady by region** (2013–2025): BR-PA 3.1–4.4, PT 2.5–3.9, US-CA 3.0–4.7, AU-NSW-VIC 3.7–5.6. The VIIRS-total / MODIS ratio jumps when NOAA-20 (2018) and NOAA-21 (2023) are added.
+- **PT MODIS_SP has no rows at all for Dec 2025 – Jan 2026.** The 13 raw files are header-only (127 bytes). Other regions do have MODIS detections in those months, and VIIRS saw 161 / 121 in PT. Whether this is a real quiet spell or a FIRMS archive gap is unknown.
+
 ## 9. Still unverified
 
 1. (Resolved: MODIS and VIIRS value formats and the NOAA-21 header are confirmed above.)
