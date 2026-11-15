@@ -31,11 +31,11 @@ NASA FIRMS has two active-fire records: MODIS (Terra from 1 Nov 2000, Aqua from 
 ### 2.1 Inputs
 - FIRMS API sources (verified, `docs/data-notes.md` §2): `MODIS_SP`, `VIIRS_SNPP_SP` (archive only; ended 2 Nov 2026), `VIIRS_NOAA20_SP`, `VIIRS_NOAA21_SP`. Area API: max 5 days per call, 5000 transactions per 10 minutes per key. Requires a FIRMS MAP_KEY: in Colab Secrets or an untracked local `.env`.
 - Use **standard-processing (SP) archive**, not near-real-time (NRT), for history. NRT for the "current fire" feature only, labeled as provisional.
-- Columns (from FIRMS docs; exact CSV headers to be confirmed on first download in S09): MODIS `brightness, bright_t31, confidence (0–100 %)`; VIIRS `bright_ti4, bright_ti5, confidence (low/nominal/high)`; both `latitude, longitude, scan, track, acq_date, acq_time, satellite, version, frp, daynight, type`. MODIS confidence classes: low < 30, nominal 30–79, high ≥ 80 (MODIS user guide Table 11). `type`: 0 vegetation fire, 1 volcano, 2 static land source, 3 offshore. Details: `docs/data-notes.md` §3–5.
+- Columns (exact CSV headers confirmed on the real download, `docs/data-notes.md` §8; MODIS `satellite` is `Terra`/`Aqua` in full words, not `T`/`A`): MODIS `brightness, bright_t31, confidence (0–100 %)`; VIIRS `bright_ti4, bright_ti5, confidence (low/nominal/high)`; both `latitude, longitude, scan, track, acq_date, acq_time, satellite, version, frp, daynight, type`. MODIS confidence classes: low < 30, nominal 30–79, high ≥ 80 (MODIS user guide Table 11). `type`: 0 vegetation fire, 1 volcano, 2 static land source, 3 offshore. Details: `docs/data-notes.md` §3–5.
 - **Pilot regions (agreed by Shrihan and Yash, 2026-11-14, step S04):** California (USA), Pará (Brazil), New South Wales + Victoria (Australia), Portugal. Chosen for being fire-rich with different fire regimes. Scale to global later.
 
 ### 2.2 Steps (each step = one script in `pipeline/`, with a unit test)
-1. `01_download.py` — fetch per sensor/year/region into `data/raw/<sensor>/<year>.csv`. Resumable, logs checksums.
+1. `01_download.py` — fetch per source/region in 5-day requests into `data/raw/<SOURCE>/<region>/<YYYY-MM-DD>_<n>d.csv` (one file per request; in Colab this folder is on Drive). Resumable: existing files are skipped. Prints row counts and value summaries per source.
 2. `02_clean.py` — normalize to one schema: `lat, lon, date, time_utc, sensor, satellite, confidence_class (low/nominal/high), frp, daynight, type`. Map MODIS numeric confidence → low (<30), nominal (30–79), high (≥80), as in the MODIS user guide; VIIRS classes as-is. Drop `type != 0` (non-vegetation fire: volcano, static source, offshore) by default; keep as a flag.
 3. `03_filter.py` — drop low-confidence by default (configurable). Record how many dropped per sensor/year.
 4. `04_dedupe_and_grid.py` — assign each detection to a fixed grid (start: 0.25°; also keep 0.1° option) and to day. Within a sensor, merge same-day detections of the same satellite pass to avoid double counting adjacent-overpass pixels (rule documented and tested).
@@ -374,7 +374,7 @@ For each region, write 3–5 short sentences on the methods page: peak months, m
 
 Downloading 25 years of FIRMS data and running the harmonization is heavy. Colab can do that on Google's machines instead of a laptop. The code still lives in this repo; Colab only runs it.
 
-**The notebook:** `notebooks/run_pipeline_colab.ipynb`. It clones this repo, installs packages, loads the FIRMS key from Colab Secrets, keeps `data/raw` and `data/interim` on Google Drive (so downloads survive a restart), runs the pipeline scripts you choose, runs the tests, and prints a summary. Status: written but never run; the pipeline scripts it calls do not exist yet. Since the repo is private, it loads the code from `repo.zip` in Drive instead of cloning.
+**The notebook:** `notebooks/run_pipeline_colab.ipynb`. It clones this repo, installs packages, loads the FIRMS key from Colab Secrets, keeps `data/raw` and `data/interim` on Google Drive (so downloads survive a restart), runs the pipeline scripts you choose, runs the tests, and prints a summary. Status: in use since S09; step 01 (download) runs in it. Since the repo is private, it loads the code from `repo.zip` in Drive instead of cloning, and then `BRANCH` is ignored: to run other code, upload a fresh zip.
 
 ### 14.1 One-time setup (each person, once)
 1. The repo is private, so Colab's GitHub tab may not list it. Reliable way: on GitHub open `notebooks/run_pipeline_colab.ipynb`, click Download raw file, then in Colab use File → Upload notebook.
@@ -389,10 +389,11 @@ Downloading 25 years of FIRMS data and running the harmonization is heavy. Colab
 4. Colab sessions are wiped when they end, so **copy the summary from the last cell into your `docs/HANDOFF.md` entry**, with the exact `STEPS` and `BRANCH` you used. Record file counts and sizes, not the files.
 
 ### 14.3 Rules for Colab
-- Code changes happen in the repo, not in the notebook. If a script needs fixing, fix it in `pipeline/`, commit and push, then re-run the notebook, which pulls the new version. Do not leave fixes only inside a Colab cell.
+- Code changes happen in the repo, not in the notebook. If a script needs fixing, fix it in `pipeline/`, commit, push and merge, then upload a fresh `repo.zip` of `main` to Drive and re-run the notebook (it does not pull from GitHub by itself). Do not leave fixes only inside a Colab cell.
 - Never paste the FIRMS key into a cell or a handoff entry.
 - Large data stays on Drive. Small outputs the website needs (`data/processed/`) are downloaded from Drive and committed from a laptop, or via the repo if they are small. Do not put a GitHub token into Colab.
 - Share the Drive folder `nasa-fire-calendar` with the other person (Drive → Share) so both can reuse the same raw downloads. If you cannot share, the other person must re-download, which takes time.
+- Use one device and one Colab session at a time. Old cell outputs stay on screen until re-run, and two sessions with the same FIRMS key share its limit (see `CLAUDE.md`/`AGENTS.md`, "Project state and lessons so far").
 - A free Colab session can disconnect after a few hours or when idle. The scripts must be resumable (S09, S10), so rerunning continues instead of starting over.
 
 ### 14.4 Using the AIs with Colab

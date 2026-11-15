@@ -68,6 +68,67 @@ Harmonized MODIS + VIIRS active-fire hotspot series (about 2000 to present) plus
 
 Data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web.
 
+## Project state and lessons so far (read before any pipeline or Colab work)
+
+Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers), `docs/HANDOFF.md` (what each session did). If these disagree, the newest `docs/HANDOFF.md` entry wins; then fix this section.
+
+**Steps ticked in README Section 10:** S01–S09, S19, S20. **S10 (download) is in progress.**
+
+**Raw data: where it is and how much.** It is not in the repo. It is in Shrihan's Google Drive at `My Drive/nasa-fire-calendar/raw/<SOURCE>/<REGION>/<YYYY-MM-DD>_<n>d.csv`. Each file is one FIRMS request: 5 days, or fewer at the end of a range. The folder also holds `raw/data_availability.csv`, with FIRMS date ranges per source. In Colab, `data/raw` and `data/interim` are symlinks to that Drive folder. You cannot read Drive. Ask the person to run a counting cell and paste the output.
+
+| Region | MODIS_SP | VIIRS_SNPP_SP | VIIRS_NOAA20_SP | VIIRS_NOAA21_SP | Status |
+|---|---|---|---|---|---|
+| US-CA | 368,690 | 1,117,337 | 773,314 | 149,284 | done |
+| BR-PA | 2,707,098 | 5,348,275 | 2,857,121 | 1,206,395 | done |
+| AU-NSW-VIC | 629,515 | 1,817,213 | 1,223,995 | 310,146 | done |
+| PT | | | | | running 2026-11-15 |
+
+- **Rows** are counted before cleaning. They cover the download box, which is larger than the real region.
+- **A complete download** of one region has 1,887 / 1,062 / 609 / 250 files for MODIS_SP / VIIRS_SNPP_SP / VIIRS_NOAA20_SP / VIIRS_NOAA21_SP. That is the full ranges 2000-11-01 → 2026-08-31 (MODIS) and → 2026-07-31 (VIIRS). A leftover `*.part` file is an unfinished chunk; a rerun replaces it. Exception: the US-CA folders for MODIS_SP, VIIRS_SNPP_SP and VIIRS_NOAA20_SP also hold 73 extra files from the S09 test (`--year 2023`, chunks starting 2023-01-01). Their 5-day windows do not line up with the full run's, so the same detections appear in two files. This is why S11 must drop exact duplicates.
+
+**Facts from the real files that code must follow** (verified; full list in `docs/data-notes.md` §8):
+- **MODIS `satellite` is `Terra`/`Aqua` in full words.** Map them to `T`/`A`. VIIRS `satellite` is `N`, `N20`, `N21`.
+- **Confidence.** MODIS gives a number from 0 to 100: low < 30, nominal 30–79, high ≥ 80. VIIRS gives lower-case `l`/`n`/`h`. VIIRS SP data does contain `l` rows (4.7–7.0% by region).
+- **MODIS `version` mixes `6.03` and `61.03`.** The date where it switches is not known yet; record it in S11.
+- **`type`:** 0 vegetation, 1 volcano, 2 static land source, 3 offshore. The type-2 share varies a lot by region: 9–17% of VIIRS rows in US-CA, 0.3–0.5% in BR-PA, 2–3% in AU-NSW-VIC.
+- **Aqua/Terra row ratio:** about 0.94 in US-CA, 1.84 in BR-PA, 1.86 in AU-NSW-VIC. So the Terra-only period (Nov 2000 – Jun 2002) undercounts by a different amount in each region. S15 must treat Terra and Aqua separately or per region.
+- **The download boxes in `pipeline/config.py` are approximate rectangles.** They also cover neighbouring states and sea: AU-NSW-VIC includes strips of Queensland and South Australia. Clip to real boundaries (Natural Earth; GADM is rejected for licence reasons, see `docs/sources.md`).
+- **BR-PA alone is 12.1 million rows.** S11 and later steps must read files in chunks or per source and year, not all at once. Colab memory has not been measured.
+
+**FIRMS API behaviour learned the hard way:**
+- **The limit is per key.** It is 5,000 transactions per 10 minutes. Every run using the same key at the same time shares it. `01_download.py` stays under 3,000 per 10 minutes using the FIRMS cost formula, but FIRMS's own count has been higher than that formula.
+- **Two messages mean the limit is used up.** One is "Exceeding allowed transaction limit". The other is **"Invalid MAP_KEY."** — FIRMS sends it for a used-up limit too, not only for a wrong key. The downloader waits 11 minutes and retries, up to 12 times. "Invalid MAP_KEY." before any success in a run gets one wait, then stops, because the key is probably wrong.
+- **Waits do not lose data.** Rerunning resumes, because finished files are skipped.
+- **PT run, 2026-11-15:** the person saw 11-minute limit waits about every 500 chunks; earlier regions had none. Cause not verified. Most likely a second Colab session on another device using the same key. Advice given: keep one session (Runtime → Manage sessions). If waits continue with one session, lower `TRANSACTION_BUDGET` in `pipeline/config.py`. Don't spread the work over several keys to get around the limit.
+
+**Colab workflow facts (the person runs it; you cannot):**
+- **The repo is private, so Colab gets the code from `My Drive/nasa-fire-calendar/repo.zip`.** That is a GitHub "Download ZIP" of `main`. When the zip is there, `BRANCH` in the notebook is ignored. **Code changes reach Colab only after the person uploads a fresh zip.** Always tell them when they need one. Changes to docs only do not need one.
+- **The person's Colab notebook is a separate copy.** Editing `notebooks/run_pipeline_colab.ipynb` in the repo does not change it; they must re-upload it. Once, a Colab "Save to GitHub" overwrote the repo notebook with an old copy (fixed in PR #14). Check that notebook diffs are intended.
+- **They choose the run in the first cell.** `STEPS` and `STEP_ARGS` in cell 1 say what runs, for example `STEPS = ["01"]` and `STEP_ARGS = {"01": "--check-availability --region PT --start 2000-11-01 --end 2026-08-31"}`. The first output line `Region <ID> [bbox]` shows which region really ran.
+- **Use one device and one session at a time.** The same notebook open on a laptop and a phone has caused confusion: old outputs, an unintended BR-PA rerun, and probably shared key use. Old cell outputs stay on screen until a cell is re-run.
+- **Output streams live.** Ask the person to paste the per-source summary lines: `<SOURCE>: N chunks (M already on disk), R rows` and the value counts under them.
+
+**Key and secrets:**
+- **The FIRMS key lives in Colab Secrets** as `FIRMS_MAP_KEY`, or in an untracked local `.env`. Never ask for it in chat.
+- **The key is still in git history** (commit `c2dd4b5`, when `.env` was briefly committed). The repo is private. Advice given: request a new key after S10 finishes and replace it in Colab Secrets; no history rewrite.
+
+**Website side:**
+- **Status.** S19 and S20 are done, plus a design refresh: flat style, no gradients, IBM Plex Sans/Mono, NASA GIBS satellite basemap. The user asked for no gradients and fonts that don't look AI-generated. Keep that.
+- **GIBS place-name tiles sometimes return HTTP 500,** so place names are off by default. Next website step: S21 (calendar).
+
+**After S10 completes:**
+- Record PT numbers in `docs/data-notes.md` §8 and `docs/HANDOFF.md`, then tick S10.
+- **S11 (`pipeline/02_clean.py`) must:**
+  - map Terra/Aqua to T/A
+  - apply confidence classes
+  - keep `type` as a column (filtering is S12)
+  - drop exact duplicate rows
+  - process in chunks
+  - record the MODIS 6.03 → 61.03 switch date
+  - include a test on 5 known rows
+
+  The test must not download data.
+
 ## Rules
 
 - Never invent data. Sample fixtures must be marked `"is_sample": true`. If real data is missing, stop and say so.
