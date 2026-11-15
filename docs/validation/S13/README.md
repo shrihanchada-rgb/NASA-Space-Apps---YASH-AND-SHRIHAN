@@ -92,3 +92,59 @@ Files: `<REGION>_yearly.png`, `<REGION>_monthly.png`, `yearly_counts.csv`, `mont
 3. **Clip to the real region boundaries** before final numbers. This may change the AU April peak and the PT 2025 count.
 4. **Flag the partial years and the PT Dec 2025 – Jan 2026 MODIS months** in `metadata.json` `known_gaps` if they stay unexplained.
 5. **The ratios are steady enough to be encouraging,** but how well harmonization works is unknown until S16 measures it on 2019–2023.
+
+## Follow-up: the three oddities, checked (2026-11-15)
+
+Method: Claude downloaded cleaned parquet files from Drive (`interim/clean/`). For AU-NSW-VIC: MODIS for 2005, 2006, 2011, 2012, 2015, 2016, 2017, 2022, 2024 and 2025. For PT: MODIS for 2024–2026 and all VIIRS for 2025–2026. Same filter as S12 unless stated. These are checks on a sample of years, not a full re-run.
+
+### 1. AU-NSW-VIC April peak — explained: low-intensity daytime burning inside NSW/VIC, not Queensland
+
+April detections, compared with Dec–Jan, in the 10 sample years:
+
+| | April | Dec–Jan |
+|---|---|---|
+| In the Queensland strip (approx. border) | 2.9% | 8–24% |
+| In the South Australia strip | 1.0% | 0.3–0.7% |
+| Median FRP (MW) | 22 | 35–36 |
+| Night detections | 4% | 38–39% |
+| Aqua/Terra | 5.7 | 1.1–1.2 |
+
+- **About 39% of April detections are west of 146°E** (inland farming plains), and the rest are further east.
+- **So the April peak is inside NSW and Victoria.** The fires are small (low FRP), almost only by day, and seen far more by Aqua's early-afternoon pass than Terra's mid-morning pass. They are short-lived fires lit and burning during the day, not wildfires burning day and night.
+- **This fits autumn planned burning** (hazard-reduction burns and crop-stubble burning), but I have not checked that against an official source. A land-cover map or the states' burn records would confirm it.
+- **Clipping to the real border will not remove the peak** (only about 4% is outside NSW/VIC).
+
+### 2. AU-NSW-VIC Aqua/Terra ratio 1.3–5.7 — explained by the season mix
+
+- **The ratio depends on the month,** using all years (`monthly_counts.csv`): about 1.1–1.3 in Nov–Feb, against 3–4.5 in Mar–Jun.
+- **The yearly ratio follows the share of autumn burning:**
+  - Years dominated by summer wildfire have a low ratio: 2019 (1.27, autumn share 10%) and 2003 (1.40, 15%).
+  - Years dominated by autumn burning have a high ratio: 2011 (5.68, 74%) and 2021 (4.23, 75%).
+  - Correlation between the yearly ratio and the autumn share is 0.80 (2003–2025).
+- **Summer-only Aqua/Terra stays at 1.0–1.7 every year.**
+- **Autumn-only Aqua/Terra has risen:** about 2–5.6 in 2003–2010, about 5–7.5 in 2021–2025.
+  - NASA says Terra and Aqua are drifting out of their designed orbits, which changes their overpass times ([NASA Earthdata, Transition from MODIS to VIIRS](https://www.earthdata.nasa.gov/data/alerts-outages/transition-from-modis-viirs)). That may explain part of the rise; not verified.
+- **Same kind of pattern elsewhere:** the BR-PA ratio is higher in the wet-season months (about 2.3–3.0 in Nov–Feb) than in the dry season (about 1.5–1.9). US-CA and PT stay near 0.7–1.5.
+- **Consequence for harmonization (S15):** Terra/Aqua corrections must depend on region **and** season. For the Terra-only months (Nov 2000 – Jun 2002), a single factor would be wrong. In AU autumn, Terra alone would miss most of what Aqua sees.
+
+### 3. PT MODIS zero in Dec 2025 – Jan 2026 — probably a data gap, not proven
+
+**Facts:**
+- **FIRMS sent empty files.** All 13 MODIS_SP/PT raw files from 2025-12-05 to 2026-01-29 are header-only.
+- **MODIS does have data around that gap:** 66 detections in Nov 2025 (both satellites) and 39 in Feb 2026.
+- **VIIRS saw fires over Portugal every day-week of the gap.** Kept daytime VIIRS detections (3 satellites together): 32 in Dec 2025 and 19 in Jan 2026.
+- **In the other months of 2025–2026, MODIS kept detections were 0.12–0.39 times the daytime VIIRS count.** For Dec–Jan that predicts about 6–20 MODIS detections; 0 were recorded.
+- **The other regions have normal MODIS data in those months,** with both day and night detections. For example, AU-NSW-VIC Dec 2025 had Aqua 504 day / 68 night and Terra 196 / 293.
+- **No NASA notice of a MODIS outage covering Dec 2025 – Jan 2026 was found** in a web search. The closest notices are about other dates:
+  - a Terra MODIS standby on 26–27 Mar 2026 ([NASA Earthdata](https://www.earthdata.nasa.gov/data/alerts-outages/terra-modis-placed-standby-mode))
+  - a processing halt from 20 to 31 Dec 2024 ([NASA Earthdata](https://www.earthdata.nasa.gov/data/alerts-outages/unavailability-modis-aqua-combined-products-from-12-20-2024-onwards-updated)). PT still has 13 MODIS detections in Dec 2024.
+
+**Reading:**
+- **A real two-month absence is unlikely.** Fire detections cluster, so exact odds are not meaningful, but zero against an expected 6–20, in both satellites, is hard to explain by chance.
+- **A gap in the FIRMS MODIS archive over this area is more likely,** but this is **not proven**.
+
+**What to do:**
+- Treat PT MODIS Dec 2025 and Jan 2026 as **missing (`null`)**, not as zero, and list them in `metadata.json` `known_gaps` with this note.
+- To confirm, one could:
+  - check the FIRMS map archive for MODIS over Portugal for those dates, or
+  - ask FIRMS support.

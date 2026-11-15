@@ -122,7 +122,10 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 
 **Next pipeline step:**
 - S14 Grid and dedupe (`04_dedupe_and_grid.py`), reading `data/interim/filtered/`. Clipping to real region boundaries is still open (Natural Earth, `docs/sources.md`); decide whether it goes into S14.
-- Known oddities to carry forward: the AU-NSW-VIC April peak is unexplained, and PT MODIS has no rows for Dec 2025 – Jan 2026 (`docs/validation/S13/README.md`).
+- Oddities, checked (`docs/validation/S13/README.md`, follow-up section):
+  - AU April peak = daytime low-intensity burning inside NSW/VIC.
+  - The Aqua/Terra ratio depends on the season, so Terra/Aqua corrections must be per region and season.
+  - PT MODIS Dec 2025 – Jan 2026 = probably an archive gap: treat it as `null` and put it in `known_gaps`.
 - **Double counting:** follow the rules in `docs/pipeline-files.md`. Same fire seen by several satellites or neighbouring pixels is S14's job, not cleaning's.
 
 ## Rules
