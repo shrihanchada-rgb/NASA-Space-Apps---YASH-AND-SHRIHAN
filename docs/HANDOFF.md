@@ -56,6 +56,60 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — S11–S13 Clean, filter, sanity checks — DONE
+- **Who / AI:** Shrihan ran Colab (`STEPS = ["02", "03", "03b"]`, zip of branch `step/S11-S13-clean-filter-checks`); Claude wrote the code, copied the results from Drive and wrote the readings
+- **Did:** All 18,888,356 raw rows were cleaned into one schema, filtered, and checked. The reports and plots were copied from Drive into `docs/validation/S13/`, with the readings in `docs/validation/S13/README.md`. S12 and S13 ticked.
+- **Files changed:** `docs/validation/S13/` (new: README, 8 plots, 9 tables), `docs/data-notes.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `41 passed`. Open `docs/validation/S13/*.png`. Re-create in Colab with `STEPS = ["02", "03", "03b"]` (02 takes about 19 min, 03 about 2 min, 03b about 1 min).
+- **Results / numbers:**
+  - All 16 clean lines were `[OK]`. Duplicates dropped only in US-CA (8,438 / 38,691 / 39,541, equal to the S09 test rows).
+  - MODIS version is `6.03` up to 2022-12-31, then `61.03`.
+  - Filter removed 5.3–14.2% per region and sensor (never above 50%).
+  - Peak months: US-CA Aug, BR-PA Sep, AU-NSW-VIC Apr and Dec–Jan, PT Aug.
+  - No missing downloads. PT MODIS has 0 rows in Dec 2025 – Jan 2026 (FIRMS sent header-only files).
+- **Decisions and why:**
+  - The suspicious-zero threshold is 100 detections from the other sensor. VIIRS sees about 3–13 times more than MODIS, so smaller numbers are not evidence of a gap.
+- **Problems / open questions:**
+  - The AU April peak is unexplained (planned burning, or the Queensland strip in the box?).
+  - The AU Aqua/Terra ratio varies 1.3–5.7.
+  - The PT Dec 2025 – Jan 2026 MODIS zeros are unexplained.
+  - Big-fire years are not yet checked against sources (Step E).
+  - Counts are still for the download boxes, not the real regions.
+- **Next step:** S14 grid and dedupe. Use one VIIRS satellite against MODIS, and Terra and Aqua separately (see the S13 README, "What this means"). Website: S21 calendar.
+- **If PAUSED — branch and resume command:** not paused.
+
+### 2026-11-15 — S11–S13 Clean, filter, sanity checks — PAUSED (code done and tested; waiting for the Colab run)
+- **Who / AI:** Shrihan using Claude
+- **Did:** Wrote `pipeline/02_clean.py` (S11), `pipeline/03_filter.py` (S12), `pipeline/03b_sanity_checks.py` (S13, README Section 13 Step A) and `pipeline/common.py` (shared paths and the one cleaned schema). Documented the file layout, columns and double-counting rules in `docs/pipeline-files.md`. Tests use 5 real MODIS and 5 real VIIRS rows copied from the PT raw files in Drive, plus clearly marked synthetic edge cases. S11 ticked (its "done when" is the test); S12 and S13 need the real run.
+- **Files changed:** `pipeline/common.py` (new), `pipeline/02_clean.py` (new), `pipeline/03_filter.py` (new), `pipeline/03b_sanity_checks.py` (new), `pipeline/config.py`, `tests/test_clean_filter.py` (new), `requirements.txt` (matplotlib), `docs/pipeline-files.md` (new), `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `41 passed`.
+- **Results / numbers:** No real-data results yet. A simulated 26-year run (random data, not real) went through all three steps and produced the plots and tables.
+- **Decisions and why:**
+  - Cleaning keeps all `type` values and confidence classes. Filtering removes non-vegetation `type` first, then low confidence, so each removed row is counted once. README 2.2 updated to match.
+  - Exact duplicates are dropped in cleaning, and the number is reported.
+  - Files are one parquet per region, source and year, by row date, so no row is in two files.
+  - Default filter (`type` 0, confidence ≥ nominal) matches the data contract example.
+  - Zero-detection months are flagged "suspicious" only when the other sensor saw ≥ 100 detections that month. VIIRS sees several times more than MODIS, so small counts are not evidence of a gap.
+  - The S13 script is named `03b_...` so the Colab notebook can run it with `STEPS` without a notebook change.
+- **Problems / open questions:**
+  - Colab memory and run time on 18.9 M rows are not measured (processing is per region, source and year to keep memory small).
+  - Data is still in the rectangular download boxes, so counts include neighbouring areas.
+  - The same fire seen by several satellites is not merged (S14).
+- **Next step:** Shrihan uploads a fresh `repo.zip` of branch `step/S11-S13-clean-filter-checks` (GitHub: switch to that branch, Code → Download ZIP) to Drive, runs Colab with `STEPS = ["02", "03", "03b"]`, and pastes the output. Then Claude copies `interim/reports/` and `interim/validation/` from Drive into `docs/validation/S13/`, writes the readings, ticks S12 and S13, and the user merges.
+- **If PAUSED — branch and resume command:** branch `step/S11-S13-clean-filter-checks`; Colab `STEPS = ["02", "03", "03b"]`, `STEP_ARGS = {}`.
+
+### 2026-11-15 — S10 Download everything — DONE (all 4 regions)
+- **Who / AI:** Shrihan ran Colab; Claude recorded results
+- **Did:** **PT fully downloaded** (all 4 sources, full ranges, finished `ok`). All four pilot regions are now downloaded. Results added to `docs/data-notes.md` §8; `AGENTS.md`/`CLAUDE.md` status updated; S10 ticked in README.
+- **Files changed:** `docs/data-notes.md`, `docs/HANDOFF.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`
+- **How to check it:** Claude confirmed via the Drive connector that `raw/<SOURCE>/PT/` folders exist for all 4 sources (file counts not listed; too many for the connector). To count files and rows, run the counting cell from the 2026-11-15 chat (also easy to rewrite: count `*.csv` and data lines per `raw/<SOURCE>/<REGION>/`). Expected files per region: 1,887 / 1,062 / 609 / 250 (US-CA has 73 extra in the first three, from S09).
+- **Results / numbers:** PT rows: MODIS_SP 102,903; VIIRS_SNPP_SP 158,096; VIIRS_NOAA20_SP 78,298; VIIRS_NOAA21_SP 40,676 (total 379,973). All regions together: 18,888,356 rows before cleaning.
+- **How to re-create the raw files** (they are not in git): in Colab, step 01 with `--check-availability --region <ID> --start 2000-11-01 --end 2026-08-31` for each of `US-CA`, `BR-PA`, `AU-NSW-VIC`, `PT` (README Section 14). FIRMS may by then offer later SP months; the end date above fixes the range used here.
+- **Decisions and why:** none new.
+- **Problems / open questions:** A first PT attempt saved its files to Colab's temporary disk because Drive was not mounted; they were lost and the mount then failed with `ValueError`. Fixed by deleting the runtime and running all again. The successful run had 4 FIRMS 11-minute limit waits (cause not verified). The notebook should refuse to download unless Drive is mounted (offered to the user, not done).
+- **Next step:** S11 Clean (`pipeline/02_clean.py`; requirements in `AGENTS.md`/`CLAUDE.md`, "Project state and lessons so far"). Website: S21 (calendar).
+- **If PAUSED — branch and resume command:** not paused.
+
 ### 2026-11-15 — S10 Download everything — PAUSED (US-CA, BR-PA, AU-NSW-VIC done; PT left)
 - **Who / AI:** Shrihan ran Colab; Claude recorded results
 - **Did:** **AU-NSW-VIC fully downloaded** (all 4 sources, full ranges, finished `ok`, no 11-minute waits, only short rate-limit pauses). Row counts and observations added to `docs/data-notes.md` §8.

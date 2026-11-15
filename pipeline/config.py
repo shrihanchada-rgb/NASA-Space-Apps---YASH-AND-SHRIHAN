@@ -27,3 +27,21 @@ MAX_DAY_RANGE = 5                 # FIRMS area API allows 1..5 days per call
 TRANSACTION_LIMIT = 5000          # per MAP_KEY per 10 minutes
 TRANSACTION_BUDGET = 3000         # stay well under the limit (FIRMS's server count was higher than its formula)
 WINDOW_SECONDS = 600
+
+# --- Cleaning, filtering and checks (steps S11-S13) ---
+# Sensor and satellite codes used after cleaning (data contract: T, A, N, N20, N21).
+SENSOR_OF_SOURCE = {"MODIS_SP": "MODIS", "VIIRS_SNPP_SP": "VIIRS", "VIIRS_NOAA20_SP": "VIIRS", "VIIRS_NOAA21_SP": "VIIRS"}
+SATELLITE_CODES = {"Terra": "T", "Aqua": "A", "T": "T", "A": "A", "N": "N", "N20": "N20", "N21": "N21"}
+# MODIS confidence (0-100 %) to classes, MODIS user guide Table 11 (docs/data-notes.md section 4).
+MODIS_CONFIDENCE_LOW_BELOW = 30     # 0-29 low
+MODIS_CONFIDENCE_HIGH_FROM = 80     # 30-79 nominal, 80-100 high
+VIIRS_CONFIDENCE = {"l": "low", "n": "nominal", "h": "high"}
+# Default filter (data contract metadata.filters): keep nominal + high confidence, vegetation fires only.
+FILTER_MIN_CONFIDENCE = "nominal"
+FILTER_TYPES_KEPT = (0,)
+# First day each satellite delivers data (for gap checks). Terra and Aqua from the FIRMS FAQ (data-notes section 1);
+# VIIRS from the FIRMS availability answer (2026-11-14). Aqua's first MODIS fire data: 4 July 2002.
+SATELLITE_FIRST_DAY = {
+    "T": dt.date(2000, 11, 1), "A": dt.date(2002, 7, 4),
+    "N": dt.date(2012, 1, 20), "N20": dt.date(2018, 4, 1), "N21": dt.date(2023, 3, 1),
+}
