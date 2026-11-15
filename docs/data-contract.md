@@ -155,6 +155,21 @@ The downloaded CSV adds comment lines starting with `#` above the header: the qu
 
 Not read by the website v1. Columns: `date` (date), `cell_id` (string, `"<lat_index>_<lon_index>"` on the `grid_resolution_deg` grid), `count_raw_modis` (int), `count_raw_viirs` (int), `count_harm` (float), `frp_sum` (float). Kept so validation and future features can re-aggregate.
 
+## 8b. Proposed additions (written by step 06 since 2026-11-15; **not yet agreed by both people**)
+
+The website may ignore these files; contract 1.0 files are unchanged. They exist so results can follow an area the user chooses inside the region without loading every detection. Yash: please accept, change or reject.
+
+| File | Columns / fields |
+|---|---|
+| `regions/<id>/grid_cells.csv` | `lat_idx`, `lon_idx` (cell = `floor((lat + 90) / 0.25)`, `floor((lon + 180) / 0.25)`), `lat`, `lon` (cell centre), `share_in_region` (0–1) |
+| `regions/<id>/grid_monthly.csv` | `year`, `month`, `lat_idx`, `lon_idx`, `count_harm`, `count_raw_modis`, `count_raw_viirs`, `frp_sum`; only cells with at least one detection that month (absent = 0 if the month has data) |
+| `regions/<id>/harmonization_check.json` | per overlap month: `modis_observed`, `snpp_detections`, `modis_equivalent_from_snpp`, `range_low`, `range_high`; plus `k_by_calendar_month` |
+
+Clarifications of contract 1.0 found when the first real files were built (no change of meaning):
+- **`harmonized_weight`:** weights of all rows of a month add up to `count_harm`. Rows of satellites that do not enter `count_harm` (NOAA-20, NOAA-21, and all VIIRS under the `modis_first` policy) have weight 0.
+- **A null raw count** (`count_raw_viirs` before 20 Jan 2012) means no rows of that sensor in the hotspot files; `scripts/validate_data.py` now accepts this.
+- **`count_low` = `count_harm` = `count_high`** where the value is purely observed MODIS.
+
 ## 9. How each website feature maps to files
 
 | Website feature (README 3.1) | Reads |

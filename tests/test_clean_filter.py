@@ -395,3 +395,68 @@ def test_scores_definitions():
     s = cmp_.scores([10, 20, 30, 5], [10, 20, 30, 50])
     assert s["mape"] == 0.0 and s["bias"] == round(110 / 65, 3)          # the month with real 5 is not in mape
     assert cmp_.scores([100, 200], [100, 200])["r2"] is None             # too few months
+
+
+# ---------- S17 aggregate (SYNTHETIC detections in the square test region) ----------
+
+agg = load("agg", "06_aggregate.py")
+sys.path.insert(0, str(ROOT / "scripts"))
+import validate_data  # noqa: E402
+
+H = {"method": "A1", "method_version": "A1-1.0", "k_month": {m: 0.25 for m in range(1, 13)}, "band": (0.8, 1.2),
+     "terra_factor": {m: 2.0 for m in range(1, 13)}, "terra_factor_kind": "one factor (F0)", "terra_band": (0.9, 1.3),
+     "validation": {"r2": 0.99, "median_abs_pct_error": 12.0, "test_years": "2019-2023"}}
+
+
+def weight_rows(rows):
+    return grid_rows([(d, s, 10.5, 20.5, "D", 1.0) for d, s in rows])
+
+
+def test_weights_blend_and_modis_first():
+    df = weight_rows([("2001-05-01", "T"), ("2005-05-01", "T"), ("2005-05-01", "A"),
+                      ("2015-05-01", "T"), ("2015-05-01", "N"), ("2015-05-01", "N20"),
+                      ("2027-01-05", "N"), ("2027-01-05", "N20"), ("2027-06-05", "N20")])
+    last_modis, last_snpp = dt.date(2026, 12, 31), dt.date(2027, 3, 31)
+    w, kind = agg.weights(df, H, last_modis, last_snpp, policy="blend")
+    assert list(w) == [2.0, 1.0, 1.0, 0.5, 0.125, 0.0, 0.25, 0.0, 0.25]
+    assert list(kind) == ["terra_only", "modis", "modis", "modis", "viirs", "none", "viirs", "none", "viirs"]
+    w2, _ = agg.weights(df, H, last_modis, last_snpp, policy="modis_first")
+    assert list(w2) == [2.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.25, 0.0, 0.25]
+
+
+def test_aggregate_writes_valid_contract_files(tmp_path):
+    fi, out = tmp_path / "filtered", tmp_path / "processed"
+    avail = tmp_path / "availability.csv"
+    avail.write_text("data_id,min_date,max_date\nMODIS_SP,2000-11-01,2015-12-31\nVIIRS_SNPP_SP,2012-01-20,2015-11-30\n"
+                     "VIIRS_NOAA20_SP,2015-06-01,2015-11-30\nVIIRS_NOAA21_SP,2015-06-01,2015-11-30\n")
+    def put(source, year, rows):
+        df = clean.normalize(frame(MODIS_HEADER if source == "MODIS_SP" else VIIRS_HEADER, rows), "PT", source)
+        (fi / "PT" / source).mkdir(parents=True, exist_ok=True)
+        df.to_parquet(fi / "PT" / source / f"{year}.parquet", index=False)
+    put("MODIS_SP", 2001, [modis_row("2001-08-10", lat="10.5", lon="20.5"), modis_row("2001-08-11", lat="10.6", lon="20.6")])
+    put("MODIS_SP", 2015, [modis_row("2015-08-10", lat="10.5", lon="20.5"), modis_row("2015-08-10", sat="Aqua", lat="10.5", lon="20.5"),
+                           modis_row("2015-08-10", lat="12.5", lon="20.5")])            # last row is outside the region
+    put("VIIRS_SNPP_SP", 2015, [viirs_row("2015-08-10", lat="10.5", lon="20.5") for _ in range(1)]
+        + [viirs_row("2015-08-10", lat=f"10.5{i}", lon="20.5") for i in range(1, 8)])
+    put("VIIRS_NOAA20_SP", 2015, [viirs_row("2015-08-10", sat="N20", lat="10.5", lon="20.5")])
+    mask = square_mask()
+    r = agg.build_region("PT", out, H, "2026-11-15", filtered=fi, availability=avail, mask=mask, polygons=SQUARE, log=lambda *_: None)
+    meta = {"schema_version": "1.0", "method_version": "A1-1.0", "build_date": "2026-11-15", "is_sample": False, "reference_scale": "x",
+            "time_coverage": {"start": "2000-11-01", "end": "2015-12-31"}, "sources": r["sources"],
+            "filters": {"min_confidence": "nominal", "types_kept": [0]}, "grid_resolution_deg": 0.25, "regions": ["PT"],
+            "sensor_transitions": [], "known_gaps": [], "validation": H["validation"], "citation": "x"}
+    (out / "metadata.json").write_text(json.dumps(meta))
+    (out / "regions.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": [r["feature"]]}))
+    assert validate_data.validate(out) == []
+    months = {(m["year"], m["month"]): m for m in json.loads((out / "regions" / "PT" / "monthly.json").read_text())["months"]}
+    a = months[(2001, 8)]                     # Terra only: 2 detections x factor 2, band 0.9..1.3
+    assert (a["count_harm"], a["count_low"], a["count_high"], a["count_raw_modis"], a["count_raw_viirs"]) == (4.0, 3.6, 5.2, 2, None)
+    b = months[(2015, 8)]                     # blend: 0.5 x 2 MODIS + 0.5 x 0.25 x 8 S-NPP = 2.0; NOAA-20 row has weight 0
+    assert (b["count_harm"], b["count_raw_modis"], b["count_raw_viirs"]) == (2.0, 2, 9)
+    assert b["count_low"] == 1.8 and b["count_high"] == 2.2 and b["raw_by_satellite"] == {"T": 1, "A": 1, "N": 8, "N20": 1}
+    assert months[(2010, 3)]["count_harm"] == 0.0 and months[(2010, 3)]["count_raw_viirs"] is None   # observed, no fires
+    g = pd.read_csv(out / "regions" / "PT" / "grid_monthly.csv")
+    assert abs(g["count_harm"].sum() - 6.0) < 1e-6 and int(g["count_raw_modis"].sum()) == 4
+    hs = pd.read_csv(out / "regions" / "PT" / "hotspots" / "2015.csv")
+    assert len(hs) == 11 and abs(hs["harmonized_weight"].sum() - 2.0) < 1e-6
+    assert abs(agg.polygon_area_km2(SQUARE) - 12160) < 150       # 1 x 1 degree near 10.5 N

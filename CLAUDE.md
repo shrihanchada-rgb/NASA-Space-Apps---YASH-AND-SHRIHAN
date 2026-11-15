@@ -8,7 +8,7 @@ Shrihan leads the backend data work (`pipeline/`, `data/`, `docs/data-notes.md`,
 
 ## Status
 
-Early stage. The data contract (`docs/data-contract.md`), its schemas, fake sample files (`web/fixtures/`), a validator, and tests exist. The FIRMS downloader (`pipeline/01_download.py`) works on real data; later pipeline steps are not written yet. The website backbone exists (`web/`): data loading, shared state, region/date selection, basic totals, and a map with region outlines; the calendar, charts and downloads are placeholders.
+The pipeline runs end to end for California: download, clean, filter, grid, harmonize, and the website's real files in `data/processed/` (steps S01–S17). Fake sample files (`web/fixtures/`) remain for tests. The website backbone exists (`web/`): data loading, shared state, region/date selection, basic totals, and a map with region outlines; the calendar, charts and downloads are placeholders.
 
 `README.md` is the source of truth for scope, task order, and ownership. Keep it consistent rather than writing the plan elsewhere.
 
@@ -32,6 +32,7 @@ Install (once): `pip install -r requirements.txt`
 | Clip to region outlines and grid (S14; needs Drive files, Colab) | `python3 pipeline/04_dedupe_and_grid.py` |
 | Fit harmonization methods (S15; runs from the repo) | `python3 pipeline/05_calibrate.py` |
 | Score methods, choose, plot (S16) | `python3 pipeline/05b_compare_methods.py` |
+| Build the website's files in `data/processed/` (S17; California) | `python3 pipeline/06_aggregate.py` |
 
 The key is read from the `FIRMS_MAP_KEY` environment variable (Colab Secrets) or a local `.env`; it is never printed. Raw files go to `data/raw/<SOURCE>/<region>/` (gitignored). 
 
@@ -79,10 +80,15 @@ Data flows one way: raw FIRMS -> pipeline -> `data/processed/` -> web.
 
 Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers), `docs/HANDOFF.md` (what each session did). If these disagree, the newest `docs/HANDOFF.md` entry wins; then fix this section.
 
-**Steps ticked in README Section 10:** S01–S16, S19, S20 (2026-11-15).
-- **Data:** all four regions are downloaded, cleaned, filtered (18,888,356 rows cleaned), clipped to real outlines and gridded (13,080,990 in-region detections). Full files are on Drive (`interim/clean/`, `interim/filtered/`, `interim/grid/`). Layout and columns: `docs/pipeline-files.md`.
-- **Harmonization is chosen: method A1, `method_version` `A1-1.0`.** MODIS-equivalent = k[region, calendar month] × S-NPP count. Results, limits and all numbers: `docs/validation/README.md`. Fitted values: `docs/validation/S16/params.json`.
-- **Read before S17:** `docs/validation/README.md` and `docs/validation/S13/README.md`.
+**Scope (changed 2026-11-15): California only.** `ACTIVE_REGIONS = ["US-CA"]` in `pipeline/config.py`; scripts default to it. The other three regions are archived (`archive/other_regions/README.md`) and remain in `docs/validation/` as evidence for the method.
+
+**Steps ticked in README Section 10:** S01–S17, S19, S20 (2026-11-15).
+- **The website's real data exists: `data/processed/`** (California, contract-valid, `"is_sample": false`). Read `data/processed/README.md` first. Run the site on it with `cd web && DATA_DIR=../data/processed npm run dev`.
+- **Harmonization: method A1, `method_version` `A1-1.0`,** policy `blend` (`HARMONIZE_POLICY` in `pipeline/config.py`):
+  - from 20 Jan 2012, `count_harm` = half observed MODIS + half k[calendar month] × S-NPP
+  - before that, observed MODIS; Terra-only months × 2.056
+  - Results and limits: `docs/validation/README.md`. California test scores: R² 0.992, typical error 11.8%.
+- **California's filtered files are small** (55 files, 49 MB, each under 10 MB), so Claude Code can fetch them with the Drive connector and run steps 04–06 without Colab. Codex needs the person to copy `interim/filtered/US-CA/` from Drive into `data/interim/filtered/US-CA/`.
 
 **Raw data: where it is and how much.** It is not in the repo. It is in Shrihan's Google Drive at `My Drive/nasa-fire-calendar/raw/<SOURCE>/<REGION>/<YYYY-MM-DD>_<n>d.csv`. Each file is one FIRMS request: 5 days, or fewer at the end of a range. The folder also holds `raw/data_availability.csv`, with FIRMS date ranges per source. In Colab, `data/raw` and `data/interim` are symlinks to that Drive folder. You cannot read Drive. Ask the person to run a counting cell and paste the output.
 
@@ -127,13 +133,13 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 - **Status.** S19 and S20 are done, plus a design refresh: flat style, no gradients, IBM Plex Sans/Mono, NASA GIBS satellite basemap. The user asked for no gradients and fonts that don't look AI-generated. Keep that.
 - **GIBS place-name tiles sometimes return HTTP 500,** so place names are off by default. Next website step: S21 (calendar).
 
-**Next pipeline step: S17 Aggregate (`06_aggregate.py`), writing `data/processed/` per the data contract.** Decisions already taken or still open:
-- **Use A1** (`docs/validation/S16/params.json`, `choice.json`) with the band factors per region. Call the band an approximate range: it held only 58–80% of test months.
-- **Where MODIS exists, `count_harm` should be the observed MODIS count** (Terra + Aqua); use converted VIIRS where MODIS is missing (PT Dec 2025 – Jan 2026) and after MODIS ends. Not decided with the user yet: ask before coding.
-- **Terra-only months (Nov 2000 – Jun 2002):** scale Terra by the factor in `params.json` (`terra_only`; F1 for AU-NSW-VIC, F0 elsewhere) and flag them.
-- **After S-NPP (ended 2 Nov 2026):** NOAA-20 is within about ±5–15% of S-NPP per region-year; no full test done.
-- **Conversion error grows after 2023** (typical error 13–28% in 2024–2026). State it on the methods page.
-- S17 needs daily values and hotspot CSVs, so it must run in Colab on the Drive files (`interim/grid/daily/`, `interim/filtered/`).
+**Next steps:**
+- **Website (S21–S23, S27):** calendar, charts, downloads and hotspot points, all on `data/processed/`.
+  - For an area the user draws, follow "Results for an area the user chooses" in `data/processed/README.md`.
+  - Do not load all 27 hotspot files at once (131 MB): use `grid_monthly.csv` for the calendar and charts, and load hotspot files only for the years needed for the map and the download.
+- **Pipeline:** S18 (one validate command). Optional: NRT data for months after Aug 2026.
+- **Open, to confirm with the user:** the `blend` policy (alternative `modis_first`); the proposed extra files need Yash's agreement (`docs/data-contract.md` §8b).
+- **Limits to state in the app:** the range is approximate; conversion error grows after 2023; Terra-only months are less certain.
 - **Double counting:** follow the rules in `docs/pipeline-files.md`. Same fire seen by several satellites or neighbouring pixels is S14's job, not cleaning's.
 
 ## Using the interim data ("use interim data")

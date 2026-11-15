@@ -56,6 +56,32 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-15 — Scope change to California only + S17 Aggregate — DONE
+- **Who / AI:** Shrihan decided the scope; Claude did the work in the Claude session (no Colab)
+- **Did:**
+  - **Scope:** the product is California only. `ACTIVE_REGIONS = ["US-CA"]`; scripts default to it. Other regions' committed data moved to `archive/other_regions/` (README there). Validation docs keep all four regions.
+  - **S17:** wrote `pipeline/06_aggregate.py` and built `data/processed/` for California: `metadata.json`, `regions.geojson`, `monthly.json`, `daily.json`, `baseline.json`, 27 hotspot CSVs with `harmonized_weight`, plus three extra files for user-chosen areas.
+  - Downloaded the 55 filtered California files from Drive with the connector and re-ran step 04 here (same totals as Colab: 1,903,272 in-region detections).
+  - Fixed `scripts/validate_data.py`: a null raw count now means "no rows of that sensor" (it wrongly compared null with 0).
+- **Files changed:** `pipeline/06_aggregate.py` (new), `pipeline/config.py`, `pipeline/02`–`05` (default regions), `scripts/validate_data.py`, `tests/test_clean_filter.py`, `data/processed/` (new, 131 MB), `archive/other_regions/` (new), `data/interim_extract/`, `docs/data-contract.md` (§8b proposed additions), `docs/pipeline-files.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 -m pytest -q tests` → `51 passed`. `python3 scripts/validate_data.py data/processed` → `0 problem(s)`. `cd web && DATA_DIR=../data/processed npm run dev`: no sample banner, "Method A1-1.0", California total 301,327.
+- **Results / numbers:**
+  - 310 months, 9,435 days; harmonized total 301,327; peak month Sep 2020 (26,632); peak year 2020 (48,425).
+  - Baseline 2001–2025: August mean 3,583, median 1,985.
+  - 174 overlap months: S-NPP-converted ÷ observed MODIS = 1.004 overall.
+  - Website loaded on the real files in Chromium with no console errors.
+- **Decisions and why:**
+  - **`blend` policy:** where MODIS and S-NPP both have data, `count_harm` is the average of observed MODIS and converted S-NPP. The user asked for MODIS and VIIRS to be harmonized together, and using both makes results for small chosen areas less noisy. Alternative `modis_first` is one setting.
+  - NOAA-20/21 rows get weight 0 (kept for raw counts, map, downloads), so the changing number of VIIRS satellites cannot cause jumps.
+  - Extra grid files are a proposed contract addition; contract 1.0 files are unchanged.
+- **Problems / open questions:**
+  - Hotspot files are large (131 MB; 2020 is 35 MB). The website must not load them all at once.
+  - The blend changes how the number is made at 20 Jan 2012 (bias on test years 1.03, so the step should be about 1–2%; not measured separately).
+  - Yash has not seen the scope change or §8b yet.
+  - Website features (calendar, charts, downloads, points) are still to build: S21–S23, S27.
+- **Next step:** S21 calendar on `data/processed/`.
+- **If PAUSED — branch and resume command:** not paused.
+
 ### 2026-11-15 — S14–S16 Grid, calibrate, compare — DONE
 - **Who / AI:** Shrihan ran Colab step 04 (434 s); Claude wrote the code, downloaded the grid files from Drive, and ran S15 and S16 in the Claude session
 - **Did:**

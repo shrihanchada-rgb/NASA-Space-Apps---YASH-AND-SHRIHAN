@@ -132,7 +132,7 @@ def main(argv=None):
     p.add_argument("--region", action="append", choices=list(config.REGIONS))
     p.add_argument("--out", default=str(EXTRACT))
     a = p.parse_args(argv)
-    regions = a.region or [r for r in config.REGIONS if (common.CLEAN / r).is_dir()]
+    regions = a.region or [r for r in config.ACTIVE_REGIONS if (common.CLEAN / r).is_dir()]
     if not regions:
         raise SystemExit(f"No cleaned data in {common.CLEAN}. Run steps 02 and 03 first (and check Drive is mounted).")
     t0 = time.time()

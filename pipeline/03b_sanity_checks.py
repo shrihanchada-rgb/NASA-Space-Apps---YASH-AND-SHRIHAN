@@ -259,7 +259,7 @@ def main(argv=None):
     p.add_argument("--region", action="append", choices=list(config.REGIONS))
     p.add_argument("--out", default=str(VALIDATION))
     a = p.parse_args(argv)
-    regions = a.region or [r for r in config.REGIONS if (common.FILTERED / r).is_dir()]
+    regions = a.region or [r for r in config.ACTIVE_REGIONS if (common.FILTERED / r).is_dir()]
     if not regions:
         raise SystemExit(f"No filtered data in {common.FILTERED}. Run steps 02 and 03 first.")
     t0 = time.time()

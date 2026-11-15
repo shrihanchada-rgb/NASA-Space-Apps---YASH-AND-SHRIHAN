@@ -127,7 +127,7 @@ def main(argv=None):
     p.add_argument("--min-confidence", choices=list(CONF_RANK), default=config.FILTER_MIN_CONFIDENCE)
     p.add_argument("--types", nargs="+", type=int, default=list(config.FILTER_TYPES_KEPT), help="type values to keep")
     a = p.parse_args(argv)
-    regions = a.region or [r for r in config.REGIONS if (common.CLEAN / r).is_dir()]
+    regions = a.region or [r for r in config.ACTIVE_REGIONS if (common.CLEAN / r).is_dir()]
     if not regions:
         raise SystemExit(f"No cleaned data in {common.CLEAN}. Run step 02 first.")
     t0 = time.time()

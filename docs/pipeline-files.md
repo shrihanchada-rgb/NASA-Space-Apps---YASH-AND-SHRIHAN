@@ -21,6 +21,7 @@ In Colab, `data/raw/` and `data/interim/` are on Google Drive: `My Drive/nasa-fi
 | `data/interim/grid/region_monthly.csv`, `region_cells.csv` | same | — | region totals per month and satellite; the cells of each region with the share of the cell inside the outline |
 | `data/interim/reports/grid_summary.csv` | same | — | rows in / outside the region / gridded, per region, source and year |
 | `data/boundaries/regions_ne.geojson` (committed) | `scripts/make_region_boundaries.py` | — | real region outlines from Natural Earth 10m admin-1. AU-NSW-VIC = NSW + Victoria + ACT + Jervis Bay; PT = the 18 mainland districts |
+| `data/processed/` (committed) | `06_aggregate.py` (S17) | — | the website's files for California; see `data/processed/README.md` and `docs/data-contract.md` |
 | `data/interim/extract/` | `03c_interim_extract.py` | — | small extract (daily counts, coverage, 200-row samples); copied into the committed folder `data/interim_extract/` |
 
 `<SOURCE>` is one of `MODIS_SP`, `VIIRS_SNPP_SP`, `VIIRS_NOAA20_SP`, `VIIRS_NOAA21_SP`. `<REGION>` is a region id from `pipeline/config.py` (`US-CA`, `BR-PA`, `AU-NSW-VIC`, `PT`). `<YEAR>` is the UTC year of `acq_date`.

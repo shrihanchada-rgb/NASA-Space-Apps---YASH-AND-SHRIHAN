@@ -1,5 +1,7 @@
 # Interim data extract (small, committed)
 
+**California only since 2026-11-15.** The other three regions' rows and files moved to `archive/other_regions/interim_extract/`.
+
 This folder holds a small summary of the interim data in the repo, so anyone, and any AI (Claude or Codex), can work with the real cleaned and filtered data without Google Drive.
 
 The **full interim data** is 18,888,356 cleaned detections, as parquet files. It is too big for git and lives on Shrihan's Google Drive:

@@ -32,7 +32,7 @@ NASA FIRMS has two active-fire records: MODIS (Terra from 1 Nov 2000, Aqua from 
 - FIRMS API sources (verified, `docs/data-notes.md` §2): `MODIS_SP`, `VIIRS_SNPP_SP` (archive only; ended 2 Nov 2026), `VIIRS_NOAA20_SP`, `VIIRS_NOAA21_SP`. Area API: max 5 days per call, 5000 transactions per 10 minutes per key. Requires a FIRMS MAP_KEY: in Colab Secrets or an untracked local `.env`.
 - Use **standard-processing (SP) archive**, not near-real-time (NRT), for history. NRT for the "current fire" feature only, labeled as provisional.
 - Columns (exact CSV headers confirmed on the real download, `docs/data-notes.md` §8; MODIS `satellite` is `Terra`/`Aqua` in full words, not `T`/`A`): MODIS `brightness, bright_t31, confidence (0–100 %)`; VIIRS `bright_ti4, bright_ti5, confidence (low/nominal/high)`; both `latitude, longitude, scan, track, acq_date, acq_time, satellite, version, frp, daynight, type`. MODIS confidence classes: low < 30, nominal 30–79, high ≥ 80 (MODIS user guide Table 11). `type`: 0 vegetation fire, 1 volcano, 2 static land source, 3 offshore. Details: `docs/data-notes.md` §3–5.
-- **Pilot regions (agreed by Shrihan and Yash, 2026-11-14, step S04):** California (USA), Pará (Brazil), New South Wales + Victoria (Australia), Portugal. Chosen for being fire-rich with different fire regimes. Scale to global later.
+- **Region (changed by Shrihan, 2026-11-15): California only.** The product, the website and `data/processed/` cover California (`US-CA`). Pará, New South Wales + Victoria and Portugal were downloaded and used to test the harmonization (`docs/validation/`); their data is archived in `archive/other_regions/` and on Drive, and is not part of the product. Scripts work on `ACTIVE_REGIONS` in `pipeline/config.py`.
 
 ### 2.2 Steps (each step = one script in `pipeline/`, with a unit test)
 1. `01_download.py` — fetch per source/region in 5-day requests into `data/raw/<SOURCE>/<region>/<YYYY-MM-DD>_<n>d.csv` (one file per request; in Colab this folder is on Drive). Resumable: existing files are skipped. Prints row counts and value summaries per source.
@@ -195,7 +195,7 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [x] **S14 Grid and dedupe.** Needs: S12. Do: `04_dedupe_and_grid.py`; test that no detection is lost or counted twice. Done when: test passes.
 - [x] **S15 Calibration experiments.** Needs: S14. Do: `05_calibrate.py`, Candidate A first, then B and C (Section 2.3). Done when: all three run and save results.
 - [x] **S16 Compare and choose.** Needs: S15. Do: Section 13, Steps B–D. Done when: `docs/validation/README.md` states the winning method, the metrics table, and where it works badly.
-- [ ] **S17 Aggregate.** Needs: S16, S07. Do: `06_aggregate.py` writes `data/processed/` following the contract exactly. Done when: output validates against the contract.
+- [x] **S17 Aggregate.** Needs: S16, S07. Do: `06_aggregate.py` writes `data/processed/` following the contract exactly. Done when: output validates against the contract.
 - [ ] **S18 Validate command.** Needs: S17. Do: `07_validate.py` re-creates all validation plots and the metrics table in one command. Done when: it runs from scratch.
 
 ### Phase 5 — Website (can start after S08; does not need S10–S18)

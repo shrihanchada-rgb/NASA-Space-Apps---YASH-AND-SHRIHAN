@@ -1,0 +1,80 @@
+{
+ "schema_version": "1.0",
+ "method_version": "A1-1.0",
+ "build_date": "2026-11-15",
+ "is_sample": false,
+ "reference_scale": "MODIS-equivalent detections (Terra + Aqua). From 20 Jan 2012: average of observed MODIS and S-NPP VIIRS converted with a ratio per calendar month. Before 2012: observed MODIS. Terra-only months (Nov 2000 - 3 Jul 2002) scaled to Terra + Aqua.",
+ "time_coverage": {
+  "start": "2000-11-01",
+  "end": "2026-08-31"
+ },
+ "sources": [
+  {
+   "source": "MODIS_SP",
+   "first_date": "2000-11-01",
+   "last_date": "2026-08-31",
+   "n_detections_kept": 296194
+  },
+  {
+   "source": "VIIRS_SNPP_SP",
+   "first_date": "2012-01-20",
+   "last_date": "2026-07-31",
+   "n_detections_kept": 878086
+  },
+  {
+   "source": "VIIRS_NOAA20_SP",
+   "first_date": "2018-04-01",
+   "last_date": "2026-07-31",
+   "n_detections_kept": 629801
+  },
+  {
+   "source": "VIIRS_NOAA21_SP",
+   "first_date": "2023-03-01",
+   "last_date": "2026-07-31",
+   "n_detections_kept": 99191
+  }
+ ],
+ "filters": {
+  "min_confidence": "nominal",
+  "types_kept": [
+   0
+  ]
+ },
+ "grid_resolution_deg": 0.25,
+ "regions": [
+  "US-CA"
+ ],
+ "sensor_transitions": [
+  {
+   "date": "2000-11-01",
+   "label": "MODIS Terra starts (Terra only until Aqua)"
+  },
+  {
+   "date": "2002-07-04",
+   "label": "MODIS Aqua starts"
+  },
+  {
+   "date": "2012-01-20",
+   "label": "S-NPP VIIRS starts"
+  },
+  {
+   "date": "2018-04-01",
+   "label": "NOAA-20 VIIRS starts"
+  },
+  {
+   "date": "2023-01-01",
+   "label": "MODIS files switch from collection 6 to 6.1"
+  },
+  {
+   "date": "2023-03-01",
+   "label": "NOAA-21 VIIRS starts"
+  }
+ ],
+ "known_gaps": [],
+ "validation": {
+  "r2": 0.992,
+  "median_abs_pct_error": 11.8,
+  "test_years": "2019-2023"
+ },
+ "citation": "We acknowledge the use of imagery from the NASA LANCE FIRMS (https://earthdata.nasa.gov/firms), part of the NASA Earth Science Data and Information System (ESDIS)."
+}

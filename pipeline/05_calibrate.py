@@ -5,8 +5,9 @@ The conversion is learned from months where both flew. VIIRS is represented by O
 (config.VIIRS_REFERENCE_SATELLITE), because the number of VIIRS satellites changes in 2018 and 2023
 (docs/validation/S13/README.md).
 
-Input:  data/interim/grid/monthly/<REGION>__<SAT>.parquet (from 04_dedupe_and_grid.py); if that folder
-        is missing, the committed copy in data/interim_extract/grid/monthly/ is used.
+Input:  <REGION>__<SAT>.parquet monthly grid files from 04_dedupe_and_grid.py, looked for in
+        data/interim/grid/monthly/, then data/interim_extract/grid/monthly/ (committed, California),
+        then archive/other_regions/interim_extract/grid/monthly/ (the three archived regions).
 Output: data/interim/calibration/
   region_month.csv   one row per region and overlap month: MODIS (T, A, M = T + A), S-NPP counts,
                      split (train/test/other), and one prediction column per method
@@ -21,7 +22,9 @@ Methods (all fitted on TRAIN years only, per region):
   B1  1 km + ratio/month
   C   quantile map   monthly S-NPP total -> same quantile of the monthly MODIS totals (Candidate C)
 
-Example:  python3 pipeline/05_calibrate.py
+Examples:
+  python3 pipeline/05_calibrate.py                 # California (the active region)
+  python3 pipeline/05_calibrate.py --region US-CA --region BR-PA --region AU-NSW-VIC --region PT   # the 4-region validation
 """
 import argparse
 import json
@@ -47,13 +50,18 @@ MIN_V_FOR_MONTH_RATIO = 200   # a calendar month needs this many S-NPP train det
 CELL_KEYS = ["year", "month", "lat_idx", "lon_idx"]
 
 
-def grid_dir():
-    return GRID_MONTHLY if GRID_MONTHLY.is_dir() and any(GRID_MONTHLY.glob("*.parquet")) else GRID_FALLBACK
+GRID_ARCHIVE = common.ROOT / "archive" / "other_regions" / "interim_extract" / "grid" / "monthly"
+
+
+def grid_dirs():
+    """Where monthly grid files may be: the working copy (Drive/Colab), the committed copy, the archive."""
+    return [GRID_MONTHLY, GRID_FALLBACK, GRID_ARCHIVE]
 
 
 def load_sat(region, sat, folder=None):
-    path = Path(folder or grid_dir()) / f"{region}__{sat}.parquet"
-    if not path.exists():
+    name = f"{region}__{sat}.parquet"
+    path = next((Path(d) / name for d in ([folder] if folder else grid_dirs()) if (Path(d) / name).exists()), None)
+    if path is None:
         return pd.DataFrame(columns=CELL_KEYS + ["n", "n_px1km"])
     return pd.read_parquet(path, columns=CELL_KEYS + ["n", "n_px1km"])
 
@@ -206,12 +214,12 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--region", action="append", choices=list(config.REGIONS))
     a = p.parse_args(argv)
-    folder = grid_dir()
-    regions = a.region or [r for r in config.REGIONS if (folder / f"{r}__T.parquet").exists()]
+    regions = a.region or config.ACTIVE_REGIONS
+    regions = [r for r in regions if any((Path(d) / f"{r}__T.parquet").exists() for d in grid_dirs())]
     if not regions:
-        raise SystemExit(f"No monthly grid files in {GRID_MONTHLY} or {GRID_FALLBACK}. Run step 04 first.")
-    print(f"Grid files: {folder}. Train {config.TRAIN_YEARS}, test {config.TEST_YEARS}.")
-    run(regions, folder)
+        raise SystemExit(f"No monthly grid files in {[str(d) for d in grid_dirs()]}. Run step 04 first.")
+    print(f"Regions: {regions}. Train {config.TRAIN_YEARS}, test {config.TEST_YEARS}.")
+    run(regions)
     print(f"Wrote {OUT}/region_month.csv, terra_only.csv, params.json")
 
 
