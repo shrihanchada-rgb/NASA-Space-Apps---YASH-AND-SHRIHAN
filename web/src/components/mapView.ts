@@ -39,6 +39,10 @@ type ColorBy = 'sensor' | 'frp';
 /** Points are drawn only for short ranges with few detections; otherwise the density grid. */
 export const POINT_MAX_DAYS = 93;
 export const POINT_CAP = 300_000;
+/** Phones and small-memory devices get a lower cap, so the page does not run out of memory. */
+const SMALL_DEVICE = window.matchMedia('(pointer: coarse)').matches
+  || ((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8) <= 4;
+const pointCap = SMALL_DEVICE ? 100_000 : POINT_CAP;
 
 // Okabe-Ito colours: tell apart with colour-blindness, visible on satellite imagery.
 const SENSOR_COLORS = { MODIS: '#56B4E9', VIIRS: '#E69F00' };
@@ -243,7 +247,7 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
     const est = estimateRows(months);
     let want: 'points' | 'density' | 'off' = hotLayer;
     let why = '';
-    if (want === 'points' && (days > POINT_MAX_DAYS || est > POINT_CAP)) {
+    if (want === 'points' && (days > POINT_MAX_DAYS || est > pointCap)) {
       want = 'density';
       why = days > POINT_MAX_DAYS
         ? `Points are shown for ${POINT_MAX_DAYS} days or fewer; showing density instead.`

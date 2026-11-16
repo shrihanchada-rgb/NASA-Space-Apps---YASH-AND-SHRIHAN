@@ -20,6 +20,20 @@ export interface Store<T> {
   subscribe(listener: (state: T, previous: T) => void): () => void;
 }
 
+type ErrorHandler = (err: unknown) => void;
+let errorHandler: ErrorHandler = (err) => console.error(err);
+/** Where errors from listeners go (main.ts shows them on the page). */
+export function onStoreError(fn: ErrorHandler): void {
+  errorHandler = fn;
+}
+function reportError(err: unknown): void {
+  try {
+    errorHandler(err);
+  } catch {
+    console.error(err);
+  }
+}
+
 export function createStore<T extends object>(initial: T): Store<T> {
   let state = initial;
   const listeners = new Set<(state: T, previous: T) => void>();
@@ -30,7 +44,14 @@ export function createStore<T extends object>(initial: T): Store<T> {
       if (keys.every((k) => Object.is(state[k], patch[k]))) return; // nothing changed
       const previous = state;
       state = { ...state, ...patch };
-      listeners.forEach((fn) => fn(state, previous));
+      // One failing listener must not stop the others (each panel keeps working on its own).
+      listeners.forEach((fn) => {
+        try {
+          fn(state, previous);
+        } catch (err) {
+          reportError(err);
+        }
+      });
     },
     subscribe(listener) {
       listeners.add(listener);

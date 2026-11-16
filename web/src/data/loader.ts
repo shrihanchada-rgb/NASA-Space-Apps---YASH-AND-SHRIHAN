@@ -9,16 +9,41 @@ export class DataError extends Error {}
 
 const base = `${import.meta.env.BASE_URL}data/`;
 
-async function fetchJson<T>(path: string): Promise<T> {
-  let res: Response;
+/** Longest wait for one file (the largest month of hotspots is about 20 MB). */
+export const FETCH_TIMEOUT_MS = 120_000;
+
+/**
+ * Fetch one data file as text. Never hangs: gives up after FETCH_TIMEOUT_MS.
+ * Returns null for 404 when allowMissing is set (a missing hotspot month means no detections).
+ */
+async function getText(path: string, allowMissing = false): Promise<string | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
   try {
-    res = await fetch(base + path);
-  } catch {
-    throw new DataError(`Could not reach ${path}. Check your connection.`);
+    let res: Response;
+    try {
+      res = await fetch(base + path, { signal: ctrl.signal });
+    } catch {
+      throw new DataError(ctrl.signal.aborted
+        ? `Loading ${path} took too long. Check your connection and try again.`
+        : `Could not reach ${path}. Check your connection.`);
+    }
+    if (allowMissing && res.status === 404) return null;
+    if (!res.ok) throw new DataError(`Could not load ${path} (HTTP ${res.status}).`);
+    try {
+      return await res.text();
+    } catch {
+      throw new DataError(`Loading ${path} was interrupted. Check your connection and try again.`);
+    }
+  } finally {
+    clearTimeout(timer);
   }
-  if (!res.ok) throw new DataError(`Could not load ${path} (HTTP ${res.status}).`);
+}
+
+async function fetchJson<T>(path: string): Promise<T> {
+  const text = (await getText(path))!;
   try {
-    return (await res.json()) as T;
+    return JSON.parse(text) as T;
   } catch {
     throw new DataError(`${path} is not valid JSON.`);
   }
@@ -102,15 +127,8 @@ export function loadHotspotMonth(regionId: string, month: string): Promise<Hotsp
   let hit = hotspotCache.get(path);
   if (!hit) {
     hit = (async () => {
-      let res: Response;
-      try {
-        res = await fetch(base + path);
-      } catch {
-        throw new DataError(`Could not reach ${path}. Check your connection.`);
-      }
-      if (res.status === 404) return [];
-      if (!res.ok) throw new DataError(`Could not load ${path} (HTTP ${res.status}).`);
-      return parseHotspotCsv(await res.text(), path);
+      const text = await getText(path, true);
+      return text == null ? [] : parseHotspotCsv(text, path);
     })();
     hit.catch(() => hotspotCache.delete(path));
     hotspotCache.set(path, hit);
@@ -143,14 +161,7 @@ export async function loadHotspots(regionId: string, start: string, end: string)
 // ---------- grid files (contract section 8b) ----------
 
 async function fetchText(path: string): Promise<string> {
-  let res: Response;
-  try {
-    res = await fetch(base + path);
-  } catch {
-    throw new DataError(`Could not reach ${path}. Check your connection.`);
-  }
-  if (!res.ok) throw new DataError(`Could not load ${path} (HTTP ${res.status}).`);
-  return res.text();
+  return (await getText(path))!;
 }
 
 /** Parse a plain numeric CSV with the expected header into objects. */

@@ -82,6 +82,15 @@ src/styles.css          all styles; colours are CSS variables with light and dar
 | Methods and limits page: method, validation numbers and plots, California write-up, known limits, citation and licence | Built | S28 |
 | Real data by default | Done 2026-11-16 | S25 |
 
+## What happens when something fails
+
+- Every data file is fetched through `getText` in `src/data/loader.ts`: it gives up after 2 minutes, and every failure becomes a plain message naming the file. A missing hotspot month (404) means no detections. Failed files are not cached, so trying again works.
+- Each panel starts on its own (`mountSafely` in `src/main.ts`). If one fails (for example the map, when the browser has no WebGL), that panel says why and the others keep working.
+- A panel that throws while updating does not stop the others (`src/state.ts`). Unexpected errors show one message at the top of the page.
+- Dates partly outside the data are moved to its edges, with a note; dates fully outside it, reversed or incomplete dates are refused with a message.
+- Phones and devices with 4 GB of memory or less draw at most 100,000 map points (others 300,000); above that, the density grid.
+- Tested by breaking things in Chromium (2026-11-16): WebGL off, `monthly.json` HTTP 500, `metadata.json` unreachable, a hotspot month HTTP 503, dates 1990 / reversed / 2027, phone with the largest month. Each gave a message and no page errors. Unit tests: `src/data/robust.test.ts`.
+
 ## How some numbers are defined
 
 - **Fire season preset:** the 3 consecutive calendar months with the highest mean `count_harm` in `baseline.json` (can wrap the year end, e.g. Nov–Jan), applied to the last full year in the data.

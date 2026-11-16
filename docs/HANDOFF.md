@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-16 — Website made robust against failures; all branches confirmed in main — DONE (not a checklist step)
+- **Who / AI:** Shrihan using Claude
+- **Did:** Checked that every remote branch (37) is part of `main` (the earlier "unmerged" list came from a shallow clone). Hardened the website: one fetch helper with a 2-minute timeout and clear messages; each panel starts on its own and a failing panel (e.g. the map without WebGL) explains itself; a failing listener no longer stops the others; global error message; dates outside the data are clamped or refused; lower map point cap (100,000) on phones and small-memory devices.
+- **Files changed:** `web/src/data/loader.ts`, `web/src/state.ts`, `web/src/main.ts`, `web/src/components/controls.ts`, `web/src/components/mapView.ts`, `web/src/data/robust.test.ts` (new), `web/README.md`, `docs/HANDOFF.md`
+- **How to check it:** `cd web && npm run typecheck && npm test` → 48 passed; `npm run build`. `python3 -m pytest -q tests` → 52 passed.
+- **Results / numbers:** Chromium fault tests: WebGL off → map panel says why, everything else works; `monthly.json` 500 and `metadata.json` unreachable → message at the top; hotspot month 503 → message under the map and in Downloads, calendar unaffected; start 1990 → moved to 2000-11-01 with a note; reversed dates and 2027 dates refused with a message; phone, Sep 2020 → density (277,285 > 100,000). No page errors in any case.
+- **Decisions and why:** Timeout 2 minutes because the largest month file is about 20 MB. No retry loop: the user retries by changing the selection or reloading (failures are not cached).
+- **Problems / open questions:** Not tested in Firefox/Safari or on a real phone. S29 still waits for GitHub Pages to be switched on.
+- **Next step:** S29: Settings → Pages → Source "GitHub Actions", then re-run "Deploy website".
+
 ### 2026-11-16 — S29 Deploy (GitHub Pages) — BLOCKED (needs a repository setting)
 - **Who / AI:** Shrihan using Claude
 - **Did:** Added `.github/workflows/pages.yml` (merged in PR #33). On every push to `main` that changes `web/` or `data/processed/`, or by hand, it runs the web tests, builds the site with the real data, and deploys `web/dist` to GitHub Pages.
