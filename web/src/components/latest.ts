@@ -323,6 +323,11 @@ export function mountLatest(el: HTMLElement, ctx: AppContext): void {
     const rd = ctx.loaded.get().regionData;
     if (!rd) return;
     if (!forecast) forecast = await loadForecast(ctx.state.get().regionId!);
+    // A rebuilt archive must never display a forecast made for older data or a different scale.
+    if (forecast && (forecast.origin_date !== rd.daily.end ||
+        forecast.method_version !== rd.daily.method_version ||
+        forecast.schema_version !== rd.daily.schema_version ||
+        forecast.is_sample !== rd.daily.is_sample)) forecast = null;
     if (!month) {
       const end = ctx.state.get().endDate ?? rd.daily.end;
       month = (end > rd.daily.end ? rd.daily.end : end).slice(0, 7);

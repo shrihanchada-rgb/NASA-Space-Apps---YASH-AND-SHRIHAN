@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-15 ? Forecast integration and updated submission ? DONE locally
+- **Who / AI:** Yash using Codex
+- **Did:** Verified that Timestral-5M from the Califire reference runs on the Yash?Shrihan daily harmonized data. Reran real model inference and the 2023?2025 backtest, refreshing forecast.json. Added missing forecast-output validation, stale-archive checks in Latest, and a successful-Forecast workflow completion trigger for Pages. Rebuilt a seven-slide editable submission deck with this repository as the main project and its updated features, area example, native forecast chart, results and attribution.
+- **Files changed:** pipeline/07_forecast.py, tests/test_forecast.py, web/src/data/{loader.ts,forecast.test.ts}, web/src/components/latest.ts, web/methodology.html, .github/workflows/pages.yml, data/processed/regions/US-CA/forecast.json, submission/, README.md, docs/validation/S18/README.md.
+- **How to check it:** python -m pytest -q tests/test_forecast.py tests/test_validate.py; cd web; npm.cmd test; npm.cmd run typecheck; npm.cmd run build. Rebuild slides: python submission/build_slides.py.
+- **Results / numbers:** 11 targeted Python tests passed; 62 web tests passed; typecheck and production build passed. Real Timestral inference and backtest succeeded: 504 scored days, MAE 14.6336, interval coverage 76.39%; published prediction values reproduce exactly. Full pipeline validation: 13/14 passed, including forecast, data contract, audit and site data-source checks.
+- **Problems / open questions:** The calibration parameter comparison differs from committed S16 (outside the forecast); the generated S18 report records it. Full Python test collection fails under the installed Python 3.11 on an existing f-string backslash in pipeline/02_clean.py:81. GitHub authentication and collaborator push access were verified after the user signed in; work is on branch step/S32-forecast-submission. Publishing to main requires merging the pull request. PowerPoint COM PDF/preview export unavailable in this session; deck was checked for bounds and can be opened in PowerPoint.
+- **Next step:** Review and merge step/S32-forecast-submission, then verify the Actions run. Historical forecast covers September 1?7, 2026; more recent observations are required to move its origin.
+
+
 ### 2026-11-16 — S31 Demo — DONE
 - **Who / AI:** Shrihan using Claude
 - **Did:** Wrote the 3-minute demo (`docs/demo.md`): seven steps with timings, what to click, what to say and what should appear; fallbacks; likely questions with true answers; and the Section 8 check. Rehearsed it with `scripts/rehearse_demo.js`, which performs every click in Chromium on the real data and checks the numbers; screenshots in `docs/demo/`.
