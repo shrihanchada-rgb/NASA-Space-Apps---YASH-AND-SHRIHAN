@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-16 — S18 validate command, S29 deploy, S30 rebuild test — DONE
+- **Who / AI:** Shrihan using Claude
+- **Did:** The user decided to keep the forecast as it is (no near-real-time data) and to make sure every page uses our data. S18: `pipeline/07_validate.py` runs steps 05 and 05b, compares California with the committed `docs/validation/S16/`, and checks the data contract, the audit, the scores in `metadata.json`, the factors in `harmonization_check.json`, the forecast file, and that the website uses only our data (14 checks; report `docs/validation/S18/README.md`). S29: the Pages deploy runs on every push to `main` (workflow succeeded for the latest site). S30: rebuilt `data/processed/` from the filtered files into a scratch folder.
+- **Files changed:** `pipeline/07_validate.py` (new), `tests/test_validate.py` (new), `docs/validation/S18/README.md` (new), `docs/validation/README.md`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** `python3 pipeline/07_validate.py` → "14/14 checks passed"; `python3 -m pytest -q tests` → 61 passed; rebuild: `python3 pipeline/06_aggregate.py --out /tmp/rebuild && python3 scripts/validate_data.py /tmp/rebuild`.
+- **Results / numbers:** Rebuild took 16 s; 319 of 321 files byte-identical to `data/processed/` (not rebuilt: `README.md`, hand-written, and `forecast.json`, made by the Actions job). Browser (Chromium, 6 pages): the pages contact only this site's `/data/` files (metadata, regions, daily, monthly, baseline, grid, hotspots by month, harmonization_check, our forecast.json), Google Fonts and NASA GIBS imagery; no other project's data or address; no page errors.
+- **Decisions and why:** `07_validate.py` compares with S16 instead of overwriting it: a fresh run fits California only, and the committed S16 folder also holds the three archived regions (the first version overwrote it and would have deleted that evidence; caught by the run and reverted before committing).
+- **Problems / open questions:** Steps 01–04 were not re-run (Colab). Rebuilt files equal the published ones partly because both carry today's build date; on another day `build_date` lines will differ. The live GitHub Pages page was not opened from the AI session. S31 (3-minute demo) is open.
+- **Next step:** S31 demo. Optional: near-real-time data and a forecast for the coming week (needs the FIRMS key in Colab).
+
 ### 2026-11-16 — Latest on our data, forecast on our data, one area for every page — DONE
 - **Who / AI:** Shrihan using Claude
 - **Did:** Latest (Yashneil's day-by-day calendar) is now the home page and first in the menu, rebuilt in our app with his structure and look but our numbers (daily harmonized count; drawn area = sum of hotspot weights inside it). His data files were removed. His forecast algorithm (Timestral-5M, his backtest) now runs on our daily count: `pipeline/07_forecast.py` + `.github/workflows/forecast.yml` (GitHub Actions, because the model needs internet). Compare moved inside the Map page. A bar under the menu explains how to select an area and shows which area every page uses ("Show all of California" clears it). Overview's line chart shows days for ranges of 92 days or fewer (the "Last 30 days" chart was empty). Download adds daily and yearly series (his granularities) on our data.

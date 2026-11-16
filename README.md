@@ -196,7 +196,8 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [x] **S15 Calibration experiments.** Needs: S14. Do: `05_calibrate.py`, Candidate A first, then B and C (Section 2.3). Done when: all three run and save results.
 - [x] **S16 Compare and choose.** Needs: S15. Do: Section 13, Steps B–D. Done when: `docs/validation/README.md` states the winning method, the metrics table, and where it works badly.
 - [x] **S17 Aggregate.** Needs: S16, S07. Do: `06_aggregate.py` writes `data/processed/` following the contract exactly. Done when: output validates against the contract.
-- [ ] **S18 Validate command.** Needs: S17. Do: `07_validate.py` re-creates all validation plots and the metrics table in one command. Done when: it runs from scratch.
+- [x] **S18 Validate command.** Needs: S17. Do: `07_validate.py` re-creates all validation plots and the metrics table in one command. Done when: it runs from scratch.
+  - Done 2026-11-16: `python3 pipeline/07_validate.py` re-runs steps 05 and 05b, checks California against the committed `docs/validation/S16/`, and checks `data/processed/`, the forecast and that the website uses only our data (14 checks, report in `docs/validation/S18/README.md`). It never overwrites S16 (that folder also holds the three archived regions).
 
 ### Phase 5 — Website (can start after S08; does not need S10–S18)
 - [x] **S19 Scaffold.** Needs: S08. Do: Vite + TypeScript app in `web/`, blank map loads. Done when: the run command is written in `CLAUDE.md` and `AGENTS.md`.
@@ -212,8 +213,10 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [x] **S27 Map and current-fire comparison.** Needs: S25.
 - [x] **S28 Methods page and write-up.** Needs: S26. Do: Section 13, Step F, and the known-limits list.
   - Done 2026-11-16. S25 note: switching needed no change to the app's numbers, but the hotspot files were split per month (contract §7 updated, app loader updated) so the app loads only the months it needs. S26 results: `docs/validation/S26/README.md`. Methods page: `web/methods.html`.
-- [ ] **S29 Deploy.** Needs: S28. Do: GitHub Pages.
-- [ ] **S30 Full rebuild test.** Needs: S29. Do: run the whole pipeline from an empty `data/processed/` and check the app still works.
+- [x] **S29 Deploy.** Needs: S28. Do: GitHub Pages.
+  - Done 2026-11-16: `.github/workflows/pages.yml` builds `web/` with `data/processed/` and deploys on every push to `main` that changes the site or data. Live: https://shrihanchada-rgb.github.io/NASA-Space-Apps---YASH-AND-SHRIHAN/ (the deploy job reports success; the live page was not opened from the AI session).
+- [x] **S30 Full rebuild test.** Needs: S29. Do: run the whole pipeline from an empty `data/processed/` and check the app still works.
+  - Done 2026-11-16 for the steps that run from the repo plus the filtered files: `06_aggregate.py --out <empty folder>` rebuilt `data/processed/` in 16 s; 319 of 321 files are byte-identical to the published ones (the other two are the hand-written README and the forecast file made by the Actions job); `validate_data.py` 0 problems on the rebuild. Steps 01–04 (download, clean, filter, grid) need Colab and were not re-run.
 - [ ] **S31 Demo.** Needs: S30. Do: write and rehearse a 3-minute demo (pick a region, show calendar, show worst year, compare a recent fire, download CSV). Done when: everything in Section 8 is true.
 
 ---
