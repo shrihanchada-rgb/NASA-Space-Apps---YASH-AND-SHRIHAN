@@ -269,8 +269,8 @@ def month_list(first, last):
 
 
 def build_region(region, out, h, build_date, filtered=None, availability=None, outages=None, mask=None, polygons=None,
-                 daily_counts=DAILY_COUNTS, log=print):
-    ranges = source_ranges(availability)
+                 daily_counts=DAILY_COUNTS, log=print, points=None, ranges=None):
+    ranges = ranges if ranges is not None else source_ranges(availability)
     if outages is None:
         outages = find_outages(region, ranges, daily_counts)
     table = day_table(ranges, outages, h)
@@ -284,7 +284,9 @@ def build_region(region, out, h, build_date, filtered=None, availability=None, o
         old.unlink()
 
     daily_parts, cell_parts, n_by_source, range_by_source = [], [], {}, {}
-    for year, df in region_points(region, mask, filtered):
+    frames = region_points(region, mask, filtered) if points is None else points.groupby(points["date"].str[:4], sort=True)
+    for year, df in frames:
+        df = df.copy()
         df["harmonized_weight"], df["kind"] = weights(df, table)
         df["region_id"] = region
         hs = df[HOTSPOT_COLUMNS].copy()

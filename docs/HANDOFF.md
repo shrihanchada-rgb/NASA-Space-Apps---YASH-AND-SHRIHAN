@@ -26,6 +26,15 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-15 - S33 Nightly refresh - STARTED (live verification)
+- **Who / AI:** Yash using Codex
+- **Did:** Added the midnight America/Chicago schedule, provisional FIRMS updater, contract/arithmetic validation, Timestral regeneration and Pages trigger. The updater preserves archive observations and the historical baseline, replaces revised source/date windows, and marks missing coverage/outages explicitly. NRT fire-type omissions are disclosed in metadata and the app. Fixed the existing Python 3.11 f-string compatibility issue so the full existing pipeline suite can run in Actions.
+- **Files changed:** .github/workflows/{nightly-refresh,forecast,pages}.yml, pipeline/{02_clean,06_aggregate,06b_audit_processed,07_forecast,08_refresh_nrt}.py, tests/test_refresh_nrt.py, web/{methodology.html,src/methods.ts,src/components/latest.ts}, README.md, AGENTS.md, CLAUDE.md.
+- **How to check it:** python -m pytest -q tests; cd web; npm test; npm run build. Actions: Nightly data refresh -> Run workflow.
+- **Results / numbers:** 63 existing Python tests plus 4 new NRT tests passed (67 total); 62 web tests passed; production build passed. Full offline refresh plus contract and audit passed twice with identical counts and unchanged archived daily values. Workflow YAML schedule parsed as 0 0 * * * / America/Chicago. FIRMS_MAP_KEY secret confirmed present without reading its value.
+- **Problems / open questions:** Live NASA API and first scheduled workflow execution still to verify. GitHub schedules can start late; unavailable NASA dates remain gaps. The daily data stops at the latest completed UTC day rather than publishing an incomplete day.
+- **Next step:** Merge, dispatch the first refresh and inspect the run and deployment.
+
 ### 2026-11-15 ? Forecast integration and updated submission ? DONE locally
 - **Who / AI:** Yash using Codex
 - **Did:** Verified that Timestral-5M from the Califire reference runs on the Yash?Shrihan daily harmonized data. Reran real model inference and the 2023?2025 backtest, refreshing forecast.json. Added missing forecast-output validation, stale-archive checks in Latest, and a successful-Forecast workflow completion trigger for Pages. Rebuilt a seven-slide editable submission deck with this repository as the main project and its updated features, area example, native forecast chart, results and attribution.

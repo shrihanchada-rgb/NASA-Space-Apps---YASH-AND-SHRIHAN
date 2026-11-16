@@ -200,3 +200,7 @@ The schema of every interim file is in `docs/pipeline-files.md` (fixed columns, 
 - Use the verified facts in `docs/data-notes.md` (sensor dates, API limits, columns, confidence, `type`, citation). Items in its "Still unverified" section must be checked before code depends on them. Standard-processing data lags by a few months (SP ended 2026-07-31 / 2026-08-31 when checked on 2026-11-14). S-NPP ended on 2 Nov 2026.
 - Changing the data contract needs both people's agreement; flag it rather than changing it alone.
 - Tests must not download data. `.env` (FIRMS MAP_KEY) and `data/raw/` are gitignored; never put secrets in website code.
+
+## Nightly updates (S33, requested 2026-11-15)
+
+The user has authorized a daily update at 00:00 America/Chicago, superseding the earlier decision to keep an archive-only forecast. `Nightly data refresh` runs `pipeline/08_refresh_nrt.py` and `07_forecast.py`, validates the outputs, commits them, and triggers Pages after success. The FIRMS_MAP_KEY Actions secret is configured. NRT observations remain provisional; the incomplete current UTC day is excluded. Keep the standard-processing archive and baseline unchanged, replace revised source/date windows without duplicate accumulation, and preserve unavailable dates as missing. See README S33. Tests must stay offline; live API requests run only in the configured workflow.

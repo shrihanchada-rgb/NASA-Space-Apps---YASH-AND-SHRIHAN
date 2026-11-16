@@ -408,3 +408,15 @@ Claude Code and Codex cannot control a Colab session. They write and fix the cod
 ## Updated submission and forecast integration
 
 The Yash?Shrihan repository is the main project. The editable, seven-slide submission deck is `submission/Yash-Shrihan-Submission.pptx`; rebuild instructions and speaker notes are in `submission/README.md`. The Timestral-5M method adapted from `yashneil75/califire` runs on **this repository?s harmonized daily data** using `pipeline/07_forecast.py`. Forecast completion on main triggers the Pages build; stale or malformed forecast files are withheld by the app. The current archive ends 2026-08-31, so its seven-day forecast is historical.
+
+## S33: Nightly data update
+
+- The `Nightly data refresh` GitHub Actions workflow runs every day at **00:00 America/Chicago**, including daylight-saving changes. It can also be run manually from Actions.
+- Required repository secret: `FIRMS_MAP_KEY` (NASA FIRMS). Never put the key in code or logs.
+- `pipeline/08_refresh_nrt.py` preserves the standard-processing archive and adds provisional MODIS/VIIRS NRT observations through the latest completed UTC day. It fills any available dates after the archive and refetches the last 14 days for revisions. Exact source/date windows are replaced so reruns cannot accumulate duplicate detections.
+- The published calibration and historical baseline remain fixed. NRT may omit fire-type classification; such observations are labeled provisional thermal anomalies, not asserted to be vegetation fires. Source outages and unavailable dates remain missing.
+- The job validates data contracts and the independent arithmetic audit, rebuilds the Timestral forecast, checks the website, and commits only after every check passes. A successful run triggers the Pages deployment. Fetch or validation failure leaves published data unchanged.
+- Source coverage and unfiltered per-satellite counts are retained in `data/processed/regions/US-CA/nrt-state.json` to find gaps and apply revisions. Raw FIRMS responses and credentials are not committed.
+- GitHub scheduled starts can be delayed. Midnight is the scheduled start, not a guarantee that data publication finishes at exactly midnight. NASA availability and processing lag still apply; unavailable historical gaps are not fabricated.
+
+Local check (with FIRMS_MAP_KEY set securely): `python pipeline/08_refresh_nrt.py`, then `python pipeline/07_forecast.py`. Offline tests: `python -m pytest -q tests`.

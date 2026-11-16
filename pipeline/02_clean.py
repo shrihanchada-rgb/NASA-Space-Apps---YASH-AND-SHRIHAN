@@ -77,8 +77,10 @@ def normalize(raw, region, source, where=""):
         if conf.isna().any():
             raise CleanError(f"{where}: unknown VIIRS confidence {sorted(set(raw['confidence'][conf.isna()]))}")
     t = raw["acq_time"].str.strip().str.zfill(4)
-    if not t.str.fullmatch(r"([01]\d|2[0-3])[0-5]\d").all():
-        raise CleanError(f"{where}: bad acq_time values {sorted(set(raw['acq_time'][~t.str.fullmatch(r'([01]\d|2[0-3])[0-5]\d')]))[:5]}")
+    valid_time = t.str.fullmatch(r"([01]\d|2[0-3])[0-5]\d")
+    if not valid_time.all():
+        bad_times = sorted(set(raw["acq_time"][~valid_time]))[:5]
+        raise CleanError(f"{where}: bad acq_time values {bad_times}")
     d = pd.to_datetime(raw["acq_date"], format="%Y-%m-%d", errors="coerce")
     if d.isna().any():
         raise CleanError(f"{where}: bad acq_date values {sorted(set(raw['acq_date'][d.isna()]))[:5]}")

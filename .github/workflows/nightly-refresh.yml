@@ -1,0 +1,70 @@
+﻿name: Nightly data refresh
+on:
+  schedule:
+    - cron: '0 0 * * *'
+      timezone: America/Chicago
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: califire-data-writer-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the FIRMS key
+        env:
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+        run: |
+          test -n "$FIRMS_MAP_KEY" || { echo 'Add the FIRMS_MAP_KEY repository Actions secret.'; exit 1; }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - run: python -m pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cpu
+      - run: python -m pip install 'timestral @ git+https://github.com/mistralai/timestral.git@a534bdbd244d64f3d9d743f46c7bf6fc330ed4ff'
+      - name: Check pipeline and update logic
+        run: python -m pytest -q tests
+      - name: Refresh completed UTC days (with contract and independent arithmetic validation)
+        env:
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+        run: python pipeline/08_refresh_nrt.py
+      - name: Regenerate Timestral forecast and retrospective scores
+        run: python pipeline/07_forecast.py
+      - name: Check the forecast matches the updated data
+        run: |
+          python - <<'PY'
+          import importlib.util, json
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('validate07', 'pipeline/07_validate.py')
+          v = importlib.util.module_from_spec(spec); spec.loader.exec_module(v)
+          p = Path('data/processed/regions/US-CA')
+          daily = json.loads((p/'daily.json').read_text())
+          errors = v.check_forecast(json.loads((p/'forecast.json').read_text()), daily['end'], daily['method_version'])
+          if errors: raise SystemExit('; '.join(errors))
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Verify the updated website before publishing
+        working-directory: web
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Commit only validated published data
+        run: |
+          set -euo pipefail
+          git config user.name 'califire data bot'
+          git config user.email 'bot@users.noreply.github.com'
+          git add data/processed
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Refresh provisional FIRMS data and forecast ($(date -u +%Y-%m-%d))"
+          # A concurrent main update must be rerun, never resolved by overwriting someone else's data.
+          git push origin HEAD:main

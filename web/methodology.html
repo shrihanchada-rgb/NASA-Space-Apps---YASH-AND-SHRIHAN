@@ -111,7 +111,8 @@
       <section class="panel" aria-labelledby="m-forecast">
         <h2 id="m-forecast">Experimental forecast</h2>
         <p>The purple days on the Latest page are a forecast made with Yashneil's method: Mistral's <strong>Timestral-5M</strong> time-series model (revision <code>bdd20cf</code>), given the last 730 days of the harmonized daily count (log scale, days without data kept as missing values) and asked for the next 7 days, with a median and a 10th–90th percentile range. No weather or fire information is used. It is a forecast of satellite-detected activity, <strong>not of fire risk</strong>, and must not be used for safety decisions.</p>
-        <p><strong>Which days it covers:</strong> our data ends on 31 August 2026 (the standard archive ends there), so the forecast covers 1–7 September 2026, not the days after today. It is shown for all of California only.</p>
+        <p id="forecast-coverage">The forecast covers the seven days after the last completed day in the published data, for all of California. Its origin and exact dates are shown on Latest.</p>
+        <p id="nrt-note">The standard-processing archive is extended with provisional near-real-time observations when available. The current UTC day is excluded. NRT quality control and fire-type classification can differ from the historical archive; gaps remain missing data.</p>
         <p><strong>How well it did on our data</strong> (his check: 7-day forecasts started on the 1st and 15th of each month in 2023–2025, 504 days with data scored; the inputs are today's archive, not what was known at the time):</p>
         <table id="forecast-table">
           <thead><tr><th>Method</th><th class="num">Typical error (MAE), hotspots per day</th><th class="num">Ordinary days (all but the busiest 10%)</th><th class="num">Busiest 10% of days</th></tr></thead>

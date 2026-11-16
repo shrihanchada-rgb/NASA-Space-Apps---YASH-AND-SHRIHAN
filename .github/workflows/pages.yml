@@ -9,7 +9,7 @@ on:
     paths: ['web/**', 'data/processed/**', '.github/workflows/pages.yml']
   workflow_dispatch:
   workflow_run:
-    workflows: [Forecast]
+    workflows: [Forecast, Nightly data refresh]
     types: [completed]
     branches: [main]
 
