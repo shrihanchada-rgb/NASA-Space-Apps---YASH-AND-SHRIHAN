@@ -161,7 +161,7 @@ def build(daily: dict, model, validation=None) -> dict:
         'model': MODEL_ID, 'model_revision': MODEL_REVISION,
         'method_source': "Yashneil Gajjala's Califire forecast (yashneil75/califire, MIT), run on the harmonized daily count",
         'origin_date': origin.isoformat(),
-        'note': 'Forecast of the 7 days after the last day of the data (the standard archive ends there), not of the days after today.',
+        'note': 'Forecast of the 7 days after the last day of the data; provisional NRT observations may be included. The current UTC day is incomplete.',
         'unit': 'MODIS-equivalent hotspots (harmonized count) per day',
         'generated_utc': datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'warning': 'Experimental forecast of satellite-detected activity; not a fire-risk forecast or emergency guidance.',

@@ -294,6 +294,9 @@ export function mountLatest(el: HTMLElement, ctx: AppContext): void {
     scope.textContent = box
       ? `Drawn area ${box.map((v) => v.toFixed(2)).join(', ')} (W, S, E, N). Each day is the harmonized count of the hotspots inside it. Clear the area to see all of California.`
       : `Harmonized satellite hotspots (MODIS-equivalent) for all of California, ${rd.daily.start} to ${rd.daily.end}. Draw an area on the Map to see it here.`;
+    if (ctx.metadata.sources.some((source) => source.source.endsWith('_NRT'))) {
+      scope.textContent += ' Recent observations are provisional near-real-time thermal anomalies; fire type may be unavailable. The current UTC day is incomplete and excluded.';
+    }
     const t12 = sel ? trailing12(sel.months) : null;
     s1.item.querySelector('dt')!.replaceChildren('Hotspots', h('br'), 'last 12 months of data');
     s1.dd.textContent = t12 ? fmt(t12.total, 0) : '…';

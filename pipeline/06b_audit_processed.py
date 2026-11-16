@@ -69,7 +69,8 @@ def audit(region, folder, grid_monthly_csv=None, log=print):
     same_px = int(h.duplicated(["date", "time_utc", "latitude", "longitude", "satellite"]).sum())
     a.check("A  no two rows share satellite, date, time and pixel position", same_px == 0, f"{same_px} rows")
 
-    by_sat = h.groupby("satellite").size()
+    archive_end = max(v["last_date"] for v in meta["sources"] if v["source"].endswith("_SP"))
+    by_sat = h[h["date"] <= archive_end].groupby("satellite").size()
     if grid_monthly_csv and Path(grid_monthly_csv).exists():
         g = pd.read_csv(grid_monthly_csv)
         g = g[g["region_id"] == region].groupby("satellite")["n"].sum()
@@ -86,6 +87,12 @@ def audit(region, folder, grid_monthly_csv=None, log=print):
                "N": (snpp_first, snpp_last), "N20": (src["VIIRS_NOAA20_SP"]["first_date"], src["VIIRS_NOAA20_SP"]["last_date"])}
     days = pd.date_range(daily["start"], daily["end"], freq="D").strftime("%Y-%m-%d")
     has = pd.DataFrame({sat: (days >= a) & (days <= b) for sat, (a, b) in service.items()}, index=days)
+    # NRT extends service only over its declared range; intervening gaps stay missing.
+    for source, satellites in (("MODIS_NRT", ("T", "A")), ("VIIRS_SNPP_NRT", ("N",)), ("VIIRS_NOAA20_NRT", ("N20",))):
+        if source in src:
+            info = src[source]
+            for satellite in satellites:
+                has[satellite] |= (days >= info["first_date"]) & (days <= info["last_date"])
     for o in out.itertuples():
         if o.satellite in has:
             has.loc[o.start:o.end, o.satellite] = False

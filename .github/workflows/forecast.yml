@@ -12,8 +12,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: forecast-${{ github.ref }}
-  cancel-in-progress: true
+  group: califire-data-writer-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   forecast:

@@ -90,6 +90,10 @@ async function main(): Promise<void> {
   const region = meta.regions[0]!;
   document.getElementById('build-line')!.textContent =
     `California, ${meta.time_coverage.start} to ${meta.time_coverage.end}. Data built ${meta.build_date}, method ${meta.method_version}.${meta.is_sample ? ' SAMPLE DATA: numbers are invented.' : ''}`;
+  document.getElementById('forecast-coverage')!.textContent = `The published data ends on ${meta.time_coverage.end}. The forecast covers the following seven days, for all of California. Its exact dates are shown on Latest.`;
+  document.getElementById('nrt-note')!.textContent = meta.sources.some((source) => source.source.endsWith('_NRT'))
+    ? meta.reference_scale
+    : 'The published observations currently use the standard-processing archive. Nightly updates add provisional near-real-time observations when available.';
   document.getElementById('citation')!.textContent = meta.citation;
   document.getElementById('method-version')!.textContent = meta.method_version;
   if (meta.validation.r2 != null) document.getElementById('v-r2')!.textContent = meta.validation.r2.toFixed(3);
