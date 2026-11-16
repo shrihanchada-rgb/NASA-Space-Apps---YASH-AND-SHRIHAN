@@ -1,6 +1,5 @@
-import '@fontsource-variable/ibm-plex-sans';
-import '@fontsource/ibm-plex-mono/400.css';
-import '@fontsource/ibm-plex-mono/500.css';
+// One script for all of our pages (Overview, Archive, Map, Compare, Download). Each page has only some of the
+// panels; a panel is started only if its container is on the page. Fonts (Inter) come from the page's <link>.
 import './styles.css';
 import { mountCalendar } from './components/calendar';
 import { mountCharts } from './components/charts';
@@ -11,14 +10,17 @@ import { mountMap } from './components/mapView';
 import { mountSummary } from './components/summary';
 import type { AppContext, LoadState } from './context';
 import { loadGrid, loadMetadata, loadRegionData, loadRegions } from './data/loader';
-import { buildAreaSelection, buildRegionSelection } from './data/selection';
+import { buildAreaSelection, buildRegionSelection, clampBox, snapBox } from './data/selection';
+import { readSelection, renderFooter, renderTopbar, selectionQuery, syncSelectionLinks } from './shell';
 import { type AppState, createStore, onStoreError } from './state';
 
 function need(id: string): HTMLElement {
   const el = document.getElementById(id);
-  if (!el) throw new Error(`Missing #${id} in index.html`);
+  if (!el) throw new Error(`Missing #${id} in this page`);
   return el;
 }
+const find = (id: string): HTMLElement | null => document.getElementById(id);
+const page = document.body.dataset.page ?? 'overview';
 
 const status = need('status');
 function showError(message: string): void {
@@ -63,49 +65,63 @@ function webglAvailable(): boolean {
 async function start(): Promise<void> {
   const [metadata, regions] = await Promise.all([loadMetadata(), loadRegions()]);
 
+  // The selection can come from the address (set by another page). Dates must be inside the data;
+  // an area is cut to the region and snapped to the grid, like a drawn one.
+  const cov = metadata.time_coverage;
+  const fromUrl = readSelection(location.search);
+  const regionId = regions.features[0]?.properties.region_id ?? null;
+  const regionBox = regions.features[0]?.properties.bbox;
+  const datesOk = fromUrl.startDate && fromUrl.endDate && fromUrl.startDate >= cov.start && fromUrl.endDate <= cov.end;
+  const urlBox = fromUrl.drawnBox && regionBox ? clampBox(fromUrl.drawnBox, regionBox) : null;
   const state = createStore<AppState>({
-    regionId: regions.features[0]?.properties.region_id ?? null,
-    startDate: metadata.time_coverage.start,
-    endDate: metadata.time_coverage.end,
-    colorMode: 'absolute',
-    drawnBox: null,
+    regionId,
+    startDate: datesOk ? fromUrl.startDate! : cov.start,
+    endDate: datesOk ? fromUrl.endDate! : cov.end,
+    colorMode: fromUrl.colorMode ?? 'absolute',
+    drawnBox: urlBox ? snapBox(urlBox) : null,
     drawing: false,
   });
   const loaded = createStore<LoadState>({ regionData: null, loading: false, selection: null, selectionError: null });
   const ctx: AppContext = { metadata, regions, state, loaded };
 
-  const tag = (text: string, cls = '') => {
-    const t = document.createElement('span');
-    t.className = `tag ${cls}`;
-    const dot = document.createElement('span');
-    dot.className = 'tag-dot';
-    t.append(dot, text);
-    return t;
+  renderTopbar(need('topbar'), page, `${metadata.is_sample ? 'Sample data · ' : ''}Data to ${cov.end} · Method ${metadata.method_version}`);
+  renderFooter(need('footer'), `${metadata.citation} Map imagery: NASA GIBS.`);
+  // On phones the selection panel starts folded; its summary line says what is chosen.
+  const selBox = find('sel-box') as HTMLDetailsElement | null;
+  const selSummary = find('sel-summary');
+  if (selBox && window.matchMedia('(max-width: 900px)').matches) selBox.open = false;
+  const describeSelection = () => {
+    if (!selSummary) return;
+    const s = state.get();
+    selSummary.textContent = `Dates and area: ${s.startDate} – ${s.endDate} · ${s.drawnBox ? 'drawn area' : 'all of California'}`;
   };
-  need('data-status').replaceChildren(
-    tag(metadata.is_sample ? 'Sample data' : 'FIRMS data', metadata.is_sample ? 'is-sample' : ''),
-    tag(`Built ${metadata.build_date}`),
-    tag(`Method ${metadata.method_version}`),
-  );
+  describeSelection();
+  const keepInAddress = () => { syncSelectionLinks(selectionQuery(state.get(), cov)); describeSelection(); };
+  keepInAddress();
+  state.subscribe((s, p) => {
+    if (s.startDate !== p.startDate || s.endDate !== p.endDate || s.drawnBox !== p.drawnBox || s.colorMode !== p.colorMode) keepInAddress();
+  });
   if (metadata.is_sample) {
     const banner = need('sample-banner');
     banner.textContent = 'Sample data: these numbers are invented for development. They are not real fire data.';
     banner.hidden = false;
   }
 
-  mountSafely(need('controls'), 'selection panel', () => mountControls(need('controls'), ctx));
-  mountSafely(need('summary'), 'summary', () => mountSummary(need('summary'), ctx));
-  mountSafely(need('map'), 'map', () => {
+  // Each panel only where this page has its container.
+  const panel = (id: string, what: string, mount: (el: HTMLElement) => void) => {
+    const el = find(id);
+    if (el) mountSafely(el, what, () => mount(el));
+  };
+  panel('controls', 'selection panel', (el) => mountControls(el, ctx));
+  panel('summary', 'summary', (el) => mountSummary(el, ctx));
+  panel('map', 'map', (el) => {
     if (!webglAvailable()) throw new Error('this browser has WebGL turned off or unsupported, which the map needs. Everything else works.');
-    mountMap(need('map'), need('map-note'), need('map-tools'), ctx);
+    mountMap(el, need('map-note'), need('map-tools'), ctx);
   });
-  mountSafely(need('compare'), 'comparison', () => mountCompare(need('compare'), ctx));
-  mountSafely(need('calendar'), 'calendar', () => mountCalendar(need('calendar'), ctx));
-  mountSafely(need('charts'), 'charts', () => mountCharts(need('charts'), ctx));
-  mountSafely(need('downloads'), 'downloads', () => mountDownloads(need('downloads'), ctx));
-
-  need('footer').textContent =
-    `${metadata.citation} Map imagery: NASA Global Imagery Browse Services (GIBS).`;
+  panel('compare', 'comparison', (el) => mountCompare(el, ctx));
+  panel('calendar', 'calendar', (el) => mountCalendar(el, ctx));
+  panel('charts', 'charts', (el) => mountCharts(el, ctx));
+  panel('downloads', 'downloads', (el) => mountDownloads(el, ctx));
 
   // The selection (whole region by default, or the drawn area) feeds the calendar, charts and downloads.
   let selToken = 0;
