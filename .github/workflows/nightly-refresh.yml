@@ -1,4 +1,4 @@
-﻿name: Nightly data refresh
+name: Nightly data refresh
 on:
   schedule:
     - cron: '0 0 * * *'
@@ -16,6 +16,9 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The workflow may wait behind Forecast; use current main after acquiring the shared lock.
+          ref: main
       - name: Require the FIRMS key
         env:
           FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}

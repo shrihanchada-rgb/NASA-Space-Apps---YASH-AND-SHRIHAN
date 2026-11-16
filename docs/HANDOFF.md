@@ -32,7 +32,7 @@ Rules for entries:
 - **Files changed:** .github/workflows/{nightly-refresh,forecast,pages}.yml, pipeline/{02_clean,06_aggregate,06b_audit_processed,07_forecast,08_refresh_nrt}.py, tests/test_refresh_nrt.py, web/{methodology.html,src/methods.ts,src/components/latest.ts}, README.md, AGENTS.md, CLAUDE.md.
 - **How to check it:** python -m pytest -q tests; cd web; npm test; npm run build. Actions: Nightly data refresh -> Run workflow.
 - **Results / numbers:** 63 existing Python tests plus 4 new NRT tests passed (67 total); 62 web tests passed; production build passed. Full offline refresh plus contract and audit passed twice with identical counts and unchanged archived daily values. Workflow YAML schedule parsed as 0 0 * * * / America/Chicago. FIRMS_MAP_KEY secret confirmed present without reading its value.
-- **Problems / open questions:** Live NASA API and first scheduled workflow execution still to verify. GitHub schedules can start late; unavailable NASA dates remain gaps. The daily data stops at the latest completed UTC day rather than publishing an incomplete day.
+- **Problems / open questions:** First live run 43812148334 passed NASA fetch, contract, audit, forecast and website checks, but publishing rejected a stale checkout after waiting for Forecast. Fixed checkout to explicitly use current main after the shared concurrency lock; rerun pending. GitHub schedules can start late; unavailable NASA dates remain gaps. The daily data stops at the latest completed UTC day rather than publishing an incomplete day.
 - **Next step:** Merge, dispatch the first refresh and inspect the run and deployment.
 
 ### 2026-11-15 ? Forecast integration and updated submission ? DONE locally
