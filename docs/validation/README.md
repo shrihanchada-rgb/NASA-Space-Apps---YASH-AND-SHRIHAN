@@ -120,6 +120,10 @@ The Terra-only months are less certain than the rest of the record, especially i
 - **NOAA-21 ÷ S-NPP** per year (2023–2025) is 0.94–1.00 in BR-PA and AU-NSW-VIC, 0.99–1.24 in US-CA and 0.79–1.11 in PT.
 - So NOAA-20 can stand in for S-NPP with about ±5–15% extra error in most region-years. This was not tested as a full train/test experiment.
 
+## One command (S18)
+
+`python3 pipeline/07_validate.py` re-runs steps 05 and 05b, checks that California's results equal the ones in `S16/`, and checks `data/processed/` (contract, audit, scores in `metadata.json`, forecast, and that the website uses only our data). Report: `S18/README.md`.
+
 ## How to re-create
 
 ```

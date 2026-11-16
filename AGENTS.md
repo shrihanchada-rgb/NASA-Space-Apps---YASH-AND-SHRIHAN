@@ -8,7 +8,7 @@ Shrihan leads the backend data work (`pipeline/`, `data/`, `docs/data-notes.md`,
 
 ## Status
 
-The pipeline runs end to end for California: download, clean, filter, grid, harmonize, and the website's real files in `data/processed/` (steps S01–S17). Fake sample files (`web/fixtures/`) remain for tests. The website (`web/`) has region/date selection, totals, a satellite map with area drawing, the burning calendar, charts, CSV downloads, map hotspots, comparison with past years and a Methods page (S19–S28). It runs on the real data by default; deploying (S29) is next.
+The pipeline runs end to end for California: download, clean, filter, grid, harmonize, and the website's real files in `data/processed/` (steps S01–S17). Fake sample files (`web/fixtures/`) remain for tests. The website (`web/`) has region/date selection, totals, a satellite map with area drawing, the burning calendar, charts, CSV downloads, map hotspots, comparison with past years and a Methods page (S19–S28). It runs on the real data by default; deployed on GitHub Pages (S29).
 
 `README.md` is the source of truth for scope, task order, and ownership. Read it fully before starting. Do not create a competing plan elsewhere; edit the README instead.
 
@@ -34,6 +34,8 @@ Install (once): `pip install -r requirements.txt`
 | Score methods, choose, plot (S16) | `python3 pipeline/05b_compare_methods.py` |
 | Build the website's files in `data/processed/` (S17; California) | `python3 pipeline/06_aggregate.py` |
 | Audit `data/processed/` for double counting and harmonization errors | `python3 pipeline/06b_audit_processed.py` |
+| Everything at once: re-run 05/05b, compare with S16, check data, forecast and that the site uses only our data (S18) | `python3 pipeline/07_validate.py` |
+| Experimental 7-day forecast (Timestral model; runs in the `Forecast` GitHub Actions job, needs internet) | `python3 pipeline/07_forecast.py` |
 
 The key is read from the `FIRMS_MAP_KEY` environment variable (Colab Secrets) or a local `.env`; it is never printed. Raw files go to `data/raw/<SOURCE>/<region>/` (gitignored). 
 
@@ -93,7 +95,7 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 
 **Scope (changed 2026-11-15): California only.** `ACTIVE_REGIONS = ["US-CA"]` in `pipeline/config.py`; scripts default to it. The other three regions are archived (`archive/other_regions/README.md`) and remain in `docs/validation/` as evidence for the method.
 
-**Steps ticked in README Section 10:** S01–S17, S19–S28 (2026-11-16).
+**Steps ticked in README Section 10:** S01–S30 (2026-11-16). Only S31 (3-minute demo) is open.
 - **The website's real data exists: `data/processed/`** (California, contract-valid, `"is_sample": false`). Read `data/processed/README.md` first. The site uses it by default (`cd web && npm run dev`); sample files: `DATA_DIR=fixtures npm run dev`.
 - **Harmonization: method A1, `method_version` `A1-1.0`,** policy `blend` (`HARMONIZE_POLICY` in `pipeline/config.py`):
   - from 20 Jan 2012, `count_harm` = half observed MODIS + half k[calendar month] × S-NPP
@@ -149,8 +151,8 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 - **The site is called Califire.** Place names are our own labels (`web/public/map/ca-places.json`), not NASA's tiles, which failed (HTTP 500) and left black patches. The map is limited to California; drawing is cut to California's box; there is no "imagery on date" background.
 
 **Next steps:**
-- **Website:** S29 deploy (GitHub Pages). Do not load all hotspot month files at once (131 MB in total): load only the months in the chosen dates.
-- **Pipeline:** S18 (one validate command). Optional: NRT data for months after Aug 2026.
+- **Website:** S31 demo. Do not load all hotspot month files at once (131 MB in total): load only the months in the chosen dates.
+- **Pipeline:** Optional: NRT data for months after Aug 2026 (needs the FIRMS key; the user decided on 2026-11-16 to keep the forecast as it is for now). After any change run `python3 pipeline/07_validate.py`.
 - **After every rebuild of `data/processed/`,** run `python3 scripts/validate_data.py data/processed` and `python3 pipeline/06b_audit_processed.py`; both must pass. The audit checks double counting and the harmonization arithmetic.
 - **Satellite outages are missing data, not zero fires.** FIRMS files are simply empty on those days. `06_aggregate.py` finds them (`find_outages`) and writes `satellite_outages.csv`. Any new analysis of daily or monthly counts must do the same.
 - **Open, to confirm with the user:** the `blend` policy (alternative `modis_first`).
