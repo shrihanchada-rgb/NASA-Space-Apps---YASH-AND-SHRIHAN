@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-16 — S29 Deploy (GitHub Pages) — BLOCKED (needs a repository setting)
+- **Who / AI:** Shrihan using Claude
+- **Did:** Added `.github/workflows/pages.yml` (merged in PR #33). On every push to `main` that changes `web/` or `data/processed/`, or by hand, it runs the web tests, builds the site with the real data, and deploys `web/dist` to GitHub Pages.
+- **Files changed:** `.github/workflows/pages.yml`, `docs/HANDOFF.md`
+- **How to check it:** Actions tab → "Deploy website": the `build` job passes. After Pages is switched on, rerun it; the site is at https://shrihanchada-rgb.github.io/NASA-Space-Apps---YASH-AND-SHRIHAN/
+- **Results / numbers:** Run 43794665734: `build` succeeded; `deploy` failed with "Failed to create deployment (status: 404) … Ensure GitHub Pages has been enabled". Local check: built site (134 MB) served from a sub-folder loads the app and methods page with no console errors.
+- **Decisions and why:** Deploy with GitHub Actions (no `gh-pages` branch, so the 131 MB data is not committed twice).
+- **Problems / open questions:** Claude cannot change Pages settings (the session's GitHub proxy blocks that API). The repo is private: Pages on a private repo needs a paid GitHub plan (Pro), or the repo must be made public. A Pages site is public on the internet even when the repo is private.
+- **Next step:** Shrihan: Settings → Pages → Source "GitHub Actions"; then Actions → Deploy website → Re-run all jobs. Then tick S29.
+
 ### 2026-11-16 — S25–S28 Real data, calendar check, map hotspots + comparison, Methods page — DONE
 - **Who / AI:** Shrihan using Claude
 - **Did:** The website now runs on the real California data by default (S25). Hotspot files are one per month (`hotspots/<YYYY-MM>.csv`), so the app loads only the months it needs; pipeline, fixtures, validator, audit, tests and contract §7 were updated together. The calendar was checked against Step E (S26). The map shows hotspots as points (coloured by sensor or FRP, click for details) for up to 93 days and 300,000 detections, otherwise as a density grid; a new "Compare with past years" panel ranks the chosen dates against the same dates in every other year and lists the 5 most similar episodes (S27). A Methods and limits page (`web/methods.html`) explains the method, validation, California write-up, limits, citation and licence (S28).
