@@ -26,6 +26,13 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-16 — S29 Deploy: switched to Vercel — STARTED
+- **Who / AI:** Shrihan using Claude
+- **Did:** Added `vercel.json` at the repo root (install `npm ci --prefix web`, build `npm run build --prefix web`, output `web/dist`), so a Vercel project imported from this repo needs no settings. The GitHub Pages workflow now runs only by hand (Pages could not be switched on).
+- **How to check it:** from the repo root: `npm ci --prefix web && npm run build --prefix web` → `web/dist` with `index.html`, `methods.html`, `data/` (134 MB, 355 files; largest file 19.7 MB).
+- **Problems / open questions:** Vercel Hobby limits for a 134 MB static site were not checked against Vercel's documentation. The Vercel import is done by Shrihan on the Vercel site; the URL is not known yet.
+- **Next step:** Shrihan imports the repo on vercel.com; then record the URL here, tick S29.
+
 ### 2026-11-16 — Website made robust against failures; all branches confirmed in main — DONE (not a checklist step)
 - **Who / AI:** Shrihan using Claude
 - **Did:** Checked that every remote branch (37) is part of `main` (the earlier "unmerged" list came from a shallow clone). Hardened the website: one fetch helper with a 2-minute timeout and clear messages; each panel starts on its own and a failing panel (e.g. the map without WebGL) explains itself; a failing listener no longer stops the others; global error message; dates outside the data are clamped or refused; lower map point cap (100,000) on phones and small-memory devices.
