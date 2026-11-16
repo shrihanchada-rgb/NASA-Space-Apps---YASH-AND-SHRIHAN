@@ -10,7 +10,7 @@
  "origin_date": "2026-08-31",
  "note": "Forecast of the 7 days after the last day of the data (the standard archive ends there), not of the days after today.",
  "unit": "MODIS-equivalent hotspots (harmonized count) per day",
- "generated_utc": "2026-11-16T04:43:56+00:00",
+ "generated_utc": "2026-11-16T04:53:17+00:00",
  "warning": "Experimental forecast of satellite-detected activity; not a fire-risk forecast or emergency guidance.",
  "predictions": [
   {
