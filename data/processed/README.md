@@ -51,6 +51,7 @@ Not removed, on purpose: one fire seen by one satellite on two passes in a day, 
 
 ## Results for an area the user chooses
 
+- **How the website does it:** the drawn rectangle is snapped outward to whole 0.25° cells. Calendar and charts sum `grid_monthly.csv` over the cells inside it; the CSV download is the hotspot rows inside the same box. Each point belongs to exactly one cell, so the two agree.
 - **Exact:** take the rows of `hotspots/<year>.csv` inside the area. The sum of `harmonized_weight` is the area's harmonized count; the row count is the raw count. The same rows are the CSV download.
 - **Fast (calendar, anomalies, charts):** sum `grid_monthly.csv` over the cells whose centre (`grid_cells.csv`) is inside the area. Resolution is 0.25° (about 25 km). An area baseline is the same statistics as `baseline.json`, computed from those sums for 2001–2025.
 - NOAA-20 and NOAA-21 rows have weight 0: they are in the raw counts, the map and the downloads, but not in `count_harm`.

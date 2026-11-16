@@ -8,7 +8,7 @@ Shrihan leads the backend data work (`pipeline/`, `data/`, `docs/data-notes.md`,
 
 ## Status
 
-The pipeline runs end to end for California: download, clean, filter, grid, harmonize, and the website's real files in `data/processed/` (steps S01–S17). Fake sample files (`web/fixtures/`) remain for tests. The website backbone exists (`web/`): data loading, shared state, region/date selection, basic totals, and a map with region outlines; the calendar, charts and downloads are placeholders.
+The pipeline runs end to end for California: download, clean, filter, grid, harmonize, and the website's real files in `data/processed/` (steps S01–S17). Fake sample files (`web/fixtures/`) remain for tests. The website (`web/`) has region/date selection, totals, a satellite map with area drawing, the burning calendar, charts and CSV downloads (S19–S24); hotspot points on the map are next (S27). It runs on the sample files by default.
 
 `README.md` is the source of truth for scope, task order, and ownership. Read it fully before starting. Do not create a competing plan elsewhere; edit the README instead.
 
@@ -93,7 +93,7 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 
 **Scope (changed 2026-11-15): California only.** `ACTIVE_REGIONS = ["US-CA"]` in `pipeline/config.py`; scripts default to it. The other three regions are archived (`archive/other_regions/README.md`) and remain in `docs/validation/` as evidence for the method.
 
-**Steps ticked in README Section 10:** S01–S17, S19, S20 (2026-11-15).
+**Steps ticked in README Section 10:** S01–S17, S19–S24 (2026-11-16).
 - **The website's real data exists: `data/processed/`** (California, contract-valid, `"is_sample": false`). Read `data/processed/README.md` first. Run the site on it with `cd web && DATA_DIR=../data/processed npm run dev`.
 - **Harmonization: method A1, `method_version` `A1-1.0`,** policy `blend` (`HARMONIZE_POLICY` in `pipeline/config.py`):
   - from 20 Jan 2012, `count_harm` = half observed MODIS + half k[calendar month] × S-NPP
@@ -141,17 +141,18 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 - **The key is still in git history** (commit `c2dd4b5`, when `.env` was briefly committed). The repo is private. Advice given: request a new key after S10 finishes and replace it in Colab Secrets; no history rewrite.
 
 **Website side:**
-- **Status.** S19 and S20 are done, plus a design refresh: flat style, no gradients, IBM Plex Sans/Mono, NASA GIBS satellite basemap. The user asked for no gradients and fonts that don't look AI-generated. Keep that.
-- **GIBS place-name tiles sometimes return HTTP 500,** so place names are off by default. Next website step: S21 (calendar).
+- **Status.** S19–S24 done: calendar (3 colour modes), charts, CSV downloads, phone and keyboard checked. Flat style, no gradients (the "no data" hatch is an SVG pattern), IBM Plex Sans/Mono, NASA GIBS basemap. The user asked for no gradients and fonts that don't look AI-generated. Keep that.
+- **Default view is the whole region (California).** A drawn area, or one typed in "Enter an area by coordinates", narrows the summary, calendar, charts and downloads to that area. It snaps outward to the 0.25° grid. Rules and definitions: `web/README.md`, "How some numbers are defined".
+- **The site still runs on the sample files by default** (the user asked not to switch to real data yet). `web/fixtures/` has invented counts but California's real outline and the grid files. Switching needs no code change: `DATA_DIR=../data/processed npm run dev` (tested 2026-11-16: no errors, drawn area ready in about 2.5 s).
+- **The area files are part of the contract** (`docs/data-contract.md` §8b, required by `scripts/validate_data.py`). The user decided this; no approval step.
+- **GIBS place-name tiles sometimes return HTTP 500,** so place names are off by default.
 
 **Next steps:**
-- **Website (S21–S23, S27):** calendar, charts, downloads and hotspot points, all on `data/processed/`.
-  - For an area the user draws, follow "Results for an area the user chooses" in `data/processed/README.md`.
-  - Do not load all 27 hotspot files at once (131 MB): use `grid_monthly.csv` for the calendar and charts, and load hotspot files only for the years needed for the map and the download.
+- **Website:** S27 hotspot points on the map; S25 switches to real data when the user says so. Do not load all 27 real hotspot files at once (131 MB): load only the years in the chosen dates.
 - **Pipeline:** S18 (one validate command). Optional: NRT data for months after Aug 2026.
 - **After every rebuild of `data/processed/`,** run `python3 scripts/validate_data.py data/processed` and `python3 pipeline/06b_audit_processed.py`; both must pass. The audit checks double counting and the harmonization arithmetic.
 - **Satellite outages are missing data, not zero fires.** FIRMS files are simply empty on those days. `06_aggregate.py` finds them (`find_outages`) and writes `satellite_outages.csv`. Any new analysis of daily or monthly counts must do the same.
-- **Open, to confirm with the user:** the `blend` policy (alternative `modis_first`); the proposed extra files need Yash's agreement (`docs/data-contract.md` §8b).
+- **Open, to confirm with the user:** the `blend` policy (alternative `modis_first`).
 - **Limits to state in the app:** the range is approximate; conversion error grows after 2023; Terra-only months are less certain.
 - **Double counting:** follow the rules in `docs/pipeline-files.md`. Same fire seen by several satellites or neighbouring pixels is S14's job, not cleaning's.
 

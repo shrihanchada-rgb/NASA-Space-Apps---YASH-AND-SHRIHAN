@@ -2,6 +2,8 @@
 
 import type { AppContext } from '../context';
 import { datePresets } from '../data/derive';
+import { snapBox } from '../data/selection';
+import type { BBox } from '../data/types';
 import { h } from '../dom';
 
 export function mountControls(el: HTMLElement, ctx: AppContext): void {
@@ -78,6 +80,46 @@ export function mountControls(el: HTMLElement, ctx: AppContext): void {
   state.subscribe(syncInputs);
   loaded.subscribe(renderPresets);
 
+  // --- an area by coordinates: the keyboard alternative to drawing on the map ---
+  const num = (id: string, label: string, ph: string) => {
+    const input = h('input', { id, type: 'number', step: '0.25', placeholder: ph, inputMode: 'decimal' });
+    return { input, wrap: h('div', {}, h('label', { htmlFor: id }, label), input) };
+  };
+  const w = num('area-w', 'West', '-122.5'), s = num('area-s', 'South', '37.0'), e = num('area-e', 'East', '-121.0'), n = num('area-n', 'North', '38.5');
+  const areaError = h('p', { class: 'field-error', hidden: true });
+  areaError.setAttribute('role', 'alert');
+  const apply = h('button', { type: 'button', class: 'chip' }, 'Use this area');
+  const clearArea = h('button', { type: 'button', class: 'chip' }, 'Whole region');
+  apply.addEventListener('click', () => {
+    const v = [w, s, e, n].map((x) => Number(x.input.value));
+    if ([w, s, e, n].some((x) => x.input.value.trim() === '') || v.some((x) => !Number.isFinite(x))) {
+      areaError.textContent = 'Enter all four numbers (degrees; west and east are negative in California).';
+      areaError.hidden = false;
+      return;
+    }
+    const [W, S, E, N] = v as [number, number, number, number];
+    if (W >= E || S >= N || S < -90 || N > 90 || W < -180 || E > 180) {
+      areaError.textContent = 'West must be less than east, and south less than north.';
+      areaError.hidden = false;
+      return;
+    }
+    areaError.hidden = true;
+    state.set({ drawnBox: snapBox([W, S, E, N] as BBox), drawing: false });
+  });
+  clearArea.addEventListener('click', () => state.set({ drawnBox: null }));
+  const areaBox = h('details', { class: 'area-form' },
+    h('summary', {}, 'Enter an area by coordinates'),
+    h('div', { class: 'area-grid' }, w.wrap, e.wrap, s.wrap, n.wrap),
+    areaError,
+    h('div', { class: 'presets' }, apply, clearArea),
+    h('p', { class: 'note field-help' }, 'The area snaps outward to the 0.25° data grid (about 25 km), like a drawn area.'));
+  function syncArea(): void {
+    const b = state.get().drawnBox;
+    if (b) [w, s, e, n].forEach((x, i) => { x.input.value = String(b[i]); });
+    clearArea.setAttribute('aria-pressed', String(!b));
+  }
+  state.subscribe((st, prev) => { if (st.drawnBox !== prev.drawnBox) syncArea(); });
+
   el.replaceChildren(
     h('h2', {}, 'Selection'),
     h('label', { htmlFor: 'region-search' }, 'Find a region'),
@@ -85,7 +127,8 @@ export function mountControls(el: HTMLElement, ctx: AppContext): void {
     h('label', { htmlFor: 'region-select' }, 'Region'),
     region,
     noMatch,
-    h('p', { class: 'note field-help' }, 'Or click a region on the map, or draw an area.'),
+    h('p', { class: 'note field-help' }, 'Shows the whole region. Draw an area on the map to narrow everything to that area.'),
+    areaBox,
     h('h3', {}, 'Dates'),
     presetBox,
     h('div', { class: 'date-row' },
@@ -97,4 +140,5 @@ export function mountControls(el: HTMLElement, ctx: AppContext): void {
   );
   fillRegions();
   syncInputs();
+  syncArea();
 }

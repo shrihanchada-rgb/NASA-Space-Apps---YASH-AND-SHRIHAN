@@ -28,6 +28,8 @@ data/processed/
   regions/<region_id>/daily.json     # §5, daily charts + any date range summary
   regions/<region_id>/baseline.json  # §6, climatology for anomaly / percentile colours
   regions/<region_id>/hotspots/<year>.csv   # §7, per-detection points for map + CSV download
+  regions/<region_id>/grid_cells.csv        # §8b, cells of the region (required)
+  regions/<region_id>/grid_monthly.csv      # §8b, per-cell monthly counts for drawn areas (required)
   daily_grid.parquet                 # §8, pipeline-internal, NOT read by the website v1
 ```
 
@@ -155,20 +157,27 @@ The downloaded CSV adds comment lines starting with `#` above the header: the qu
 
 Not read by the website v1. Columns: `date` (date), `cell_id` (string, `"<lat_index>_<lon_index>"` on the `grid_resolution_deg` grid), `count_raw_modis` (int), `count_raw_viirs` (int), `count_harm` (float), `frp_sum` (float). Kept so validation and future features can re-aggregate.
 
-## 8b. Proposed additions (written by step 06 since 2026-11-15; **not yet agreed by both people**)
+## 8b. Area files (part of contract 1.0 since 2026-11-15; required)
 
-The website may ignore these files; contract 1.0 files are unchanged. They exist so results can follow an area the user chooses inside the region without loading every detection. Yash: please accept, change or reject.
+These let the website give results for any area the user draws inside the region, without loading every detection. `scripts/validate_data.py` requires them and checks that they add up to `monthly.json`.
 
 | File | Columns / fields |
 |---|---|
 | `regions/<id>/grid_cells.csv` | `lat_idx`, `lon_idx` (cell = `floor((lat + 90) / 0.25)`, `floor((lon + 180) / 0.25)`), `lat`, `lon` (cell centre), `share_in_region` (0–1) |
-| `regions/<id>/grid_monthly.csv` | `year`, `month`, `lat_idx`, `lon_idx`, `count_harm`, `count_raw_modis`, `count_raw_viirs`, `frp_sum`; only cells with at least one detection that month (absent = 0 if the month has data) |
-| `regions/<id>/satellite_outages.csv` | `satellite`, `start`, `end`, `days`, `evidence`: periods when a satellite delivered no data (treated as missing, not as zero) |
-| `regions/<id>/harmonization_check.json` | per overlap month: `modis_observed`, `snpp_detections`, `modis_equivalent_from_snpp`, `range_low`, `range_high`; plus `k_by_calendar_month` |
+| `regions/<id>/grid_monthly.csv` | `year`, `month`, `lat_idx`, `lon_idx`, `count_harm`, `count_raw_modis`, `count_raw_viirs`, `frp_sum`. Only cells with at least one detection that month; absent = 0 if the month has data, and no data if `monthly.json` has `count_harm: null`. |
+| `regions/<id>/satellite_outages.csv` (optional) | `satellite`, `start`, `end`, `days`, `evidence`: periods when a satellite delivered no data (treated as missing, not as zero) |
+| `regions/<id>/harmonization_check.json` (optional) | per overlap month: `modis_observed`, `snpp_detections`, `modis_equivalent_from_snpp`, `range_low`, `range_high`; plus the factors used |
 
-Clarifications of contract 1.0 found when the first real files were built (no change of meaning):
-- **`harmonized_weight`:** weights of all rows of a month add up to `count_harm`. Rows of satellites that do not enter `count_harm` (NOAA-20, NOAA-21, and all VIIRS under the `modis_first` policy) have weight 0.
-- **A null raw count** (`count_raw_viirs` before 20 Jan 2012) means no rows of that sensor in the hotspot files; `scripts/validate_data.py` now accepts this.
+**How the website uses them for a drawn area:**
+- The drawn rectangle is snapped outward to whole 0.25° cells. A cell belongs to the area if it is inside the snapped rectangle.
+- Calendar, charts and baseline for the area are sums of `grid_monthly.csv` over those cells.
+- The CSV download for the area is the hotspot rows inside the same snapped rectangle. Because each point belongs to exactly one cell, the download and the calendar always agree.
+- A month with `count_harm: null` for the region is no data for every area inside it.
+- The area's range (`count_low`/`count_high`) is the area value × the region's `count_low / count_harm` and `count_high / count_harm` for that month.
+
+**Rules for the other files:**
+- **`harmonized_weight`:** the weights of all rows of a month add up to `count_harm`. Rows of satellites that do not enter `count_harm` (NOAA-20, NOAA-21, and S-NPP on outage days) have weight 0.
+- **A null raw count** (`count_raw_viirs` before 20 Jan 2012) means no rows of that sensor in the hotspot files.
 - **`count_low` = `count_harm` = `count_high`** where the value is purely observed MODIS.
 
 ## 9. How each website feature maps to files

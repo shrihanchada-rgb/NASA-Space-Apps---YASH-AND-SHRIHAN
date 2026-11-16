@@ -11,6 +11,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { AppContext } from '../context';
 import type { BBox } from '../data/types';
+import { snapBox } from '../data/selection';
 import { h } from '../dom';
 import { icon } from '../icons';
 
@@ -127,7 +128,7 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
   }
 
   function updateNote(): void {
-    const parts = ['Click a region to select it, or draw an area.'];
+    const parts = ['Draw an area to see its own calendar, charts and downloads (it snaps to the 0.25° data grid, about 25 km).'];
     if (basemap === 'satellite') parts.push('Background: NASA Blue Marble composite (cloud-free, not a specific date).');
     if (basemap === 'daily') parts.push(`Background: MODIS Terra true colour for ${imageryDate(ctx)} (one day; clouds and gaps between satellite passes are normal).`);
     parts.push('Hotspot points come in a later step.');
@@ -165,7 +166,7 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
       (map.getSource('drawn') as GeoJSONSource).setData(boxFeature(ctx.state.get().drawnBox));
       return; // a click, not a drag
     }
-    ctx.state.set({ drawnBox: box, drawing: false });
+    ctx.state.set({ drawnBox: snapBox(box), drawing: false }); // whole 0.25-degree cells, like the data grid
   }
 
   map.on('load', () => {

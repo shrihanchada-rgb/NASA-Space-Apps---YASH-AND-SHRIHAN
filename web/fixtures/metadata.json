@@ -5,33 +5,33 @@
  "is_sample": true,
  "reference_scale": "MODIS-equivalent detections (SAMPLE: invented values)",
  "time_coverage": {
-  "start": "2023-01-01",
+  "start": "2015-01-01",
   "end": "2025-12-31"
  },
  "sources": [
   {
    "source": "MODIS_SP",
-   "first_date": "2023-06-13",
-   "last_date": "2025-10-15",
-   "n_detections_kept": 636
+   "first_date": "2015-06-10",
+   "last_date": "2025-10-12",
+   "n_detections_kept": 2238
   },
   {
    "source": "VIIRS_SNPP_SP",
-   "first_date": "2023-05-27",
-   "last_date": "2025-10-18",
-   "n_detections_kept": 1045
+   "first_date": "2015-05-26",
+   "last_date": "2025-10-22",
+   "n_detections_kept": 5757
   },
   {
    "source": "VIIRS_NOAA20_SP",
-   "first_date": "2023-06-08",
-   "last_date": "2025-10-19",
-   "n_detections_kept": 1046
+   "first_date": "2018-06-03",
+   "last_date": "2025-10-24",
+   "n_detections_kept": 3633
   },
   {
    "source": "VIIRS_NOAA21_SP",
-   "first_date": "2024-07-02",
-   "last_date": "2025-10-30",
-   "n_detections_kept": 627
+   "first_date": "2024-07-01",
+   "last_date": "2025-10-17",
+   "n_detections_kept": 405
   }
  ],
  "filters": {
@@ -45,6 +45,10 @@
   "US-CA"
  ],
  "sensor_transitions": [
+  {
+   "date": "2018-04-01",
+   "label": "NOAA-20 VIIRS starts"
+  },
   {
    "date": "2024-01-17",
    "label": "NOAA-21 VIIRS starts"

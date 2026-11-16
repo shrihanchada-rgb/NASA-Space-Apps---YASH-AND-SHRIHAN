@@ -148,6 +148,44 @@ def validate(folder):
                     errors.append(f"{p} {m['year']}-{m['month']:02d}: hotspot rows (MODIS {c['MODIS']}, VIIRS {c['VIIRS']}) != monthly raw counts")
                 if not close(c["w"], m["count_harm"]):
                     errors.append(f"{p} {m['year']}-{m['month']:02d}: sum of harmonized_weight {c['w']:.4f} != count_harm {m['count_harm']}")
+        # area files (contract section 8): grid cells and per-cell monthly counts must add up to monthly.json
+        gpath, cpath = rdir / "grid_monthly.csv", rdir / "grid_cells.csv"
+        if not gpath.exists() or not cpath.exists():
+            errors.append(f"{p}: grid_monthly.csv and grid_cells.csv are required (contract section 8)")
+            continue
+        with open(cpath, newline="") as f:
+            rd = csv.DictReader(f)
+            if rd.fieldnames != ["lat_idx", "lon_idx", "lat", "lon", "share_in_region"]:
+                errors.append(f"{cpath}: columns {rd.fieldnames}")
+                continue
+            cells = {(int(r["lat_idx"]), int(r["lon_idx"])) for r in rd}
+        sums, seen = {}, set()
+        with open(gpath, newline="") as f:
+            rd = csv.DictReader(f)
+            if rd.fieldnames != ["year", "month", "lat_idx", "lon_idx", "count_harm", "count_raw_modis", "count_raw_viirs", "frp_sum"]:
+                errors.append(f"{gpath}: columns {rd.fieldnames}")
+                continue
+            for ln, r in enumerate(rd, start=2):
+                key = (int(r["year"]), int(r["month"]), int(r["lat_idx"]), int(r["lon_idx"]))
+                if key in seen:
+                    errors.append(f"{gpath}:{ln}: cell-month listed twice")
+                seen.add(key)
+                if key[2:] not in cells:
+                    errors.append(f"{gpath}:{ln}: cell {key[2:]} is not in grid_cells.csv")
+                a = sums.setdefault(key[:2], [0.0, 0, 0])
+                a[0] += float(r["count_harm"])
+                a[1] += int(r["count_raw_modis"])
+                a[2] += int(r["count_raw_viirs"])
+        for m in ms:
+            a = sums.get((m["year"], m["month"]), [0.0, 0, 0])
+            if m["count_harm"] is None:
+                if a != [0.0, 0, 0]:
+                    errors.append(f"{p} {m['year']}-{m['month']:02d}: grid rows exist but month is null")
+                continue
+            if abs(a[0] - m["count_harm"]) > 0.05 + 1e-5 * m["count_harm"]:
+                errors.append(f"{p} {m['year']}-{m['month']:02d}: grid count_harm sum {a[0]:.3f} != monthly {m['count_harm']}")
+            if a[1] != (m["count_raw_modis"] or 0) or a[2] != (m["count_raw_viirs"] or 0):
+                errors.append(f"{p} {m['year']}-{m['month']:02d}: grid raw counts {a[1:]} != monthly")
     return errors
 
 

@@ -1,7 +1,7 @@
 // The only place that fetches data. Everything comes from <site>/data/, which is
 // web/fixtures in development and data/processed for the real site (see vite.config.ts).
 
-import type { Baseline, Daily, FileHeader, Hotspot, Metadata, Monthly, RegionCollection, RegionData } from './types';
+import type { Baseline, Daily, FileHeader, GridCell, GridMonth, Hotspot, Metadata, Monthly, RegionCollection, RegionData, RegionGrid } from './types';
 
 export const SUPPORTED_SCHEMA = '1.0';
 
@@ -114,6 +114,50 @@ export function loadHotspots(regionId: string, year: number): Promise<Hotspot[]>
     })();
     hit.catch(() => hotspotCache.delete(path));
     hotspotCache.set(path, hit);
+  }
+  return hit;
+}
+
+// ---------- grid files (contract section 8b) ----------
+
+async function fetchText(path: string): Promise<string> {
+  let res: Response;
+  try {
+    res = await fetch(base + path);
+  } catch {
+    throw new DataError(`Could not reach ${path}. Check your connection.`);
+  }
+  if (!res.ok) throw new DataError(`Could not load ${path} (HTTP ${res.status}).`);
+  return res.text();
+}
+
+/** Parse a plain numeric CSV with the expected header into objects. */
+export function parseNumericCsv<T>(text: string, columns: readonly string[], path: string): T[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
+  const header = lines.shift() ?? '';
+  if (header !== columns.join(',')) throw new DataError(`${path} has unexpected columns: ${header}`);
+  return lines.map((line) => {
+    const v = line.split(',');
+    const o: Record<string, number> = {};
+    columns.forEach((c, i) => { o[c] = Number(v[i]); });
+    return o as T;
+  });
+}
+
+const CELL_COLUMNS = ['lat_idx', 'lon_idx', 'lat', 'lon', 'share_in_region'] as const;
+const GRID_COLUMNS = ['year', 'month', 'lat_idx', 'lon_idx', 'count_harm', 'count_raw_modis', 'count_raw_viirs', 'frp_sum'] as const;
+const gridCache = new Map<string, Promise<RegionGrid>>();
+
+export function loadGrid(regionId: string): Promise<RegionGrid> {
+  let hit = gridCache.get(regionId);
+  if (!hit) {
+    const dir = `regions/${encodeURIComponent(regionId)}/`;
+    hit = Promise.all([fetchText(dir + 'grid_cells.csv'), fetchText(dir + 'grid_monthly.csv')]).then(([c, g]) => ({
+      cells: parseNumericCsv<GridCell>(c, CELL_COLUMNS, dir + 'grid_cells.csv'),
+      months: parseNumericCsv<GridMonth>(g, GRID_COLUMNS, dir + 'grid_monthly.csv'),
+    }));
+    hit.catch(() => gridCache.delete(regionId));
+    gridCache.set(regionId, hit);
   }
   return hit;
 }
