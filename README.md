@@ -217,7 +217,8 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
   - Done 2026-11-16: `.github/workflows/pages.yml` builds `web/` with `data/processed/` and deploys on every push to `main` that changes the site or data. Live: https://shrihanchada-rgb.github.io/NASA-Space-Apps---YASH-AND-SHRIHAN/ (the deploy job reports success; the live page was not opened from the AI session).
 - [x] **S30 Full rebuild test.** Needs: S29. Do: run the whole pipeline from an empty `data/processed/` and check the app still works.
   - Done 2026-11-16 for the steps that run from the repo plus the filtered files: `06_aggregate.py --out <empty folder>` rebuilt `data/processed/` in 16 s; 319 of 321 files are byte-identical to the published ones (the other two are the hand-written README and the forecast file made by the Actions job); `validate_data.py` 0 problems on the rebuild. Steps 01–04 (download, clean, filter, grid) need Colab and were not re-run.
-- [ ] **S31 Demo.** Needs: S30. Do: write and rehearse a 3-minute demo (pick a region, show calendar, show worst year, compare a recent fire, download CSV). Done when: everything in Section 8 is true.
+- [x] **S31 Demo.** Needs: S30. Do: write and rehearse a 3-minute demo (pick a region, show calendar, show worst year, compare a recent fire, download CSV). Done when: everything in Section 8 is true.
+  - Done 2026-11-16: script, timings, answers to likely questions and the Section 8 check are in `docs/demo.md`; `scripts/rehearse_demo.js` performs every click on the real data (18/18 checks) and saves a screenshot per step to `docs/demo/`. Section 8: validation report, calendar/analytics/CSV for California and honest methods page are verified; "reproduces from raw" is verified from the filtered files only (steps 01–04 ran in Colab earlier); "deployed" is verified by the Actions deploy job, and the live page still needs a person to open it.
 
 ---
 
