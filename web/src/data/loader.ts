@@ -96,9 +96,9 @@ export function parseHotspotCsv(text: string, path = 'hotspots'): Hotspot[] {
 
 const hotspotCache = new Map<string, Promise<Hotspot[]>>();
 
-/** Hotspots for one region and year. A missing file (404) means no detections that year: returns []. */
-export function loadHotspots(regionId: string, year: number): Promise<Hotspot[]> {
-  const path = `regions/${encodeURIComponent(regionId)}/hotspots/${year}.csv`;
+/** Hotspots for one region and month (YYYY-MM). A missing file (404) means no detections that month: returns []. */
+export function loadHotspotMonth(regionId: string, month: string): Promise<Hotspot[]> {
+  const path = `regions/${encodeURIComponent(regionId)}/hotspots/${month}.csv`;
   let hit = hotspotCache.get(path);
   if (!hit) {
     hit = (async () => {
@@ -116,6 +116,28 @@ export function loadHotspots(regionId: string, year: number): Promise<Hotspot[]>
     hotspotCache.set(path, hit);
   }
   return hit;
+}
+
+/** Months (YYYY-MM) from start to end dates, inclusive. */
+export function monthKeys(start: string, end: string): string[] {
+  const out: string[] = [];
+  let y = Number(start.slice(0, 4));
+  let m = Number(start.slice(5, 7));
+  const last = end.slice(0, 7);
+  for (;;) {
+    const k = `${y}-${String(m).padStart(2, '0')}`;
+    if (k > last) break;
+    out.push(k);
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
+/** All hotspots of a region between two dates (loads only the month files needed). */
+export async function loadHotspots(regionId: string, start: string, end: string): Promise<Hotspot[]> {
+  const parts = await Promise.all(monthKeys(start, end).map((k) => loadHotspotMonth(regionId, k)));
+  return parts.flat().filter((p) => p.date >= start && p.date <= end);
 }
 
 // ---------- grid files (contract section 8b) ----------

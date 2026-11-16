@@ -58,7 +58,7 @@ def test_detects_short_daily_column(copy):
 
 
 def test_detects_bad_hotspot_value(copy):
-    p = copy / "regions/US-CA/hotspots/2023.csv"
+    p = copy / "regions/US-CA/hotspots/2023-07.csv"
     lines = p.read_text().splitlines()
     lines[1] = lines[1].replace(",nominal,", ",medium,").replace(",high,", ",medium,")
     p.write_text("\n".join(lines) + "\n")

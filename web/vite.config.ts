@@ -7,8 +7,8 @@ import { defineConfig } from 'vitest/config';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 // Folder the app reads its data from, served at /data/.
-// Default: the fake sample files. Real data later: DATA_DIR=../data/processed npm run dev
-const dataDir = path.resolve(here, process.env.DATA_DIR ?? 'fixtures');
+// Default (since S25, 2026-11-16): the real data built by the pipeline. Fake sample files: DATA_DIR=fixtures npm run dev
+const dataDir = path.resolve(here, process.env.DATA_DIR ?? '../data/processed');
 
 const TYPES: Record<string, string> = {
   '.json': 'application/json',

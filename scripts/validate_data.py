@@ -120,6 +120,9 @@ def validate(folder):
         names = [c["name"] for c in spec]
         counted = {}
         for fpath in sorted(hdir.glob("*.csv")) if hdir.is_dir() else []:
+            if not re.fullmatch(r"\d{4}-\d{2}", fpath.stem):
+                errors.append(f"{fpath}: hotspot files must be named <YYYY-MM>.csv (contract section 7)")
+                continue
             with open(fpath, newline="") as f:
                 rd = csv.DictReader(f)
                 if rd.fieldnames != names:
@@ -131,7 +134,7 @@ def validate(folder):
                         errors.append(f"{fpath}:{ln}: bad value in {bad}")
                         continue
                     if row["region_id"] != rid or not row["date"].startswith(fpath.stem):
-                        errors.append(f"{fpath}:{ln}: wrong region or year for this file")
+                        errors.append(f"{fpath}:{ln}: wrong region or month for this file")
                     key = (int(row["date"][:4]), int(row["date"][5:7]))
                     c = counted.setdefault(key, {"MODIS": 0, "VIIRS": 0, "w": 0.0})
                     c[row["sensor"]] += 1

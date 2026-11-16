@@ -220,11 +220,13 @@ def main():
         name.write_text(json.dumps(obj, indent=1) + "\n")
     fields = ["date", "time_utc", "latitude", "longitude", "sensor", "satellite", "confidence", "frp", "daynight",
               "harmonized_weight", "region_id"]
-    for y in range(START.year, END.year + 1):
-        with open(rdir / "hotspots" / f"{y}.csv", "w", newline="") as f:
+    for old in (rdir / "hotspots").glob("*.csv"):
+        old.unlink()
+    for key in sorted({r["date"][:7] for r in det}):   # one file per month (contract section 7)
+        with open(rdir / "hotspots" / f"{key}.csv", "w", newline="") as f:
             wr = csv.DictWriter(f, fieldnames=fields)
             wr.writeheader()
-            wr.writerows(r for r in det if r["date"].startswith(str(y)))
+            wr.writerows(r for r in det if r["date"].startswith(key))
     # grid_cells.csv and grid_monthly.csv (data contract section 8)
     cells = MASK.cells()
     cells[["lat", "lon"]] = cells[["lat", "lon"]].round(3)

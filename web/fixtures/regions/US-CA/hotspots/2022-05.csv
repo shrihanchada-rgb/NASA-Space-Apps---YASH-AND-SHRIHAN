@@ -1,0 +1,6 @@
+date,time_utc,latitude,longitude,sensor,satellite,confidence,frp,daynight,harmonized_weight,region_id
+2022-05-26,2126,34.4384,-116.993,VIIRS,N20,nominal,1.5,D,0.25,US-CA
+2022-05-28,2052,34.0088,-117.4187,VIIRS,N20,nominal,6.6,N,0.25,US-CA
+2022-05-29,1049,36.0584,-119.868,VIIRS,N,nominal,1.7,D,0.25,US-CA
+2022-05-30,2102,41.564,-123.4359,VIIRS,N,nominal,9.0,D,0.25,US-CA
+2022-05-31,0921,35.8397,-119.486,VIIRS,N20,nominal,11.2,N,0.25,US-CA
