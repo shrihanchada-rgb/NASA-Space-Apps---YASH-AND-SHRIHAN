@@ -4,6 +4,24 @@ The fire-calendar website. Vite + TypeScript, no UI framework. It reads only the
 
 **Design:** flat, Swiss-style dashboard (no gradients), one ember accent, light and dark themes from CSS variables in `src/styles.css`. Fonts: IBM Plex Sans (text) and IBM Plex Mono (dates, tags), OFL-1.1, bundled from npm (`@fontsource-variable/ibm-plex-sans`, `@fontsource/ibm-plex-mono`), so no font server is called. Design guidance came from the `ui-ux-pro-max` skill (`.claude/skills/`).
 
+**Combined Califire site (branch `merge/califire-combined`, 2026-11-16).** Our features and data with the look of Yashneil's Califire site (github.com/yashneil75/califire, MIT, copyright Yashneil Gajjala and Shrihan Chada):
+
+| Page | File | Feature | Data |
+|---|---|---|---|
+| Overview | `index.html` | selection, summary figures, charts | ours (`data/processed`) |
+| Archive | `archive.html` | burning activity calendar (years × months, 3 colour modes) | ours |
+| Map | `map.html` | points / density, draw an area, place names | ours |
+| Compare | `compare.html` | compare with past years | ours |
+| Latest | `public/latest/index.html` | his day-by-day month grid, day drawer, 7-day forecast | his daily index (different unit) |
+| Download | `download.html` | our CSVs; a separate card links to his `latest/download.html` | each its own |
+| Methodology | `methodology.html` | ours, with a separate section on the Latest data; his own text is `latest/methodology.html` | each its own |
+
+- **Separate features stay separate.** His Latest pages are his files, copied unchanged into `public/latest/` (served as they are, not built), except: the menu, a one-line "separate dataset" note, and `fetchLatest` in his `app.js` / `download.js`, which first reads the newest data from https://yashneil75.github.io/califire/ (refreshed daily there) and falls back to the copy in `public/latest/data/` (snapshot of 2026-11-15). His CSS and ours share 9 class names (`.panel`, `.brand`, `.cal-grid`…), so they are never loaded on the same page.
+- **Look:** our `src/styles.css` tokens use his palette, Inter / Inter Tight (Google Fonts), square corners, his top bar, page titles and footer; light only, like his site. `src/shell.ts` draws the menu and footer for our pages.
+- **Selection between pages:** dates, drawn area and colour mode are kept in the address (`?start=…&end=…&area=w,s,e,n&colors=…`) and in the menu links (`src/shell.ts`). Invalid values are ignored; an area is cut to California and snapped to the grid.
+- **Phones:** the selection panel is a folded "Dates and area" bar that shows the current choice.
+- `methods.html` now redirects to `methodology.html`.
+
 **Califire** is the site's name. **Map:** NASA GIBS Blue Marble composite (free, no key) or a plain background. The "imagery on date" background was removed (2026-11-16). Place names are drawn by the app from `public/map/ca-places.json` (41 California places from Natural Earth, public domain; bigger places first, smaller ones as you zoom in), on by default. NASA's label tiles were dropped: they often returned HTTP 500 and left black patches on the map.
 **Map limits:** `renderWorldCopies: false`, minimum zoom 4, and panning is limited to California plus a margin (`applyViewLimits` in `mapView.ts`, computed from the map size so the whole state always fits). A drawn rectangle, and the coordinates form, are cut to California's bounding box (`clampBox`); a rectangle wholly outside is refused with a message. The button "Show all of California" (shown while an area is drawn) returns to the whole region.
 

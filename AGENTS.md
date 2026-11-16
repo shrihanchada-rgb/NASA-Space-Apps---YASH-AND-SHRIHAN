@@ -145,6 +145,7 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 - **Default view is the whole region (California).** A drawn area, or one typed in "Enter an area by coordinates", narrows the summary, calendar, charts and downloads to that area. It snaps outward to the 0.25° grid. Rules and definitions: `web/README.md`, "How some numbers are defined".
 - **The site runs on the real data by default since S25** (2026-11-16). Hotspots are one file per month (`hotspots/<YYYY-MM>.csv`, contract §7); the app loads only the months it needs. `web/fixtures/` (invented counts, California's real outline) is for tests and `DATA_DIR=fixtures npm run dev`.
 - **The area files are part of the contract** (`docs/data-contract.md` §8b, required by `scripts/validate_data.py`). The user decided this; no approval step.
+- **Combined site (branch `merge/califire-combined`, not yet in `main`):** our features and data in Yashneil's Califire look (yashneil75/califire), as separate pages: Overview, Archive, Map, Compare, Latest (his daily index, unchanged, in `web/public/latest/`), Download, Methodology. Never load his CSS and ours on one page (shared class names). Details: `web/README.md`.
 - **The site is called Califire.** Place names are our own labels (`web/public/map/ca-places.json`), not NASA's tiles, which failed (HTTP 500) and left black patches. The map is limited to California; drawing is cut to California's box; there is no "imagery on date" background.
 
 **Next steps:**

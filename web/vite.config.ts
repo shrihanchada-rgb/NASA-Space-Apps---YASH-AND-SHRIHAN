@@ -42,6 +42,13 @@ function fireData(): Plugin {
 export default defineConfig({
   base: './', // relative paths, so the built site works on GitHub Pages under any folder
   plugins: [fireData()],
-  build: { rollupOptions: { input: { main: path.resolve(here, 'index.html'), methods: path.resolve(here, 'methods.html') } } },
+  // One entry per page. The Latest pages (public/latest/) are Yashneil's static files, copied as they are.
+  build: {
+    rollupOptions: {
+      input: Object.fromEntries(
+        ['index', 'archive', 'map', 'compare', 'download', 'methodology', 'methods'].map((n) => [n, path.resolve(here, `${n}.html`)]),
+      ),
+    },
+  },
   test: { environment: 'node', include: ['src/**/*.test.ts'] },
 });
