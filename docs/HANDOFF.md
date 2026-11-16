@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-16 — S31 Demo — DONE
+- **Who / AI:** Shrihan using Claude
+- **Did:** Wrote the 3-minute demo (`docs/demo.md`): seven steps with timings, what to click, what to say and what should appear; fallbacks; likely questions with true answers; and the Section 8 check. Rehearsed it with `scripts/rehearse_demo.js`, which performs every click in Chromium on the real data and checks the numbers; screenshots in `docs/demo/`.
+- **Files changed:** `docs/demo.md`, `docs/demo/*.png` (7), `scripts/rehearse_demo.js`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF.md`
+- **How to check it:** `cd web && npm run dev`, then in another terminal `cd web && BASE=http://localhost:5173/ node ../scripts/rehearse_demo.js` (Playwright needed) → "18/18 checks passed".
+- **Results / numbers:** Biggest day 2,847.6 on Sep 9, 2020. Los Angeles area, January 2025: 8 Jan = 193.5 (day 67.4, night 126.1), month 458, 1st of 26 Januaries (next: Jan 2004, 35). 2020 total 48,425; Sep 2020 26,632 (daily CSV sums to 26,632.23, 30 rows). The "recent fire" is the Palisades and Eaton fires, both started 7 Jan 2025 (sources: ABC7, Good Morning America timelines; LA County fact sheet). Machine time for all steps about 14 s.
+- **Decisions and why:** The demo uses a drawn area and the comparison inside the Map page, because these are the new features and answer "pick a region" now that California is the only region. Numbers in the script come from the rehearsal, not from memory.
+- **Problems / open questions:** Section 8 is true with two caveats: "reproduces from raw" was verified from the filtered files only (steps 01–04 need Colab), and "deployed" was verified by the Actions job, not by opening the live page. A person should open the live site once and rehearse aloud for timing.
+- **Next step:** None open. Ideas: near-real-time data (needs the FIRMS key), other regions.
+
 ### 2026-11-16 — S18 validate command, S29 deploy, S30 rebuild test — DONE
 - **Who / AI:** Shrihan using Claude
 - **Did:** The user decided to keep the forecast as it is (no near-real-time data) and to make sure every page uses our data. S18: `pipeline/07_validate.py` runs steps 05 and 05b, compares California with the committed `docs/validation/S16/`, and checks the data contract, the audit, the scores in `metadata.json`, the factors in `harmonization_check.json`, the forecast file, and that the website uses only our data (14 checks; report `docs/validation/S18/README.md`). S29: the Pages deploy runs on every push to `main` (workflow succeeded for the latest site). S30: rebuilt `data/processed/` from the filtered files into a scratch folder.
