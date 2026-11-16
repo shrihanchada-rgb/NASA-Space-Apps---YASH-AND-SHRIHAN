@@ -22,8 +22,10 @@ The fire-calendar website. Vite + TypeScript, no UI framework. It reads only the
 
 The app fetches everything from `<site>/data/`. `vite.config.ts` decides which folder that is:
 
-- Default: `web/fixtures/` (fake sample data, shows a "SAMPLE DATA" banner). The counts are invented, but the region is California's real outline and the files include the grid files, so drawn areas behave like on real data. Re-create with `python3 scripts/make_sample_fixtures.py`.
-- Real data: `DATA_DIR=../data/processed npm run dev` (or `npm run build`). No app code changes.
+- Default (since S25, 2026-11-16): `../data/processed/`, the real California data built by the pipeline.
+- Sample data: `DATA_DIR=fixtures npm run dev` (fake counts, shows a "SAMPLE DATA" banner; California's real outline and the grid files, so drawn areas behave like on real data). Re-create with `python3 scripts/make_sample_fixtures.py`. Tests use the sample files.
+- Hotspots are one file per month (`hotspots/<YYYY-MM>.csv`); the app loads only the months of the chosen dates.
+- Pages: `index.html` (the app) and `methods.html` (Methods and limits, S28). Both are built.
 
 ## Structure
 
@@ -70,13 +72,15 @@ src/styles.css          all styles; colours are CSS variables with light and dar
 | Region search + dropdown, click region on map, draw a rectangle | Built | S20 (polygon drawing not built) |
 | Date presets (all, last 30 days, last 12 months, last full year, fire season) + custom range | Built | S20 |
 | Summary: harmonized total, peak month, peak year, FRP, % high confidence, days with no data, raw by sensor | Built | S20 |
-| Map | NASA GIBS satellite basemap (3 modes), region outlines, selection, drawn box | S27 adds hotspot points |
+| Map | NASA GIBS satellite basemap (3 modes), region outlines, selection, drawn box; hotspots as points (by sensor or FRP, click for details) or density per 0.25° cell, with legend | S20, S27 |
 | Burning activity calendar: years × months, log-count / percentile / anomaly colours, legend, tooltip (count, range, rank, percentile, anomaly, raw counts), hatching for no data, year totals, typical month, sensor-change dots, click a month to select it, arrow-key navigation | Built | S21 |
 | Charts: monthly series with approximate range, yearly totals (partial years hatched), seasonal cycle with the selected year; tooltips, keyboard, "Show as table" | Built | S22 |
 | Downloads: hotspots CSV (one file, or one per year above 400,000 rows), monthly series CSV, calendar CSV; `#` header lines with selection, dates, method, citation | Built | S23 |
 | Area by coordinates (keyboard alternative to drawing) | Built | S24 |
 | Phone (390 px) and keyboard-only check | Done 2026-11-16 | S24 |
-| Hotspot points on the map | Not built | S27 |
+| Compare with past years: chosen dates (≤ 366 days) against the same dates in every other year; rank, percentile, FRP, busiest day, bar per year, 5 most similar past episodes with "Show" | Built | S27 |
+| Methods and limits page: method, validation numbers and plots, California write-up, known limits, citation and licence | Built | S28 |
+| Real data by default | Done 2026-11-16 | S25 |
 
 ## How some numbers are defined
 
@@ -85,5 +89,8 @@ src/styles.css          all styles; colours are CSS variables with light and dar
 - **Presets** are relative to the last date in the data, not today's date.
 - **Default selection:** the whole region (California). Everything (summary, calendar, charts, downloads) follows the selection.
 - **Drawn area:** the rectangle is snapped outward to whole 0.25° grid cells (`snapBox`). Calendar and charts sum `grid_monthly.csv` over the cells inside it; the summary and the hotspots CSV use the hotspot rows inside the same snapped box. Each point belongs to exactly one cell, so the numbers agree (tested on the sample files). A month with no data for the region is no data for the area. The area's range is the area value × the region's low/high ratio for that month. The area's baseline (for percentile and anomaly colours) is recomputed from the area's own months over the region's base period.
+- **Drawn-area summary** (since S25): from the grid, whole months, like the calendar. The area's hotspots CSV still uses exact dates.
+- **Map points or density:** points when the dates span ≤ 93 days and the months hold ≤ 300,000 detections (the largest month, Sep 2020, has 277,285 and drew in about 1.5 s); otherwise the density grid of harmonized counts over whole months. The note under the map says which is shown and why.
+- **Compare with past years:** whole region from `daily.json` (day precision); drawn area from its monthly series (whole months). A year is left out if more than 10% of its days (months) have no data. "Most similar" = closest harmonized count in log terms. 29 Feb in other years becomes 1 Mar. Near-real-time data is not included.
 - **Anomaly %** = (month − mean of that calendar month) ÷ mean × 100. **Percentile** = share of base-period years with a lower value for that calendar month. **Rank** = position among all years for that calendar month.
 - **Count (log) colours:** 0 has its own step; the other 6 steps are equal on a log scale up to the largest month of the selection.

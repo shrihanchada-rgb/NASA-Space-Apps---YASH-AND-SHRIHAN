@@ -60,10 +60,10 @@ def audit(region, folder, grid_monthly_csv=None, log=print):
     frames = []
     for p in sorted((rdir / "hotspots").glob("*.csv")):
         d = pd.read_csv(p, dtype={"time_utc": str})
-        a.check(f"A  {p.name}: every row is dated in that year", (d["date"].str[:4] == p.stem).all()) if not (d["date"].str[:4] == p.stem).all() else None
-        frames.append(d)
+        frames.append(d.assign(_file=p.stem))
     h = pd.concat(frames, ignore_index=True)
-    a.check("A  every hotspot row is in the file of its own year", True, f"{len(frames)} files, {len(h):,} rows")
+    a.check("A  every hotspot row is in the file of its own month", (h["date"].str[:len(h["_file"].iloc[0])] == h["_file"]).all(), f"{len(frames)} files, {len(h):,} rows")
+    h = h.drop(columns="_file")
     dup = int(h.duplicated(["date", "time_utc", "latitude", "longitude", "satellite", "frp", "confidence", "daynight"]).sum())
     a.check("A  no exact duplicate detections (same satellite, time, place, FRP)", dup == 0, f"{dup} duplicates")
     same_px = int(h.duplicated(["date", "time_utc", "latitude", "longitude", "satellite"]).sum())

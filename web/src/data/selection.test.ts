@@ -143,3 +143,11 @@ describe('CSV downloads', () => {
     expect(estimateRows(months)).toBe(points.filter((p) => p.date.startsWith('2020')).length);
   });
 });
+
+import { monthKeys } from './loader';
+describe('monthKeys (hotspot month files to load)', () => {
+  it('lists every month between two dates, across a year end', () => {
+    expect(monthKeys('2023-11-15', '2024-02-01')).toEqual(['2023-11', '2023-12', '2024-01', '2024-02']);
+    expect(monthKeys('2024-05-03', '2024-05-20')).toEqual(['2024-05']);
+  });
+});

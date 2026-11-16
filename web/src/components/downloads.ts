@@ -43,9 +43,7 @@ export function mountDownloads(el: HTMLElement, ctx: AppContext): void {
 
   async function hotspotRows(start: string, end: string) {
     const sel = ctx.loaded.get().selection!;
-    const files = [];
-    for (let y = Number(start.slice(0, 4)); y <= Number(end.slice(0, 4)); y++) files.push(loadHotspots(sel.regionId, y));
-    return filterHotspots((await Promise.all(files)).flat(), sel, start, end);
+    return filterHotspots(await loadHotspots(sel.regionId, start, end), sel, start, end);
   }
 
   function render(): void {

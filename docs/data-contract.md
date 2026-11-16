@@ -27,7 +27,7 @@ data/processed/
   regions/<region_id>/monthly.json   # §4, calendar + monthly charts
   regions/<region_id>/daily.json     # §5, daily charts + any date range summary
   regions/<region_id>/baseline.json  # §6, climatology for anomaly / percentile colours
-  regions/<region_id>/hotspots/<year>.csv   # §7, per-detection points for map + CSV download
+  regions/<region_id>/hotspots/<YYYY-MM>.csv  # §7, per-detection points for map + CSV download, one file per month
   regions/<region_id>/grid_cells.csv        # §8b, cells of the region (required)
   regions/<region_id>/grid_monthly.csv      # §8b, per-cell monthly counts for drawn areas (required)
   daily_grid.parquet                 # §8, pipeline-internal, NOT read by the website v1
@@ -133,9 +133,9 @@ Definitions the website must use (so every view agrees):
 - **Percentile** of a month = share of base-period years (same calendar month) with `count_harm` lower than this month's value, × 100.
 - Default base period: all complete years in the data. A null in `months` (fewer than 3 years) means "no baseline".
 
-## 7. `regions/<region_id>/hotspots/<year>.csv`
+## 7. `regions/<region_id>/hotspots/<YYYY-MM>.csv`
 
-One row per kept detection in that region and year, sorted by `date`, `time_utc`. Used for the map and the hotspot CSV download (README 3.1.8). Header row required, comma-separated, no index column.
+**One file per month** (changed from one per year on 2026-11-16, so the website loads only the months it shows; one real year was up to 35 MB). A month with no detections has no file; the website treats a missing file as no detections. One row per kept detection in that region and month, sorted by `date`, `time_utc`. Used for the map and the hotspot CSV download (README 3.1.8). Header row required, comma-separated, no index column.
 
 | Column | Type | Meaning | Example |
 |---|---|---|---|
@@ -191,7 +191,7 @@ These let the website give results for any area the user draws inside the region
 | Sensor-transition markers, "SAMPLE DATA" banner, citation | `metadata.json` |
 | Monthly series with uncertainty band | `monthly.json` |
 | Daily bars, cumulative-year curves | `daily.json` |
-| Map points, hotspot CSV download, drawn-area filter | `hotspots/<year>.csv` |
+| Map points, hotspot CSV download, drawn-area filter | `hotspots/<YYYY-MM>.csv` (only the months in the chosen dates) |
 | Methods page numbers | `metadata.json` (`validation`, `filters`, `sources`, `known_gaps`) |
 
 ## 10. Open questions (decide before S17)

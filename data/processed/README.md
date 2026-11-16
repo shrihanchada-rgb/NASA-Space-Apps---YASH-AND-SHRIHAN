@@ -2,7 +2,7 @@
 
 Built by `python3 pipeline/06_aggregate.py` on 2026-11-15 from the filtered FIRMS detections. Real data (`"is_sample": false`). Checked with `python3 scripts/validate_data.py data/processed` → `0 problem(s)`.
 
-Run the website on it: `cd web && DATA_DIR=../data/processed npm run dev`.
+Run the website on it: `cd web && npm run dev` (the default since S25).
 
 | File | Contents |
 |---|---|
@@ -11,7 +11,7 @@ Run the website on it: `cd web && DATA_DIR=../data/processed npm run dev`.
 | `regions/US-CA/monthly.json` | 310 months: harmonized count, approximate range, raw MODIS and VIIRS counts, FRP |
 | `regions/US-CA/daily.json` | 9,435 days: harmonized count, raw counts, FRP |
 | `regions/US-CA/baseline.json` | per calendar month, 2001–2025: mean, standard deviation, percentiles (for anomaly and percentile colours) |
-| `regions/US-CA/hotspots/<year>.csv` | every kept detection inside California (1,903,272 rows, 131 MB in total; 2020 is 35 MB) with its `harmonized_weight` |
+| `regions/US-CA/hotspots/<YYYY-MM>.csv` | every kept detection inside California, one file per month (1,903,272 rows, 131 MB in total; the largest month is Sep 2020) with its `harmonized_weight` |
 | `regions/US-CA/grid_cells.csv` | extra: the 754 quarter-degree cells of California |
 | `regions/US-CA/grid_monthly.csv` | extra: harmonized and raw counts per month and cell (44,704 rows) |
 | `regions/US-CA/harmonization_check.json` | extra: observed MODIS next to MODIS-equivalent from S-NPP for the 139 months where Terra, Aqua and S-NPP all had data every day; the factors used |
@@ -52,7 +52,7 @@ Not removed, on purpose: one fire seen by one satellite on two passes in a day, 
 ## Results for an area the user chooses
 
 - **How the website does it:** the drawn rectangle is snapped outward to whole 0.25° cells. Calendar and charts sum `grid_monthly.csv` over the cells inside it; the CSV download is the hotspot rows inside the same box. Each point belongs to exactly one cell, so the two agree.
-- **Exact:** take the rows of `hotspots/<year>.csv` inside the area. The sum of `harmonized_weight` is the area's harmonized count; the row count is the raw count. The same rows are the CSV download.
+- **Exact:** take the rows of `hotspots/<YYYY-MM>.csv` inside the area. The sum of `harmonized_weight` is the area's harmonized count; the row count is the raw count. The same rows are the CSV download.
 - **Fast (calendar, anomalies, charts):** sum `grid_monthly.csv` over the cells whose centre (`grid_cells.csv`) is inside the area. Resolution is 0.25° (about 25 km). An area baseline is the same statistics as `baseline.json`, computed from those sums for 2001–2025.
 - NOAA-20 and NOAA-21 rows have weight 0: they are in the raw counts, the map and the downloads, but not in `count_harm`.
 

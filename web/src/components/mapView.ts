@@ -1,18 +1,22 @@
 // Map: NASA GIBS satellite imagery, region outlines, click a region to select it, or draw a rectangle.
 // Imagery is from NASA's Global Imagery Browse Services (GIBS): free, no key needed.
-// Step S27 adds hotspot points.
+// S27: hotspots for the chosen dates, as points (coloured by sensor or FRP) for short ranges,
+// or as a density grid (harmonized count per 0.25-degree cell) for long ones.
 
 import {
   Map as MapLibreMap, NavigationControl, AttributionControl, setWorkerUrl,
-  type GeoJSONSource, type LngLat, type RasterTileSource, type StyleSpecification,
+  Popup, type ExpressionSpecification, type GeoJSONSource, type LngLat, type RasterTileSource, type StyleSpecification,
 } from 'maplibre-gl';
 // MapLibre runs part of its work in a web worker. Vite needs the worker's address given explicitly.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { AppContext } from '../context';
 import type { BBox } from '../data/types';
-import { snapBox } from '../data/selection';
-import { h } from '../dom';
+import { daysBetween } from '../data/derive';
+import { estimateRows } from '../data/export';
+import { loadGrid, loadHotspots } from '../data/loader';
+import { monthsInRange, regionSeries, snapBox } from '../data/selection';
+import { formatCount, h } from '../dom';
 import { icon } from '../icons';
 
 setWorkerUrl(workerUrl);
@@ -28,6 +32,18 @@ const ATTRIBUTION = 'Imagery: <a href="https://www.earthdata.nasa.gov/gibs" targ
 
 type Basemap = 'satellite' | 'daily' | 'plain';
 const BASEMAP_LABEL: Record<Basemap, string> = { satellite: 'Satellite', daily: 'Imagery on date', plain: 'Plain' };
+
+type HotLayer = 'points' | 'density' | 'off';
+const HOT_LABEL: Record<HotLayer, string> = { points: 'Points', density: 'Density', off: 'Off' };
+type ColorBy = 'sensor' | 'frp';
+/** Points are drawn only for short ranges with few detections; otherwise the density grid. */
+export const POINT_MAX_DAYS = 93;
+export const POINT_CAP = 300_000;
+
+// Okabe-Ito colours: tell apart with colour-blindness, visible on satellite imagery.
+const SENSOR_COLORS = { MODIS: '#56B4E9', VIIRS: '#E69F00' };
+const FRP_STEPS: [number, string][] = [[0, '#fee391'], [10, '#fec44f'], [50, '#fe9929'], [100, '#ec7014'], [500, '#b33a02']];
+const DENSITY_STEPS = [0, 2, 10, 50, 200, 1000]; // harmonized hotspots per cell: lower bounds of 6 classes, colours --seq-1 to --seq-6
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -74,7 +90,32 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
 
   const drawBtn = h('button', { type: 'button', class: 'chip', id: 'draw-toggle' });
   drawBtn.addEventListener('click', () => ctx.state.set({ drawing: !ctx.state.get().drawing }));
-  toolbar.replaceChildren(seg, labelsToggle, drawBtn);
+  const hotSeg = h('div', { class: 'segmented', role: 'group' });
+  hotSeg.setAttribute('aria-label', 'Hotspots on the map');
+  let hotLayer: HotLayer = 'points';
+  let colorBy: ColorBy = 'sensor';
+  const hotButtons = (Object.keys(HOT_LABEL) as HotLayer[]).map((m) => {
+    const btn = h('button', { type: 'button', textContent: HOT_LABEL[m] });
+    btn.dataset.layer = m;
+    btn.addEventListener('click', () => { hotLayer = m; void refreshHotspots(); });
+    return btn;
+  });
+  hotSeg.append(...hotButtons);
+  const colorSeg = h('div', { class: 'segmented', role: 'group' });
+  colorSeg.setAttribute('aria-label', 'Colour points by');
+  const colorButtons = (['sensor', 'frp'] as ColorBy[]).map((m) => {
+    const btn = h('button', { type: 'button', textContent: m === 'sensor' ? 'By sensor' : 'By FRP' });
+    btn.dataset.color = m;
+    btn.addEventListener('click', () => { colorBy = m; applyPointColors(); });
+    return btn;
+  });
+  colorSeg.append(...colorButtons);
+  const hotLabel = h('span', { class: 'map-tools-label' }, 'Hotspots');
+  toolbar.replaceChildren(seg, labelsToggle, drawBtn, h('div', { class: 'map-tools-row' }, hotLabel, hotSeg, colorSeg));
+  const legend = h('div', { class: 'map-legend', 'aria-live': 'polite' } as Partial<HTMLDivElement>);
+  note.before(legend);
+  let shown: 'points' | 'density' | 'off' = 'off';
+  let shownText = '';
 
   const style: StyleSpecification = {
     version: 8,
@@ -131,7 +172,7 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
     const parts = ['Draw an area to see its own calendar, charts and downloads (it snaps to the 0.25° data grid, about 25 km).'];
     if (basemap === 'satellite') parts.push('Background: NASA Blue Marble composite (cloud-free, not a specific date).');
     if (basemap === 'daily') parts.push(`Background: MODIS Terra true colour for ${imageryDate(ctx)} (one day; clouds and gaps between satellite passes are normal).`);
-    parts.push('Hotspot points come in a later step.');
+    if (shownText) parts.push(shownText);
     note.textContent = parts.join(' ');
   }
 
@@ -152,6 +193,110 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
     (map.getSource('drawn') as GeoJSONSource).setData(boxFeature(drawnBox));
     const bbox = drawnBox ?? ctx.regions.features.find((f) => f.properties.region_id === regionId)?.properties.bbox;
     if (bbox) map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, animate: animate && !reduceMotion, maxZoom: 9 });
+  }
+
+  // --- hotspots ---
+  function applyPointColors(): void {
+    colorButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.color === colorBy)));
+    colorSeg.hidden = shown !== 'points';
+    if (map.getLayer('hot-points')) {
+      map.setPaintProperty('hot-points', 'circle-color', colorBy === 'sensor'
+        ? ['match', ['get', 'sensor'], 'MODIS', SENSOR_COLORS.MODIS, SENSOR_COLORS.VIIRS]
+        : ['step', ['get', 'frp'], FRP_STEPS[0]![1], ...FRP_STEPS.slice(1).flat()] as ExpressionSpecification);
+    }
+    renderLegend();
+  }
+
+  function swatch(color: string, round = false): HTMLElement {
+    const s = h('span', { class: `swatch${round ? ' is-round' : ''}` });
+    s.style.background = color;
+    return s;
+  }
+
+  function renderLegend(): void {
+    if (shown === 'points') {
+      const items = colorBy === 'sensor'
+        ? [h('li', {}, swatch(SENSOR_COLORS.MODIS, true), 'MODIS (1 km)'), h('li', {}, swatch(SENSOR_COLORS.VIIRS, true), 'VIIRS (375 m)')]
+        : FRP_STEPS.map(([v, c], i) => h('li', {}, swatch(c, true), i + 1 < FRP_STEPS.length ? `${v}–${FRP_STEPS[i + 1]![0]} MW` : `≥ ${v} MW`));
+      legend.replaceChildren(h('span', { class: 'note' }, colorBy === 'sensor' ? 'Detections by sensor' : 'Fire radiative power'), h('ul', {}, ...items));
+    } else if (shown === 'density') {
+      const items = DENSITY_STEPS.map((v, i) => {
+        const next = DENSITY_STEPS[i + 1];
+        return h('li', {}, swatch(cssVar(`--seq-${i + 1}`)), next == null ? `≥ ${v}` : i === 0 ? `< ${next}` : `${v}–${next}`);
+      });
+      legend.replaceChildren(h('span', { class: 'note' }, 'Harmonized hotspots per 0.25° cell'), h('ul', {}, ...items));
+    } else legend.replaceChildren();
+  }
+
+  let hotToken = 0;
+  const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+  async function refreshHotspots(): Promise<void> {
+    const mine = ++hotToken;
+    hotButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.layer === hotLayer)));
+    const { regionId, startDate, endDate } = ctx.state.get();
+    const rd = ctx.loaded.get().regionData;
+    if (!map.getSource('hot-points') || !regionId || !rd || !startDate || !endDate) return;
+    const pts = map.getSource('hot-points') as GeoJSONSource;
+    const dens = map.getSource('hot-density') as GeoJSONSource;
+    const months = monthsInRange(regionSeries(rd.monthly), startDate, endDate);
+    const days = daysBetween(startDate, endDate) + 1;
+    const est = estimateRows(months);
+    let want: 'points' | 'density' | 'off' = hotLayer;
+    let why = '';
+    if (want === 'points' && (days > POINT_MAX_DAYS || est > POINT_CAP)) {
+      want = 'density';
+      why = days > POINT_MAX_DAYS
+        ? `Points are shown for ${POINT_MAX_DAYS} days or fewer; showing density instead.`
+        : `About ${formatCount(est)} detections are too many to draw; showing density instead. Pick fewer days for points.`;
+    }
+    legend.replaceChildren(h('span', { class: 'note' }, want === 'off' ? '' : 'Loading hotspots…'));
+    // Clear the layer that will not be shown at once, so an old layer never sits under the new one while it loads.
+    if (want !== 'points') pts.setData(empty);
+    if (want !== 'density') dens.setData(empty);
+    try {
+      if (want === 'points') {
+        const rows = await loadHotspots(regionId, startDate, endDate);
+        if (mine !== hotToken) return;
+        pts.setData({ type: 'FeatureCollection', features: rows.map((r) => ({
+          type: 'Feature', geometry: { type: 'Point', coordinates: [r.longitude, r.latitude] },
+          properties: { sensor: r.sensor, satellite: r.satellite, frp: r.frp, date: r.date, time: r.time_utc, confidence: r.confidence, daynight: r.daynight, weight: r.harmonized_weight },
+        })) });
+        dens.setData(empty);
+        why = `${formatCount(rows.length)} detections (all sensors, raw; the harmonized count weights them). Click a point for details.`;
+      } else if (want === 'density') {
+        const grid = await loadGrid(regionId);
+        if (mine !== hotToken) return;
+        const a = startDate.slice(0, 7), b = endDate.slice(0, 7);
+        const sums = new Map<string, number>();
+        for (const g of grid.months) {
+          const k = `${g.year}-${String(g.month).padStart(2, '0')}`;
+          if (k < a || k > b || g.count_harm <= 0) continue;
+          const id = `${g.lat_idx}_${g.lon_idx}`;
+          sums.set(id, (sums.get(id) ?? 0) + g.count_harm);
+        }
+        const d = 0.25;
+        dens.setData({ type: 'FeatureCollection', features: [...sums].map(([id, count]) => {
+          const [la = 0, lo = 0] = id.split('_').map(Number);
+          const s0 = la * d - 90, w0 = lo * d - 180;
+          return { type: 'Feature', properties: { count },
+            geometry: { type: 'Polygon', coordinates: [[[w0, s0], [w0 + d, s0], [w0 + d, s0 + d], [w0, s0 + d], [w0, s0]]] } };
+        }) });
+        pts.setData(empty);
+        why = `${why} Density: harmonized hotspots per 0.25° cell, whole months ${a} to ${b}.`.trim();
+      } else {
+        pts.setData(empty);
+        dens.setData(empty);
+        why = '';
+      }
+      shown = want;
+      shownText = why;
+    } catch (err) {
+      if (mine !== hotToken) return;
+      shown = 'off';
+      shownText = err instanceof Error ? err.message : 'Could not load hotspots.';
+    }
+    applyPointColors();
+    updateNote();
   }
 
   // --- drawing a rectangle ---
@@ -182,7 +327,36 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
     });
     map.addLayer({ id: 'drawn-fill', type: 'fill', source: 'drawn', paint: { 'fill-color': accent, 'fill-opacity': 0.15 } });
     map.addLayer({ id: 'drawn-line', type: 'line', source: 'drawn', paint: { 'line-color': accent, 'line-width': 2, 'line-dasharray': [2, 1] } });
+    map.addSource('hot-density', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    map.addSource('hot-points', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    const densityColor = ['step', ['get', 'count'], cssVar('--seq-1'),
+      ...DENSITY_STEPS.slice(1).flatMap((v, i) => [v, cssVar(`--seq-${i + 2}`)])] as ExpressionSpecification;
+    map.addLayer({ id: 'hot-density', type: 'fill', source: 'hot-density', paint: { 'fill-color': densityColor, 'fill-opacity': 0.8 } }, 'drawn-fill');
+    map.addLayer({
+      id: 'hot-points', type: 'circle', source: 'hot-points',
+      layout: { 'circle-sort-key': ['get', 'frp'] },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 1.6, 7, 3, 10, 6],
+        'circle-stroke-color': '#111111', 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 4, 0, 8, 0.6],
+        'circle-color': SENSOR_COLORS.VIIRS,
+      },
+    }, 'drawn-fill');
     map.addLayer({ id: 'labels', type: 'raster', source: 'labels' });
+    map.on('click', 'hot-points', (e) => {
+      const p = e.features?.[0]?.properties as Record<string, string | number> | undefined;
+      if (!p || ctx.state.get().drawing) return;
+      const t = String(p.time);
+      new Popup({ closeButton: true, maxWidth: '260px' })
+        .setLngLat(e.lngLat)
+        .setDOMContent(h('div', { class: 'popup' },
+          h('strong', {}, `${p.sensor} · ${p.satellite}`),
+          h('p', {}, `${p.date} ${t.slice(0, 2)}:${t.slice(2)} UTC (${p.daynight === 'D' ? 'day' : 'night'})`),
+          h('p', {}, `FRP ${p.frp} MW · ${p.confidence} confidence`),
+          h('p', { class: 'note' }, `Weight in the harmonized count: ${p.weight}`)))
+        .addTo(map);
+    });
+    map.on('mouseenter', 'hot-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'hot-points', () => { map.getCanvas().style.cursor = ''; });
 
     map.on('click', 'region-fill', (e) => {
       if (ctx.state.get().drawing) return;
@@ -204,11 +378,14 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
     ctx.state.subscribe((s, prev) => {
       if (s.drawing !== prev.drawing) syncDrawUi();
       if (s.regionId !== prev.regionId || s.drawnBox !== prev.drawnBox) showSelection(true);
+      if (s.regionId !== prev.regionId || s.startDate !== prev.startDate || s.endDate !== prev.endDate) void refreshHotspots();
       if (s.endDate !== prev.endDate) {
         (map.getSource('daily') as RasterTileSource).setTiles([daily(imageryDate(ctx))]);
         updateNote();
       }
     });
+    ctx.loaded.subscribe((l, p) => { if (l.regionData !== p.regionData) void refreshHotspots(); });
+    void refreshHotspots();
     el.dataset.ready = 'true'; // lets tests wait for the map
   });
 

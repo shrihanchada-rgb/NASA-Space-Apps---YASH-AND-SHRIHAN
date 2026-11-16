@@ -7,7 +7,7 @@ Input:  data/interim/filtered/<REGION>/<SOURCE>/<YEAR>.parquet (from 03_filter.p
         (the chosen harmonization and its numbers; refreshed by 05_calibrate.py / 05b_compare_methods.py)
 Output: data/processed/
   metadata.json, regions.geojson
-  regions/<REGION>/monthly.json, daily.json, baseline.json, hotspots/<YEAR>.csv      (data contract 1.0)
+  regions/<REGION>/monthly.json, daily.json, baseline.json, hotspots/<YYYY-MM>.csv   (data contract 1.0)
   regions/<REGION>/grid_cells.csv, grid_monthly.csv, harmonization_check.json, satellite_outages.csv  (extra files)
 
 How count_harm (MODIS-equivalent detections) is built, day by day (config.HARMONIZE_POLICY = "blend"):
@@ -289,7 +289,8 @@ def build_region(region, out, h, build_date, filtered=None, availability=None, o
         df["region_id"] = region
         hs = df[HOTSPOT_COLUMNS].copy()
         hs["latitude"], hs["longitude"], hs["frp"] = hs["latitude"].round(5), hs["longitude"].round(5), hs["frp"].round(2)
-        hs.to_csv(rdir / "hotspots" / f"{year}.csv", index=False)
+        for month_key, part in hs.groupby(hs["date"].str[:7], sort=True):   # one file per month: the website loads only the months it needs
+            part.to_csv(rdir / "hotspots" / f"{month_key}.csv", index=False)
         df["is_modis"] = (df["sensor"] == "MODIS").astype(int)
         df["is_viirs"] = 1 - df["is_modis"]
         df["is_high"] = (df["confidence"] == "high").astype(int)

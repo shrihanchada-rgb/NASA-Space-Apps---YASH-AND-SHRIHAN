@@ -1,0 +1,2 @@
+date,time_utc,latitude,longitude,sensor,satellite,confidence,frp,daynight,harmonized_weight,region_id
+2024-05-30,0923,41.0518,-122.6801,VIIRS,N,nominal,14.4,D,0.25,US-CA

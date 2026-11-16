@@ -490,6 +490,6 @@ def test_aggregate_writes_valid_contract_files(tmp_path):
     assert months[(2010, 3)]["count_harm"] == 0.0 and months[(2010, 3)]["count_raw_viirs"] is None   # observed, no fires
     g = pd.read_csv(out / "regions" / "PT" / "grid_monthly.csv")
     assert abs(g["count_harm"].sum() - 6.0) < 1e-6 and int(g["count_raw_modis"].sum()) == 4
-    hs = pd.read_csv(out / "regions" / "PT" / "hotspots" / "2015.csv")
+    hs = pd.read_csv(out / "regions" / "PT" / "hotspots" / "2015-08.csv")
     assert len(hs) == 11 and abs(hs["harmonized_weight"].sum() - 2.0) < 1e-6
     assert abs(agg.polygon_area_km2(SQUARE) - 12160) < 150       # 1 x 1 degree near 10.5 N

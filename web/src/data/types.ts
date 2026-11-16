@@ -94,7 +94,7 @@ export interface Baseline extends FileHeader {
   months: BaselineMonth[];
 }
 
-/** One row of regions/<id>/hotspots/<year>.csv (docs/data-contract.md section 7). */
+/** One row of regions/<id>/hotspots/<YYYY-MM>.csv (docs/data-contract.md section 7). */
 export interface Hotspot {
   date: string;
   time_utc: string;

@@ -189,7 +189,7 @@ function yearlyChart(sel: Selection, months: SeriesMonth[], width: number): HTML
       const r = Math.min(4, bw / 2, hgt);
       const d = `M${cx - bw / 2},${y(0)}V${top + r}Q${cx - bw / 2},${top} ${cx - bw / 2 + r},${top}H${cx + bw / 2 - r}Q${cx + bw / 2},${top} ${cx + bw / 2},${top + r}V${y(0)}Z`;
       const bar = s('path', { d, class: t.complete ? 'bar' : 'bar is-partial', tabindex: 0 });
-      const lines = [`${formatCount(t.total)} hotspots`, t.complete ? 'Full year' : `${t.monthsWithData} months of data`];
+      const lines = [`${formatCount(t.total)} hotspots`, t.complete ? 'Full year' : `${t.monthsWithData} month${t.monthsWithData === 1 ? "" : "s"} of data`];
       bar.setAttribute('aria-label', `${t.year}: ${lines.join(', ')}`);
       bar.addEventListener('mousemove', (e) => showTip(e.clientX, e.clientY, String(t.year), lines));
       bar.addEventListener('mouseleave', hideTip);

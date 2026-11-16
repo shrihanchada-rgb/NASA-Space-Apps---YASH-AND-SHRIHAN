@@ -1,0 +1,7 @@
+date,time_utc,latitude,longitude,sensor,satellite,confidence,frp,daynight,harmonized_weight,region_id
+2020-04-02,2059,36.1874,-119.2304,VIIRS,N,nominal,1.3,N,0.25,US-CA
+2020-04-05,0906,34.3217,-117.2685,VIIRS,N20,nominal,53.2,D,0.25,US-CA
+2020-04-12,1034,36.0641,-119.8423,VIIRS,N,nominal,3.7,N,0.25,US-CA
+2020-04-23,1842,40.3875,-123.1354,VIIRS,N,nominal,2.8,D,0.25,US-CA
+2020-04-26,0954,39.9942,-121.5344,VIIRS,N,nominal,4.3,D,0.25,US-CA
+2020-04-29,1025,41.5074,-122.8004,VIIRS,N,high,23.2,D,0.25,US-CA
