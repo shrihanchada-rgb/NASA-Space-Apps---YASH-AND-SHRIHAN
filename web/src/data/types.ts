@@ -145,3 +145,23 @@ export interface RegionData {
   daily: Daily;
   baseline: Baseline;
 }
+
+/** regions/<id>/forecast.json (optional, contract section 8c): experimental 7-day forecast of the daily harmonized count. */
+export interface Forecast extends FileHeader {
+  region_id: string;
+  kind: 'experimental_forecast';
+  model: string;
+  model_revision: string;
+  method_source: string;
+  origin_date: string; // last day of data; predictions start the day after
+  note: string;
+  unit: string;
+  generated_utc: string;
+  warning: string;
+  predictions: { date: string; median: number; q10: number; q90: number }[];
+  validation: {
+    description: string;
+    pooled: Record<string, { n?: number; mae?: number; rmse?: number; bias?: number | null } | number | null>;
+    by_year: Record<string, unknown>;
+  } | null;
+}

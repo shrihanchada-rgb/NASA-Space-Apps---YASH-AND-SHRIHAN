@@ -1,7 +1,7 @@
 // Methodology page: two small charts drawn from the published data files, so they always match the data.
 import './styles.css';
 import type { Metadata, Monthly } from './data/types';
-import { renderFooter, renderTopbar } from './shell';
+import { renderAreaBar, renderFooter, renderTopbar } from './shell';
 
 const base = `${import.meta.env.BASE_URL}data/`;
 const NS = 'http://www.w3.org/2000/svg';
@@ -86,6 +86,7 @@ async function main(): Promise<void> {
   const meta = await json<Metadata>('metadata.json');
   renderTopbar(document.getElementById('topbar')!, 'methodology', `Data to ${meta.time_coverage.end} · Method ${meta.method_version}`);
   renderFooter(document.getElementById('footer')!, `${meta.citation} Map imagery: NASA GIBS.`);
+  renderAreaBar(document.getElementById('area-bar')!, null, null, false);
   const region = meta.regions[0]!;
   document.getElementById('build-line')!.textContent =
     `California, ${meta.time_coverage.start} to ${meta.time_coverage.end}. Data built ${meta.build_date}, method ${meta.method_version}.${meta.is_sample ? ' SAMPLE DATA: numbers are invented.' : ''}`;

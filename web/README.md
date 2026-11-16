@@ -4,23 +4,22 @@ The fire-calendar website. Vite + TypeScript, no UI framework. It reads only the
 
 **Design:** flat, Swiss-style dashboard (no gradients), one ember accent, light and dark themes from CSS variables in `src/styles.css`. Fonts: IBM Plex Sans (text) and IBM Plex Mono (dates, tags), OFL-1.1, bundled from npm (`@fontsource-variable/ibm-plex-sans`, `@fontsource/ibm-plex-mono`), so no font server is called. Design guidance came from the `ui-ux-pro-max` skill (`.claude/skills/`).
 
-**Combined Califire site (branch `merge/califire-combined`, 2026-11-16).** Our features and data with the look of Yashneil's Califire site (github.com/yashneil75/califire, MIT, copyright Yashneil Gajjala and Shrihan Chada):
+**Califire site structure (2026-11-16).** Our harmonized data everywhere, in the look and page structure of Yashneil's Califire (github.com/yashneil75/califire, MIT; licence in `web/LICENSES/`). Menu: Latest (home), Overview, Archive, Map, Download, Methodology.
 
-| Page | File | Feature | Data |
-|---|---|---|---|
-| Overview | `index.html` | selection, summary figures, charts | ours (`data/processed`) |
-| Archive | `archive.html` | burning activity calendar (years × months, 3 colour modes) | ours |
-| Map | `map.html` | points / density, draw an area, place names | ours |
-| Compare | `compare.html` | compare with past years | ours |
-| Latest | `public/latest/index.html` | his day-by-day month grid, day drawer, 7-day forecast | his daily index (different unit) |
-| Download | `download.html` | our CSVs; a separate card links to his `latest/download.html` | each its own |
-| Methodology | `methodology.html` | ours, with a separate section on the Latest data; his own text is `latest/methodology.html` | each its own |
+| Page | File | What is on it |
+|---|---|---|
+| Latest (home) | `index.html`, `src/components/latest.ts`, `src/data/latest.ts` | his day-by-day calendar: stats line, month grid, month totals, strongest days, day details (day/night split, rank in the calendar month), forecast days. Our daily harmonized count |
+| Overview | `overview.html` | selection, summary figures, charts (daily line for 92 days or fewer, monthly otherwise) |
+| Archive | `archive.html` | burning activity calendar (years × months, 3 colour modes) |
+| Map | `map.html` | points / density, draw an area, place names; "compare with past years" below the map |
+| Download | `download.html` | daily, monthly and yearly series (his granularities), every hotspot with its weight, calendar table |
+| Methodology | `methodology.html` | method, validation, the Latest page and drawn areas, the forecast and its scores, limits, citation |
 
-- **Separate features stay separate.** His Latest pages are his files, copied unchanged into `public/latest/` (served as they are, not built), except: the menu, a one-line "separate dataset" note, and `fetchLatest` in his `app.js` / `download.js`, which first reads the newest data from https://yashneil75.github.io/califire/ (refreshed daily there) and falls back to the copy in `public/latest/data/` (snapshot of 2026-11-15). His CSS and ours share 9 class names (`.panel`, `.brand`, `.cal-grid`…), so they are never loaded on the same page.
-- **Look:** our `src/styles.css` tokens use his palette, Inter / Inter Tight (Google Fonts), square corners, his top bar, page titles and footer; light only, like his site. `src/shell.ts` draws the menu and footer for our pages.
-- **Selection between pages:** dates, drawn area and colour mode are kept in the address (`?start=…&end=…&area=w,s,e,n&colors=…`) and in the menu links (`src/shell.ts`). Invalid values are ignored; an area is cut to California and snapped to the grid.
-- **Phones:** the selection panel is a folded "Dates and area" bar that shows the current choice.
-- `methods.html` now redirects to `methodology.html`.
+- **One selection for every page.** A drawn area (Map page or coordinates form) applies to every page, Latest included; the bar under the menu says what is shown and has "Show all of California". Dates, area and colour mode travel in the address (`src/shell.ts`).
+- **Latest for a drawn area:** each day = sum of the `harmonized_weight` of the hotspots inside the area (equals the region's count for a whole-state area: tested). Rankings and the 24-month strongest days need every day, so they are for all of California only; an area shows the strongest days of the month on screen and its biggest month.
+- **Forecast:** `data/processed/regions/US-CA/forecast.json` (contract §8c), made by `pipeline/07_forecast.py` with his Timestral-5M method in the `Forecast` GitHub Actions job (the model needs internet). It covers the 7 days after our data ends (1-7 Sep 2026), for all of California only. Shown in purple, never added to observed numbers.
+- **CSS:** his Latest-page CSS is ported into `src/styles.css`, scoped under `.lt`, with clashing names renamed (`.lt-panel`, `.lt-grid`, `.lt-legend`, `.lt-kv`).
+- **Old links:** `compare.html`, `methods.html` and `latest/*.html` redirect to the new pages.
 
 **Califire** is the site's name. **Map:** NASA GIBS Blue Marble composite (free, no key) or a plain background. The "imagery on date" background was removed (2026-11-16). Place names are drawn by the app from `public/map/ca-places.json` (41 California places from Natural Earth, public domain; bigger places first, smaller ones as you zoom in), on by default. NASA's label tiles were dropped: they often returned HTTP 500 and left black patches on the map.
 **Map limits:** `renderWorldCopies: false`, minimum zoom 4, and panning is limited to California plus a margin (`applyViewLimits` in `mapView.ts`, computed from the map size so the whole state always fits). A drawn rectangle, and the coordinates form, are cut to California's bounding box (`clampBox`); a rectangle wholly outside is refused with a message. The button "Show all of California" (shown while an area is drawn) returns to the whole region.

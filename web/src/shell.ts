@@ -6,13 +6,12 @@ import type { BBox } from './data/types';
 import type { AppState, ColorMode } from './state';
 
 export const PAGES: { id: string; href: string; label: string; carriesSelection: boolean }[] = [
-  { id: 'overview', href: 'index.html', label: 'Overview', carriesSelection: true },
+  { id: 'latest', href: 'index.html', label: 'Latest', carriesSelection: true }, // home page
+  { id: 'overview', href: 'overview.html', label: 'Overview', carriesSelection: true },
   { id: 'archive', href: 'archive.html', label: 'Archive', carriesSelection: true },
-  { id: 'map', href: 'map.html', label: 'Map', carriesSelection: true },
-  { id: 'compare', href: 'compare.html', label: 'Compare', carriesSelection: true },
-  { id: 'latest', href: 'latest/index.html', label: 'Latest', carriesSelection: false },
+  { id: 'map', href: 'map.html', label: 'Map', carriesSelection: true }, // map and "compare with past years"
   { id: 'download', href: 'download.html', label: 'Download', carriesSelection: true },
-  { id: 'methodology', href: 'methodology.html', label: 'Methodology', carriesSelection: false },
+  { id: 'methodology', href: 'methodology.html', label: 'Methodology', carriesSelection: true },
 ];
 
 const COLOR_MODES: ColorMode[] = ['absolute', 'percentile', 'anomaly'];
@@ -55,7 +54,7 @@ export function renderTopbar(el: HTMLElement, current: string, updated: string):
   const brand = document.createElement('a');
   brand.className = 'brand';
   brand.href = 'index.html';
-  brand.setAttribute('aria-label', 'Califire, back to the overview');
+  brand.setAttribute('aria-label', 'Califire, home');
   const word = document.createElement('span');
   word.className = 'brand-word';
   word.textContent = 'Califire';
@@ -105,4 +104,39 @@ export function renderFooter(el: HTMLElement, citation: string): void {
   a.textContent = 'Methodology & sources';
   right.append(a);
   el.replaceChildren(left, right);
+}
+
+/**
+ * The line under the top bar: tells people they can select part of California on the Map, and which
+ * area every page is showing now. `onClear` is null on pages without the selection (it then only explains).
+ */
+export function renderAreaBar(el: HTMLElement, box: [number, number, number, number] | null, onClear: (() => void) | null, onMapPage: boolean): void {
+  const inner = document.createElement('div');
+  inner.className = 'wrap area-bar-inner';
+  const text = document.createElement('p');
+  if (box) {
+    const b = document.createElement('strong');
+    b.textContent = 'Showing a drawn area';
+    text.append(b, ` (${box.map((v) => v.toFixed(2)).join(', ')}; W, S, E, N) on every page. All numbers are for that area only.`);
+  } else {
+    const b = document.createElement('strong');
+    b.textContent = 'Showing all of California.';
+    text.append(b, ' Select part of the state on the ');
+    const a = document.createElement('a');
+    a.href = 'map.html';
+    a.className = 'textlink';
+    a.textContent = 'Map';
+    text.append(onMapPage ? 'map below' : a, ' (draw a rectangle) to see the data for just that area on every page.');
+  }
+  inner.append(text);
+  if (box && onClear) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip';
+    btn.textContent = 'Show all of California';
+    btn.addEventListener('click', onClear);
+    inner.append(btn);
+  }
+  el.replaceChildren(inner);
+  el.classList.toggle('has-area', !!box);
 }

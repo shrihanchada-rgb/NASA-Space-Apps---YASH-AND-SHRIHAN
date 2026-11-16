@@ -5,8 +5,10 @@
 // Hand-written SVG. Every chart has a hover/focus tooltip and a "Show as table" view.
 
 import type { AppContext } from '../context';
-import { MONTH_NAMES } from '../data/derive';
-import { monthsInRange, type Selection, type SeriesMonth, yearTotals } from '../data/selection';
+import { daysBetween, MONTH_NAMES } from '../data/derive';
+import { isoDay } from '../data/latest';
+import { loadHotspots } from '../data/loader';
+import { monthsInRange, pointInSnappedBox, type Selection, type SeriesMonth, yearTotals } from '../data/selection';
 import { formatCount, h } from '../dom';
 import { hideTip, showTip } from './tooltip';
 
@@ -73,15 +75,43 @@ function card(title: string, note: string, chart: Node, extra: HTMLElement | nul
     h('div', { class: 'chart-box' }, chart), extra, tbl);
 }
 
-// ---------- 1. monthly series ----------
+// ---------- 1. monthly series (daily for short date ranges) ----------
+
+/** One point of the line chart: a month, or a day for short date ranges. */
+export interface LinePoint { key: string; label: string; tick: string | null; v: number | null; lo: number | null; hi: number | null }
+
+export const DAILY_CHART_MAX_DAYS = 92;
+
+function monthPoints(months: SeriesMonth[]): LinePoint[] {
+  return months.map((m, i) => ({
+    key: `${m.year}-${String(m.month).padStart(2, '0')}`, label: `${MONTH_NAMES[m.month - 1]} ${m.year}`,
+    tick: m.month === 1 || i === 0 ? (months.length <= 24 ? `${MONTH_NAMES[m.month - 1]} ${m.year}` : String(m.year)) : null,
+    v: m.countHarm, lo: m.countLow, hi: m.countHigh,
+  }));
+}
+
+/** Daily points from {date: value} (null = no satellite data). */
+export function dayPoints(days: [string, number | null][]): LinePoint[] {
+  return days.map(([d, v], i) => {
+    const day = Number(d.slice(8));
+    const label = new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    return { key: d, label, tick: i === 0 || day === 1 || day === 15 ? label.replace(/, \d{4}$/, '') : null, v, lo: null, hi: null };
+  });
+}
 
 function monthlyChart(sel: Selection, months: SeriesMonth[], width: number): HTMLElement {
+  return lineChart(sel, monthPoints(months), width, 'Monthly hotspots',
+    `${months[0] ? `${MONTH_NAMES[months[0].month - 1]} ${months[0].year}` : ''} – ${months.at(-1) ? `${MONTH_NAMES[months.at(-1)!.month - 1]} ${months.at(-1)!.year}` : ''} · MODIS-equivalent count`, 'Month');
+}
+
+function lineChart(sel: Selection, pts: LinePoint[], width: number, title: string, note: string, unit: 'Month' | 'Day'): HTMLElement {
+  const months = pts;
   const f: Frame = { w: width, h: 240, left: 44, right: 12, top: 12, bottom: 28 };
-  const hasBand = months.some((m) => m.countHigh != null && m.countLow != null && m.countHigh > m.countLow);
-  const yMax = Math.max(1, ...months.map((m) => Math.max(m.countHigh ?? 0, m.countHarm ?? 0)));
+  const hasBand = months.some((m) => m.hi != null && m.lo != null && m.hi > m.lo);
+  const yMax = Math.max(1, ...months.map((m) => Math.max(m.hi ?? 0, m.v ?? 0)));
   const ticks = niceTicks(yMax);
   const top = ticks[ticks.length - 1] ?? yMax;
-  const svg = svgRoot(f, `Monthly harmonized hotspots for ${sel.label}`);
+  const svg = svgRoot(f, `${title}: harmonized hotspots for ${sel.label}`);
   const y = axes(svg, f, ticks, top);
   const n = months.length;
   const x = (i: number) => f.left + (n <= 1 ? 0.5 : i / (n - 1)) * (f.w - f.left - f.right);
@@ -96,30 +126,30 @@ function monthlyChart(sel: Selection, months: SeriesMonth[], width: number): HTM
     lower = [];
   };
   months.forEach((m, i) => {
-    if (m.countHarm == null) { flushBand(); line += ' '; return; }
-    band.push(`${x(i)},${y(m.countHigh ?? m.countHarm)}`);
-    lower.push(`${x(i)},${y(m.countLow ?? m.countHarm)}`);
-    line += `${line.endsWith(' ') || line === '' ? 'M' : 'L'}${x(i)},${y(m.countHarm)}`;
+    if (m.v == null) { flushBand(); line += ' '; return; }
+    band.push(`${x(i)},${y(m.hi ?? m.v)}`);
+    lower.push(`${x(i)},${y(m.lo ?? m.v)}`);
+    line += `${line.endsWith(' ') || line === '' ? 'M' : 'L'}${x(i)},${y(m.v)}`;
   });
   flushBand();
   if (hasBand) svg.querySelectorAll('.band').forEach((b) => svg.prepend(b));
   svg.append(s('path', { d: line.trim(), class: 'series-line' }));
+  // short series: a dot on every point, so one month or a few days still show
+  if (n <= 62) months.forEach((m, i) => { if (m.v != null) svg.append(s('circle', { cx: x(i), cy: y(m.v), r: n === 1 ? 4 : 2.5, class: 'series-dot' })); });
   // missing months marked on the axis
-  months.forEach((m, i) => { if (m.countHarm == null) svg.append(s('rect', { x: x(i) - 2, y: f.h - f.bottom + 2, width: 4, height: 6, class: 'missing-mark' })); });
-  // x labels: first month of some years
-  const years = [...new Set(months.map((m) => m.year))];
-  const every = Math.max(1, Math.ceil(years.length / Math.max(2, Math.floor((f.w - f.left) / 60))));
-  months.forEach((m, i) => {
-    if ((m.month === 1 || i === 0) && years.indexOf(m.year) % every === 0) {
-      svg.append(text(x(i), f.h - 8, n <= 24 ? `${MONTH_NAMES[m.month - 1]} ${m.year}` : String(m.year), { class: 'axis-label', 'text-anchor': i === 0 ? 'start' : 'middle' }));
-    }
+  months.forEach((m, i) => { if (m.v == null) svg.append(s('rect', { x: x(i) - 2, y: f.h - f.bottom + 2, width: 4, height: 6, class: 'missing-mark' })); });
+  // x labels: thinned so they do not overlap
+  const ticked = months.map((m, i) => [m, i] as const).filter(([m]) => m.tick != null);
+  const every = Math.max(1, Math.ceil(ticked.length / Math.max(2, Math.floor((f.w - f.left) / 70))));
+  ticked.forEach(([m, i], k) => {
+    if (k % every === 0) svg.append(text(x(i), f.h - 8, m.tick!, { class: 'axis-label', 'text-anchor': i === 0 ? 'start' : 'middle' }));
   });
   // hover / keyboard
   const cross = s('line', { y1: f.top, y2: f.h - f.bottom, class: 'crosshair', visibility: 'hidden' });
   const dot = s('circle', { r: 4.5, class: 'hover-dot', visibility: 'hidden' });
   svg.append(cross, dot);
   const hit = s('rect', { x: f.left, y: f.top, width: f.w - f.left - f.right, height: f.h - f.top - f.bottom, class: 'hit', tabindex: 0 });
-  hit.setAttribute('aria-label', 'Monthly chart. Use left and right arrow keys to read months.');
+  hit.setAttribute('aria-label', `${title}. Use left and right arrow keys to read ${unit === 'Day' ? 'days' : 'months'}.`);
   svg.append(hit);
   let cur = n - 1;
   const show = (i: number, cx?: number, cy?: number) => {
@@ -129,15 +159,15 @@ function monthlyChart(sel: Selection, months: SeriesMonth[], width: number): HTM
     cross.setAttribute('x1', String(x(i)));
     cross.setAttribute('x2', String(x(i)));
     cross.setAttribute('visibility', 'visible');
-    if (m.countHarm != null) {
+    if (m.v != null) {
       dot.setAttribute('cx', String(x(i)));
-      dot.setAttribute('cy', String(y(m.countHarm)));
+      dot.setAttribute('cy', String(y(m.v)));
       dot.setAttribute('visibility', 'visible');
     } else dot.setAttribute('visibility', 'hidden');
     const r = svg.getBoundingClientRect();
-    const lines = m.countHarm == null ? ['No data'] : [`${formatCount(m.countHarm)} hotspots`,
-      ...(m.countLow != null && m.countHigh != null && m.countHigh > m.countLow ? [`Range ${formatCount(m.countLow)}–${formatCount(m.countHigh)}`] : [])];
-    showTip(cx ?? r.left + x(i) * (r.width / f.w), cy ?? r.top + y(m.countHarm ?? 0) * (r.height / f.h), `${MONTH_NAMES[m.month - 1]} ${m.year}`, lines);
+    const lines = m.v == null ? ['No data'] : [`${formatCount(m.v)} hotspots`,
+      ...(m.lo != null && m.hi != null && m.hi > m.lo ? [`Range ${formatCount(m.lo)}–${formatCount(m.hi)}`] : [])];
+    showTip(cx ?? r.left + x(i) * (r.width / f.w), cy ?? r.top + y(m.v ?? 0) * (r.height / f.h), m.label, lines);
   };
   const hide = () => { cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); hideTip(); };
   hit.addEventListener('mousemove', (e) => {
@@ -157,12 +187,10 @@ function monthlyChart(sel: Selection, months: SeriesMonth[], width: number): HTM
   const key = h('p', { class: 'chart-key' },
     h('span', { class: 'key-line' }), 'Harmonized count',
     hasBand ? h('span', { class: 'key-band' }) : null, hasBand ? 'Approximate range' : null,
-    months.some((m) => m.countHarm == null) ? h('span', { class: 'key-missing' }) : null,
-    months.some((m) => m.countHarm == null) ? 'No data' : null);
-  return card('Monthly hotspots', `${months[0] ? `${MONTH_NAMES[months[0].month - 1]} ${months[0].year}` : ''} – ${months[n - 1] ? `${MONTH_NAMES[months[n - 1]!.month - 1]} ${months[n - 1]!.year}` : ''} · MODIS-equivalent count`,
-    svg, key,
-    table('Monthly harmonized hotspots', ['Month', 'Hotspots', 'Low', 'High'],
-      months.map((m) => [`${m.year}-${String(m.month).padStart(2, '0')}`, formatCount(m.countHarm), formatCount(m.countLow), formatCount(m.countHigh)])));
+    months.some((m) => m.v == null) ? h('span', { class: 'key-missing' }) : null,
+    months.some((m) => m.v == null) ? 'No data' : null);
+  return card(title, note, svg, key,
+    table(`${title}, harmonized`, [unit, 'Hotspots', 'Low', 'High'], months.map((m) => [m.key, formatCount(m.v), formatCount(m.lo), formatCount(m.hi)])));
 }
 
 // ---------- 2. yearly totals ----------
@@ -248,7 +276,35 @@ function seasonalChart(sel: Selection, highlightYear: number, width: number): HT
         formatCount(hl.find((x) => x.month === b.month)?.countHarm ?? null)])));
 }
 
+/** Short date ranges: one point per day. Whole region from daily.json; a drawn area from its hotspot points. */
+function dailyCardFactory(ctx: AppContext) {
+  return (sel: Selection, start: string, end: string, width: number): HTMLElement => {
+    const slot = h('div', {}, h('p', { class: 'note' }, 'Loading the days…'));
+    const rd = ctx.loaded.get().regionData!;
+    const note = `${start} – ${end} · MODIS-equivalent count per day`;
+    const draw = (rows: [string, number | null][]) =>
+      slot.replaceChildren(lineChart(sel, dayPoints(rows), width, 'Daily hotspots', note, 'Day'));
+    const dates: string[] = [];
+    for (let i = 0; i <= daysBetween(start, end); i++) dates.push(isoDay(start, i));
+    const regionVal = (d: string) => {
+      const i = daysBetween(rd.daily.start, d);
+      return i >= 0 && i < rd.daily.columns.count_harm.length ? rd.daily.columns.count_harm[i] ?? null : null;
+    };
+    if (!sel.box) draw(dates.map((d) => [d, regionVal(d)]));
+    else {
+      const box = sel.box;
+      loadHotspots(sel.regionId, start, end).then((pts) => {
+        const sums = new Map<string, number>();
+        for (const p of pts) if (pointInSnappedBox(p.latitude, p.longitude, box)) sums.set(p.date, (sums.get(p.date) ?? 0) + p.harmonized_weight);
+        draw(dates.map((d) => [d, regionVal(d) == null ? null : Math.round((sums.get(d) ?? 0) * 100) / 100]));
+      }).catch((err: unknown) => slot.replaceChildren(h('p', { class: 'field-error' }, err instanceof Error ? err.message : 'Could not load the days.')));
+    }
+    return slot;
+  };
+}
+
 export function mountCharts(el: HTMLElement, ctx: AppContext): void {
+  const dailyCard = dailyCardFactory(ctx);
   const body = h('div', { class: 'charts' });
   const sub = h('p', { class: 'note' });
   el.replaceChildren(h('div', { class: 'panel-head' }, h('div', {}, h('h2', {}, 'Charts'), sub)), body);
@@ -270,8 +326,10 @@ export function mountCharts(el: HTMLElement, ctx: AppContext): void {
     const width = Math.max(260, Math.floor(body.clientWidth || el.clientWidth || 600));
     lastWidth = width;
     const half = width >= 760 ? Math.floor((width - 20) / 2) : width;
+    const days = daysBetween(startDate, endDate) + 1;
+    const first = days <= DAILY_CHART_MAX_DAYS ? dailyCard(sel, startDate, endDate, width) : monthlyChart(sel, months, width);
     body.replaceChildren(
-      monthlyChart(sel, months, width),
+      first,
       h('div', { class: 'chart-pair' },
         yearlyChart(sel, months, half),
         seasonalChart(sel, Number(endDate.slice(0, 4)), half)),

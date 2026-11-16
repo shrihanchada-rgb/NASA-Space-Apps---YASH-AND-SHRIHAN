@@ -5,13 +5,14 @@ import { mountCalendar } from './components/calendar';
 import { mountCharts } from './components/charts';
 import { mountCompare } from './components/compare';
 import { mountControls } from './components/controls';
+import { mountLatest } from './components/latest';
 import { mountDownloads } from './components/downloads';
 import { mountMap } from './components/mapView';
 import { mountSummary } from './components/summary';
 import type { AppContext, LoadState } from './context';
 import { loadGrid, loadMetadata, loadRegionData, loadRegions } from './data/loader';
 import { buildAreaSelection, buildRegionSelection, clampBox, snapBox } from './data/selection';
-import { readSelection, renderFooter, renderTopbar, selectionQuery, syncSelectionLinks } from './shell';
+import { readSelection, renderAreaBar, renderFooter, renderTopbar, selectionQuery, syncSelectionLinks } from './shell';
 import { type AppState, createStore, onStoreError } from './state';
 
 function need(id: string): HTMLElement {
@@ -96,7 +97,10 @@ async function start(): Promise<void> {
     selSummary.textContent = `Dates and area: ${s.startDate} – ${s.endDate} · ${s.drawnBox ? 'drawn area' : 'all of California'}`;
   };
   describeSelection();
-  const keepInAddress = () => { syncSelectionLinks(selectionQuery(state.get(), cov)); describeSelection(); };
+  const areaBar = find('area-bar');
+  const drawAreaBar = () => { if (areaBar) renderAreaBar(areaBar, state.get().drawnBox, () => state.set({ drawnBox: null, drawing: false }), page === 'map'); };
+  drawAreaBar();
+  const keepInAddress = () => { syncSelectionLinks(selectionQuery(state.get(), cov)); describeSelection(); drawAreaBar(); };
   keepInAddress();
   state.subscribe((s, p) => {
     if (s.startDate !== p.startDate || s.endDate !== p.endDate || s.drawnBox !== p.drawnBox || s.colorMode !== p.colorMode) keepInAddress();
@@ -112,6 +116,7 @@ async function start(): Promise<void> {
     const el = find(id);
     if (el) mountSafely(el, what, () => mount(el));
   };
+  panel('latest', 'day-by-day calendar', (el) => mountLatest(el, ctx));
   panel('controls', 'selection panel', (el) => mountControls(el, ctx));
   panel('summary', 'summary', (el) => mountSummary(el, ctx));
   panel('map', 'map', (el) => {
