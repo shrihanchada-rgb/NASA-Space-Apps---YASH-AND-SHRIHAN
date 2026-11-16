@@ -26,8 +26,9 @@ Rules for entries:
 
 ## Entries
 
-### 2026-11-16 — S29 Deploy: switched to Vercel — STARTED
+### 2026-11-16 — S29 Deploy (GitHub Pages; Vercel config added but not used) — BLOCKED (Pages setting is off)
 - **Who / AI:** Shrihan using Claude
+- **Update (same day):** The user chose GitHub Pages again. The 404 at https://shrihanchada-rgb.github.io/NASA-Space-Apps---YASH-AND-SHRIHAN/ means Pages is not enabled: both deploy runs (43794665734, 43795155772) built fine, then failed with "Failed to create deployment (status: 404) … Ensure GitHub Pages has been enabled". The repo is now public, so the plan is no longer a blocker. The session's proxy blocks the Pages API, so only the user can flip Settings → Pages → Source: GitHub Actions. The push trigger of `pages.yml` is restored. Next: after the setting is on, run "Deploy website" (or push to `main`).
 - **Did:** Added `vercel.json` at the repo root (install `npm ci --prefix web`, build `npm run build --prefix web`, output `web/dist`), so a Vercel project imported from this repo needs no settings. The GitHub Pages workflow now runs only by hand (Pages could not be switched on).
 - **How to check it:** from the repo root: `npm ci --prefix web && npm run build --prefix web` → `web/dist` with `index.html`, `methods.html`, `data/` (134 MB, 355 files; largest file 19.7 MB).
 - **Problems / open questions:** Vercel Hobby limits for a 134 MB static site were not checked against Vercel's documentation. The Vercel import is done by Shrihan on the Vercel site; the URL is not known yet.
