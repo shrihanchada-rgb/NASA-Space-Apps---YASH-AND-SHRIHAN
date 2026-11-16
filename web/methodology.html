@@ -13,6 +13,7 @@
   <body data-page="methodology">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar" id="topbar"></header>
+    <div id="area-bar" class="area-bar"></div>
 
     <main id="main" class="wrap doc" tabindex="-1">
       <section class="page-hero">
@@ -23,7 +24,7 @@
       <section class="panel" aria-labelledby="m-what">
         <h2 id="m-what">What the numbers mean</h2>
         <p>Satellites record a <strong>hotspot</strong> when a pixel is hotter than its surroundings, usually because of a fire. Two families of instruments do this. <strong>MODIS</strong> (on the Terra and Aqua satellites, since 2000 and 2002) has 1 km pixels. <strong>VIIRS</strong> (on S-NPP since 2012, NOAA-20 since 2018 and NOAA-21 since 2023) has 375 m pixels and sees many more, smaller fires. Adding the two together would make fire activity seem to jump in 2012 and again when each new satellite started.</p>
-        <p>Every count on these pages (all except <a class="textlink" href="latest/index.html">Latest</a>) is therefore given on one scale: <strong>MODIS-equivalent hotspots</strong>, the number of detections Terra and Aqua together would have made. It is a measure of fire activity, not of burned area or of the number of separate fires. One large fire produces many hotspots, over many days.</p>
+        <p>Every count on these pages, the Latest page included, is therefore given on one scale: <strong>MODIS-equivalent hotspots</strong>, the number of detections Terra and Aqua together would have made. It is a measure of fire activity, not of burned area or of the number of separate fires. One large fire produces many hotspots, over many days.</p>
       </section>
 
       <section class="panel" aria-labelledby="m-data">
@@ -97,15 +98,35 @@
       </section>
 
       <section class="panel" aria-labelledby="m-latest">
-        <h2 id="m-latest">The Latest page is a separate dataset</h2>
-        <p>The <a class="textlink" href="latest/index.html">Latest</a> page is Yashneil's day-by-day calendar. It uses its own method and its own unit, so its numbers cannot be compared with, or added to, the harmonized counts on the other pages:</p>
+        <h2 id="m-latest">The Latest page and the drawn area</h2>
+        <p>The <a class="textlink" href="index.html">Latest</a> page is the day-by-day calendar designed by Yashneil Gajjala (<a class="textlink" href="https://github.com/yashneil75/califire">yashneil75/califire</a>, MIT licence). Its layout is his; its numbers are ours: the harmonized daily count described above.</p>
         <ul>
-          <li><strong>Unit:</strong> MODIS-Aqua-equivalent occupied 1 km² grid cells per day (an activity index), not hotspot counts.</li>
-          <li><strong>Method:</strong> VIIRS detections are scored with a Poisson model fitted to MODIS-Aqua; earlier years use MODIS directly.</li>
-          <li><strong>Newer days:</strong> it is refreshed daily and includes near-real-time days after the standard archive ends, and an experimental 7-day forecast of detected activity (not fire risk).</li>
-          <li><strong>Known difference:</strong> in quiet months its values are several times lower from 2012 on than before (for example January), a change of sensor rather than of fire activity. The harmonized counts on the other pages were built to avoid that step.</li>
+          <li><strong>All of California:</strong> each day is the daily harmonized count. Days with no satellite data are hatched, never zero.</li>
+          <li><strong>A drawn area:</strong> each day is the sum of the harmonized weights of the hotspots inside the area (they add up exactly to the day's count). Rankings against other years ("more active than X% of August days") and the 24-month strongest days are given for all of California only, because they need every day of the record; an area shows the strongest days of the month on screen.</li>
+          <li><strong>Day and night:</strong> the split of a day's count between daytime and night-time detections, from the same weights.</li>
+          <li>The same rule applies on every page: once you draw an area on the Map, the Latest page, Overview, Archive, Map, comparison and downloads all show that area only. Clear it to go back to all of California.</li>
         </ul>
-        <p>Its full method, sources and validation: <a class="textlink" href="latest/methodology.html">Latest page methodology →</a></p>
+      </section>
+
+      <section class="panel" aria-labelledby="m-forecast">
+        <h2 id="m-forecast">Experimental forecast</h2>
+        <p>The purple days on the Latest page are a forecast made with Yashneil's method: Mistral's <strong>Timestral-5M</strong> time-series model (revision <code>bdd20cf</code>), given the last 730 days of the harmonized daily count (log scale, days without data left out) and asked for the next 7 days, with a median and a 10th–90th percentile range. No weather or fire information is used. It is a forecast of satellite-detected activity, <strong>not of fire risk</strong>, and must not be used for safety decisions.</p>
+        <p><strong>Which days it covers:</strong> our data ends on 31 August 2026 (the standard archive ends there), so the forecast covers 1–7 September 2026, not the days after today. It is shown for all of California only.</p>
+        <p><strong>How well it did on our data</strong> (his check: 7-day forecasts started on the 1st and 15th of each month in 2023–2025, 504 days with data scored; the inputs are today's archive, not what was known at the time):</p>
+        <table id="forecast-table">
+          <thead><tr><th>Method</th><th class="num">Typical error (MAE), hotspots per day</th><th class="num">Ordinary days (all but the busiest 10%)</th><th class="num">Busiest 10% of days</th></tr></thead>
+          <tbody>
+            <tr><td>Timestral-5M (median)</td><td class="num">14.6</td><td class="num">7.9</td><td class="num">74.3</td></tr>
+            <tr><td>Seasonal median (5 earlier years)</td><td class="num">18.9</td><td class="num">13.8</td><td class="num">64.6</td></tr>
+            <tr><td>Persistence (same as the last day)</td><td class="num">14.4</td><td class="num">8.9</td><td class="num">–</td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li>Overall it is no better than simply repeating the last day (14.6 against 14.4). On ordinary days it is the best of the three.</li>
+          <li>On the busiest 10% of days (56.6 or more hotspots) every method fails; the model's medians add up to 67% less than what was observed. It cannot see an outbreak coming.</li>
+          <li>Its 10th–90th percentile range held 76% of the observed days, against the 80% it should.</li>
+        </ul>
+        <p class="note">Run by <code>pipeline/07_forecast.py</code> in the GitHub Actions job <code>.github/workflows/forecast.yml</code> (the model needs internet). Results: <code>data/processed/regions/US-CA/forecast.json</code>.</p>
       </section>
 
       <section class="panel" aria-labelledby="m-cite">

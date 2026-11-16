@@ -42,11 +42,11 @@ function fireData(): Plugin {
 export default defineConfig({
   base: './', // relative paths, so the built site works on GitHub Pages under any folder
   plugins: [fireData()],
-  // One entry per page. The Latest pages (public/latest/) are Yashneil's static files, copied as they are.
+  // One entry per page. compare.html, methods.html and public/latest/* only send old links to the new pages.
   build: {
     rollupOptions: {
       input: Object.fromEntries(
-        ['index', 'archive', 'map', 'compare', 'download', 'methodology', 'methods'].map((n) => [n, path.resolve(here, `${n}.html`)]),
+        ['index', 'overview', 'archive', 'map', 'compare', 'download', 'methodology', 'methods'].map((n) => [n, path.resolve(here, `${n}.html`)]),
       ),
     },
   },

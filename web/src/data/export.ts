@@ -54,6 +54,26 @@ export function calendarCsv(meta: Metadata, sel: Selection, start: string, end: 
   return [...headerLines(meta, sel, start, end, 'burning calendar (harmonized count per month)'), head, ...body].join('\n') + '\n';
 }
 
+/** One row per day (Yashneil's "daily" download, on our data). Days without satellite data are NA, never 0. */
+export interface DailyRow { date: string; countHarm: number | null; rawModis: number | null; rawViirs: number | null; frpSum: number | null }
+export function dailyCsv(meta: Metadata, sel: Selection, start: string, end: string, rows: DailyRow[]): string {
+  const head = 'date,count_harm,count_raw_modis,count_raw_viirs,frp_sum';
+  const body = rows.map((r) => [r.date, num(r.countHarm), num(r.rawModis), num(r.rawViirs), num(r.frpSum)].join(','));
+  return [...headerLines(meta, sel, start, end, 'daily series'), head, ...body].join('\n') + '\n';
+}
+
+/** One row per year (Yashneil's "yearly" download, on our data): sums of the months with data. */
+export function yearlyCsv(meta: Metadata, sel: Selection, start: string, end: string, months: SeriesMonth[]): string {
+  const head = 'year,count_harm,count_raw_modis,count_raw_viirs,frp_sum,months_with_data';
+  const years = [...new Set(months.map((m) => m.year))].sort((a, b) => a - b);
+  const body = years.map((y) => {
+    const ms = months.filter((m) => m.year === y && m.countHarm != null);
+    const sum = (f: (m: SeriesMonth) => number | null) => (ms.length ? ms.reduce((a, m) => a + (f(m) ?? 0), 0) : null);
+    return [y, num(sum((m) => m.countHarm)), num(sum((m) => m.rawModis)), num(sum((m) => m.rawViirs)), num(sum((m) => m.frpSum)), ms.length].join(',');
+  });
+  return [...headerLines(meta, sel, start, end, 'yearly series (sums of the months with data)'), head, ...body].join('\n') + '\n';
+}
+
 /** File name: fire-<what>_<region or area>_<start>_<end>.csv */
 export function fileName(what: string, sel: Selection, start: string, end: string): string {
   const where = sel.box ? `${sel.regionId}-area_${sel.box.map((v) => v.toFixed(2)).join('_')}` : sel.regionId;

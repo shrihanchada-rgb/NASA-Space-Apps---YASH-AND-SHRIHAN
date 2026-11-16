@@ -13,13 +13,14 @@
   <body data-page="map">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar" id="topbar"></header>
+    <div id="area-bar" class="area-bar"></div>
     <div id="sample-banner" class="banner" role="status" hidden></div>
     <div id="status" class="status" role="alert" hidden></div>
 
     <main id="main" class="wrap page" tabindex="-1">
       <section class="page-hero">
         <h1 class="page-title">The <em>map</em>.</h1>
-        <p class="lede">Where the hotspots were, for the dates you chose: points by sensor or fire radiative power, or density per 25 km cell. Draw an area to narrow every page to it.</p>
+        <p class="lede">Where the hotspots were, for the dates you chose. Draw a rectangle to select part of California: every page then shows that area only. Below the map, compare the chosen dates with the same dates in every other year.</p>
       </section>
       <div class="layout">
         <aside class="sidebar" aria-label="Selection">
@@ -37,6 +38,7 @@
             <div id="map" class="map" role="region" aria-label="Map of the selected region"></div>
             <p id="map-note" class="note map-note"></p>
           </section>
+          <section id="compare" class="panel" aria-label="Compare with past years"></section>
         </div>
       </div>
     </main>

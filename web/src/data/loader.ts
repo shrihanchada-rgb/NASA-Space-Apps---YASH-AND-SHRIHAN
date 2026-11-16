@@ -1,7 +1,7 @@
 // The only place that fetches data. Everything comes from <site>/data/, which is
 // web/fixtures in development and data/processed for the real site (see vite.config.ts).
 
-import type { Baseline, Daily, FileHeader, GridCell, GridMonth, Hotspot, Metadata, Monthly, RegionCollection, RegionData, RegionGrid } from './types';
+import type { Forecast, Baseline, Daily, FileHeader, GridCell, GridMonth, Hotspot, Metadata, Monthly, RegionCollection, RegionData, RegionGrid } from './types';
 
 export const SUPPORTED_SCHEMA = '1.0';
 
@@ -191,6 +191,29 @@ export function loadGrid(regionId: string): Promise<RegionGrid> {
     }));
     hit.catch(() => gridCache.delete(regionId));
     gridCache.set(regionId, hit);
+  }
+  return hit;
+}
+
+const forecastCache = new Map<string, Promise<Forecast | null>>();
+
+/** The optional forecast file. Missing (404) or invalid means "no forecast": the page works without it. */
+export function loadForecast(regionId: string): Promise<Forecast | null> {
+  let hit = forecastCache.get(regionId);
+  if (!hit) {
+    const path = `regions/${encodeURIComponent(regionId)}/forecast.json`;
+    hit = getText(path, true).then((text) => {
+      if (text == null) return null;
+      try {
+        const f = JSON.parse(text) as Forecast;
+        const ok = f.kind === 'experimental_forecast' && Array.isArray(f.predictions) && f.predictions.every((p) =>
+          /^\d{4}-\d{2}-\d{2}$/.test(p.date) && [p.q10, p.median, p.q90].every(Number.isFinite) && p.q10 >= 0 && p.q10 <= p.median && p.median <= p.q90);
+        return ok ? f : null;
+      } catch {
+        return null;
+      }
+    }).catch(() => null);
+    forecastCache.set(regionId, hit);
   }
   return hit;
 }

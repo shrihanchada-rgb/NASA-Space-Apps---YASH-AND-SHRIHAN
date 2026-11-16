@@ -180,6 +180,16 @@ These let the website give results for any area the user draws inside the region
 - **A null raw count** (`count_raw_viirs` before 20 Jan 2012) means no rows of that sensor in the hotspot files.
 - **`count_low` = `count_harm` = `count_high`** where the value is purely observed MODIS.
 
+## 8c. `regions/<region_id>/forecast.json` (optional, since 2026-11-16)
+
+Experimental 7-day forecast of the daily harmonized count, made by `pipeline/07_forecast.py` with Yashneil's Timestral-5M method (run in GitHub Actions). If the file is missing or invalid the website shows no forecast; nothing else depends on it.
+
+- Header: `schema_version`, `method_version`, `is_sample`, `region_id`, `kind` = `"experimental_forecast"`, `model`, `model_revision`, `method_source`, `generated_utc`, `unit`, `warning`, `note`.
+- `origin_date`: the last day of the data (= `daily.json` `end`). Predictions start the day after.
+- `predictions`: 7 objects `{date, median, q10, q90}` (harmonized hotspots per day, `0 <= q10 <= median <= q90`).
+- `validation`: his retrospective check on our data (`description`, `pooled`, `by_year`), or `null`.
+- Forecast values are never added to observed totals, the calendar, charts or downloads.
+
 ## 9. How each website feature maps to files
 
 | Website feature (README 3.1) | Reads |

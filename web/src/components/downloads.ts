@@ -4,9 +4,11 @@
 // Every file starts with # lines: what, where, dates, method, build date, citation.
 
 import type { AppContext } from '../context';
-import { calendarCsv, estimateRows, fileName, hotspotsCsv, monthlyCsv, ROW_CAP } from '../data/export';
+import { calendarCsv, type DailyRow, dailyCsv, estimateRows, fileName, hotspotsCsv, monthlyCsv, ROW_CAP, yearlyCsv } from '../data/export';
+import { daysBetween } from '../data/derive';
+import { isoDay } from '../data/latest';
 import { loadHotspots } from '../data/loader';
-import { filterHotspots, monthsInRange } from '../data/selection';
+import { filterHotspots, monthsInRange, pointInSnappedBox } from '../data/selection';
 import { formatCount, h } from '../dom';
 import { icon } from '../icons';
 
@@ -44,6 +46,34 @@ export function mountDownloads(el: HTMLElement, ctx: AppContext): void {
   async function hotspotRows(start: string, end: string) {
     const sel = ctx.loaded.get().selection!;
     return filterHotspots(await loadHotspots(sel.regionId, start, end), sel, start, end);
+  }
+
+  /** Daily rows: whole region from daily.json; a drawn area from its hotspot points (same as the Latest page). */
+  async function dailyRows(start: string, end: string): Promise<DailyRow[]> {
+    const sel = ctx.loaded.get().selection!;
+    const d = ctx.loaded.get().regionData!.daily;
+    const c = d.columns;
+    const rows: DailyRow[] = [];
+    for (let k = 0; k <= daysBetween(start, end); k++) {
+      const date = isoDay(start, k);
+      const i = daysBetween(d.start, date);
+      if (i < 0 || i >= c.count_harm.length) continue;
+      const v = c.count_harm[i];
+      rows.push(v == null ? { date, countHarm: null, rawModis: null, rawViirs: null, frpSum: null }
+        : sel.box ? { date, countHarm: 0, rawModis: 0, rawViirs: 0, frpSum: 0 }
+        : { date, countHarm: v, rawModis: c.count_raw_modis[i] ?? 0, rawViirs: c.count_raw_viirs[i] ?? 0, frpSum: c.frp_sum[i] ?? 0 });
+    }
+    if (sel.box) {
+      const by = new Map(rows.map((r) => [r.date, r]));
+      for (const p of await loadHotspots(sel.regionId, start, end)) {
+        const r = by.get(p.date);
+        if (!r || r.countHarm == null || !pointInSnappedBox(p.latitude, p.longitude, sel.box)) continue;
+        r.countHarm += p.harmonized_weight;
+        if (p.sensor === 'MODIS') r.rawModis! += 1; else r.rawViirs! += 1;
+        r.frpSum! += p.frp;
+      }
+    }
+    return rows;
   }
 
   function render(): void {
@@ -88,8 +118,16 @@ export function mountDownloads(el: HTMLElement, ctx: AppContext): void {
         return b;
       })));
     }
+    if (sel.kind === 'region' || est <= ROW_CAP) {
+      items.push(button('Daily series CSV', `${formatCount(daysBetween(startDate, endDate) + 1)} days: harmonized count, raw counts, FRP`, async () =>
+        save(fileName('daily', sel, startDate, endDate), dailyCsv(meta, sel, startDate, endDate, await dailyRows(startDate, endDate)))));
+    } else {
+      items.push(h('p', { class: 'note' }, 'Daily series for a drawn area: choose fewer dates (it is built from the hotspot points, about ' + formatCount(est) + ' here).'));
+    }
     items.push(button('Monthly series CSV', `${months.length} months: harmonized count, range, raw counts`, () =>
       save(fileName('monthly', sel, startDate, endDate), monthlyCsv(meta, sel, startDate, endDate, months))));
+    items.push(button('Yearly series CSV', 'one row per year: sums of the months with data', () =>
+      save(fileName('yearly', sel, startDate, endDate), yearlyCsv(meta, sel, startDate, endDate, months))));
     items.push(button('Calendar CSV', 'years × months table, as in the calendar', () =>
       save(fileName('calendar', sel, startDate, endDate), calendarCsv(meta, sel, startDate, endDate, months))));
     body.replaceChildren(...items);
