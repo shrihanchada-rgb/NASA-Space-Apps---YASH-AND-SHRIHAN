@@ -1,0 +1,179 @@
+{
+ "schema_version": "1.0",
+ "method_version": "A1-1.0",
+ "is_sample": false,
+ "region_id": "US-CA",
+ "kind": "experimental_forecast",
+ "model": "mistralai/Timestral-5M",
+ "model_revision": "bdd20cfc15a3fea0e4cb5ccef37f8d3ca7aa335f",
+ "method_source": "Yashneil Gajjala's Califire forecast (yashneil75/califire, MIT), run on the harmonized daily count",
+ "origin_date": "2026-08-31",
+ "note": "Forecast of the 7 days after the last day of the data (the standard archive ends there), not of the days after today.",
+ "unit": "MODIS-equivalent hotspots (harmonized count) per day",
+ "generated_utc": "2026-11-16T04:43:56+00:00",
+ "warning": "Experimental forecast of satellite-detected activity; not a fire-risk forecast or emergency guidance.",
+ "predictions": [
+  {
+   "date": "2026-09-01",
+   "median": 39.427,
+   "q10": 13.074,
+   "q90": 85.993
+  },
+  {
+   "date": "2026-09-02",
+   "median": 37.627,
+   "q10": 10.034,
+   "q90": 90.894
+  },
+  {
+   "date": "2026-09-03",
+   "median": 27.45,
+   "q10": 5.826,
+   "q90": 81.182
+  },
+  {
+   "date": "2026-09-04",
+   "median": 18.647,
+   "q10": 3.139,
+   "q90": 67.177
+  },
+  {
+   "date": "2026-09-05",
+   "median": 23.05,
+   "q10": 4.392,
+   "q90": 75.325
+  },
+  {
+   "date": "2026-09-06",
+   "median": 22.107,
+   "q10": 4.032,
+   "q90": 74.053
+  },
+  {
+   "date": "2026-09-07",
+   "median": 21.451,
+   "q10": 3.846,
+   "q90": 71.928
+  }
+ ],
+ "validation": {
+  "description": "7-day forecasts started on the 1st and 15th of each month 2023-2025; only days with data are scored; inputs are the current archive, not what was available at each start date.",
+  "pooled": {
+   "timestral": {
+    "n": 504,
+    "mae": 14.633612746460903,
+    "rmse": 30.277029063962846,
+    "bias": -0.3497131774910939
+   },
+   "seasonal": {
+    "n": 504,
+    "mae": 18.909049603174605,
+    "rmse": 33.43137638393142,
+    "bias": -0.00586674459969076
+   },
+   "persistence": {
+    "n": 504,
+    "mae": 14.37712505607113,
+    "rmse": 28.571167797992185,
+    "bias": -0.248827011394687
+   },
+   "interval_10_90_coverage": 0.7638888888888888,
+   "top_10_percent_threshold": 56.55607999999999,
+   "top_10_percent_timestral": {
+    "n": 51,
+    "mae": 74.2537604164647,
+    "rmse": 87.59362723663982,
+    "bias": -0.6717766505748517
+   },
+   "top_10_percent_seasonal": {
+    "n": 51,
+    "mae": 64.56923137254903,
+    "rmse": 77.8146072154786,
+    "bias": -0.5829333483445434
+   },
+   "non_top_10_percent_timestral": {
+    "n": 453,
+    "mae": 7.921410690897558,
+    "rmse": 12.493814652417843,
+    "bias": -0.006613168639108565
+   },
+   "non_top_10_percent_seasonal": {
+    "n": 453,
+    "mae": 13.768499337748343,
+    "rmse": 23.70199101502986,
+    "bias": 0.6088926845192801
+   },
+   "non_top_10_percent_persistence": {
+    "n": 453,
+    "mae": 8.855974237372964,
+    "rmse": 13.32567580291801,
+    "bias": 0.05429203951525436
+   }
+  },
+  "by_year": {
+   "2023": {
+    "timestral": {
+     "n": 168,
+     "mae": 13.299091924020363,
+     "rmse": 27.070116651924355,
+     "bias": -0.33902550278913296
+    },
+    "seasonal": {
+     "n": 168,
+     "mae": 17.268505952380952,
+     "rmse": 29.785973321652833,
+     "bias": 0.2757997121808645
+    },
+    "persistence": {
+     "n": 168,
+     "mae": 13.67704390817256,
+     "rmse": 26.618789239729644,
+     "bias": -0.15647670038272132
+    },
+    "interval_10_90_coverage": 0.7619047619047619
+   },
+   "2024": {
+    "timestral": {
+     "n": 168,
+     "mae": 14.759412989465394,
+     "rmse": 27.652267646895698,
+     "bias": -0.24044817302577073
+    },
+    "seasonal": {
+     "n": 168,
+     "mae": 20.584908333333335,
+     "rmse": 35.536439733085444,
+     "bias": -0.16322342104297408
+    },
+    "persistence": {
+     "n": 168,
+     "mae": 14.908749018214426,
+     "rmse": 26.229432852253886,
+     "bias": -0.18800212735327967
+    },
+    "interval_10_90_coverage": 0.7261904761904762
+   },
+   "2025": {
+    "timestral": {
+     "n": 168,
+     "mae": 15.842333325896945,
+     "rmse": 35.39288551751334,
+     "bias": -0.46342414141378074
+    },
+    "seasonal": {
+     "n": 168,
+     "mae": 18.873734523809524,
+     "rmse": 34.68325280522047,
+     "bias": -0.08412574120978038
+    },
+    "persistence": {
+     "n": 168,
+     "mae": 14.545582241826397,
+     "rmse": 32.44058876905649,
+     "bias": -0.382519051721354
+    },
+    "interval_10_90_coverage": 0.8035714285714286
+   }
+  }
+ }
+}
