@@ -36,15 +36,34 @@ export function mountControls(el: HTMLElement, ctx: AppContext): void {
   const error = h('p', { class: 'field-error', hidden: true });
   error.setAttribute('role', 'alert');
 
+  const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + 'T00:00:00Z'));
   function onDates(): void {
     if (!from.value || !to.value) return;
+    if (!isDate(from.value) || !isDate(to.value)) {
+      error.textContent = 'Enter full dates (year, month and day).';
+      error.hidden = false;
+      return;
+    }
     if (from.value > to.value) {
       error.textContent = 'The start date must be on or before the end date.';
       error.hidden = false;
       return;
     }
-    error.hidden = true;
-    state.set({ startDate: from.value, endDate: to.value });
+    if (to.value < start || from.value > end) {
+      error.textContent = `There is no data for these dates. The data covers ${start} to ${end}.`;
+      error.hidden = false;
+      return;
+    }
+    // Dates partly outside the data are moved to its edges (no requests for files that cannot exist).
+    const s = from.value < start ? start : from.value;
+    const e = to.value > end ? end : to.value;
+    if (s !== from.value || e !== to.value) {
+      error.textContent = `Moved to the dates with data: ${s} to ${e}.`;
+      error.hidden = false;
+    } else error.hidden = true;
+    state.set({ startDate: s, endDate: e });
+    from.value = s;
+    to.value = e;
   }
   from.addEventListener('change', onDates);
   to.addEventListener('change', onDates);

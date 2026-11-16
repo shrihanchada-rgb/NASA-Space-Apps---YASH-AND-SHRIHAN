@@ -12,7 +12,7 @@ import { mountSummary } from './components/summary';
 import type { AppContext, LoadState } from './context';
 import { loadGrid, loadMetadata, loadRegionData, loadRegions } from './data/loader';
 import { buildAreaSelection, buildRegionSelection } from './data/selection';
-import { type AppState, createStore } from './state';
+import { type AppState, createStore, onStoreError } from './state';
 
 function need(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -24,6 +24,40 @@ const status = need('status');
 function showError(message: string): void {
   status.textContent = message;
   status.hidden = false;
+}
+
+/** An unexpected error: log it, and tell the user once without hiding the rest of the page. */
+let reported = false;
+function reportUnexpected(err: unknown): void {
+  console.error(err);
+  if (reported) return;
+  reported = true;
+  showError('Something went wrong in part of the page. The rest still works; reload the page if a panel looks wrong.');
+}
+onStoreError(reportUnexpected);
+window.addEventListener('error', (e) => reportUnexpected(e.error ?? e.message));
+window.addEventListener('unhandledrejection', (e) => reportUnexpected(e.reason));
+
+/** Start one panel. If it fails, show why inside that panel and keep the others running. */
+function mountSafely(el: HTMLElement, what: string, mount: () => void): void {
+  try {
+    mount();
+  } catch (err) {
+    console.error(err);
+    const p = document.createElement('p');
+    p.className = 'field-error';
+    p.textContent = `The ${what} could not start${err instanceof Error && err.message ? `: ${err.message.replace(/\.$/, '')}.` : '.'}`;
+    el.replaceChildren(p);
+  }
+}
+
+function webglAvailable(): boolean {
+  try {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') ?? c.getContext('webgl'));
+  } catch {
+    return false;
+  }
 }
 
 async function start(): Promise<void> {
@@ -59,13 +93,16 @@ async function start(): Promise<void> {
     banner.hidden = false;
   }
 
-  mountControls(need('controls'), ctx);
-  mountSummary(need('summary'), ctx);
-  mountMap(need('map'), need('map-note'), need('map-tools'), ctx);
-  mountCompare(need('compare'), ctx);
-  mountCalendar(need('calendar'), ctx);
-  mountCharts(need('charts'), ctx);
-  mountDownloads(need('downloads'), ctx);
+  mountSafely(need('controls'), 'selection panel', () => mountControls(need('controls'), ctx));
+  mountSafely(need('summary'), 'summary', () => mountSummary(need('summary'), ctx));
+  mountSafely(need('map'), 'map', () => {
+    if (!webglAvailable()) throw new Error('this browser has WebGL turned off or unsupported, which the map needs. Everything else works.');
+    mountMap(need('map'), need('map-note'), need('map-tools'), ctx);
+  });
+  mountSafely(need('compare'), 'comparison', () => mountCompare(need('compare'), ctx));
+  mountSafely(need('calendar'), 'calendar', () => mountCalendar(need('calendar'), ctx));
+  mountSafely(need('charts'), 'charts', () => mountCharts(need('charts'), ctx));
+  mountSafely(need('downloads'), 'downloads', () => mountDownloads(need('downloads'), ctx));
 
   need('footer').textContent =
     `${metadata.citation} Map imagery: NASA Global Imagery Browse Services (GIBS).`;
