@@ -41,6 +41,12 @@ export function cellIndex(lat: number, lon: number, deg = GRID_DEG): [number, nu
   return [Math.floor((lat + 90) / deg + EPS), Math.floor((lon + 180) / deg + EPS)];
 }
 
+/** Clip a box to the region's bounding box. Null if nothing is left (the box is outside the region). */
+export function clampBox(box: BBox, bounds: BBox): BBox | null {
+  const out: BBox = [Math.max(box[0], bounds[0]), Math.max(box[1], bounds[1]), Math.min(box[2], bounds[2]), Math.min(box[3], bounds[3])];
+  return out[2] > out[0] && out[3] > out[1] ? out : null;
+}
+
 /** Grow a box outward to whole grid cells, so the area is made of complete cells. */
 export function snapBox(box: BBox, deg = GRID_DEG): BBox {
   const down = (v: number) => Math.floor(v / deg + EPS) * deg;

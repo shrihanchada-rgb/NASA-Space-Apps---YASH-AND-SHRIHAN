@@ -18,7 +18,7 @@ export function headerLines(meta: Metadata, sel: Selection, start: string, end: 
     ? `Drawn area in region ${sel.regionId}: west ${sel.box[0]}, south ${sel.box[1]}, east ${sel.box[2]}, north ${sel.box[3]} (degrees; snapped outward to the 0.25-degree data grid, ${sel.nCells ?? 0} cells)`
     : `Region ${sel.label} (${sel.regionId})`;
   const lines = [
-    `# Fire Activity Calendar export: ${what}`,
+    `# Califire export: ${what}`,
     `# Selection: ${where}`,
     `# Dates: ${start} to ${end} (UTC)`,
     `# Harmonized count: ${meta.reference_scale}`,
