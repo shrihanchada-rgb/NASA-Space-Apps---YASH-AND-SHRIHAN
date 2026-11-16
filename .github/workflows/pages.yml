@@ -3,10 +3,8 @@
 # One-time setting: repository Settings -> Pages -> Source: "GitHub Actions".
 name: Deploy website
 
+# Manual only since 2026-11-16: the site is deployed on Vercel (vercel.json). Pages is not switched on for this repo.
 on:
-  push:
-    branches: [main]
-    paths: ['web/**', 'data/processed/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
