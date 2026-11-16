@@ -109,6 +109,33 @@ export interface Hotspot {
   region_id: string;
 }
 
+/** One row of regions/<id>/grid_cells.csv (contract section 8b). */
+export interface GridCell {
+  lat_idx: number;
+  lon_idx: number;
+  lat: number;
+  lon: number;
+  share_in_region: number;
+}
+
+/** One row of regions/<id>/grid_monthly.csv (contract section 8b). */
+export interface GridMonth {
+  year: number;
+  month: number;
+  lat_idx: number;
+  lon_idx: number;
+  count_harm: number;
+  count_raw_modis: number;
+  count_raw_viirs: number;
+  frp_sum: number;
+}
+
+/** Grid files of one region, loaded when the user draws an area. */
+export interface RegionGrid {
+  cells: GridCell[];
+  months: GridMonth[];
+}
+
 /** [west, south, east, north] in degrees. */
 export type BBox = [number, number, number, number];
 
