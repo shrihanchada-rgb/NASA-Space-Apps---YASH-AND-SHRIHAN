@@ -42,5 +42,6 @@ function fireData(): Plugin {
 export default defineConfig({
   base: './', // relative paths, so the built site works on GitHub Pages under any folder
   plugins: [fireData()],
+  build: { rollupOptions: { input: { main: path.resolve(here, 'index.html'), methods: path.resolve(here, 'methods.html') } } },
   test: { environment: 'node', include: ['src/**/*.test.ts'] },
 });

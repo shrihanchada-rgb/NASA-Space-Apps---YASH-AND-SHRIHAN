@@ -2,7 +2,7 @@
 
 Built by `python3 pipeline/06_aggregate.py` on 2026-11-15 from the filtered FIRMS detections. Real data (`"is_sample": false`). Checked with `python3 scripts/validate_data.py data/processed` → `0 problem(s)`.
 
-Run the website on it: `cd web && DATA_DIR=../data/processed npm run dev`.
+Run the website on it: `cd web && npm run dev` (the default since S25).
 
 | File | Contents |
 |---|---|

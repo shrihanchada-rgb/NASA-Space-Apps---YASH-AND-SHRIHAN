@@ -4,6 +4,7 @@ import '@fontsource/ibm-plex-mono/500.css';
 import './styles.css';
 import { mountCalendar } from './components/calendar';
 import { mountCharts } from './components/charts';
+import { mountCompare } from './components/compare';
 import { mountControls } from './components/controls';
 import { mountDownloads } from './components/downloads';
 import { mountMap } from './components/mapView';
@@ -61,6 +62,7 @@ async function start(): Promise<void> {
   mountControls(need('controls'), ctx);
   mountSummary(need('summary'), ctx);
   mountMap(need('map'), need('map-note'), need('map-tools'), ctx);
+  mountCompare(need('compare'), ctx);
   mountCalendar(need('calendar'), ctx);
   mountCharts(need('charts'), ctx);
   mountDownloads(need('downloads'), ctx);

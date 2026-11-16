@@ -8,7 +8,7 @@ Shrihan leads the backend data work (`pipeline/`, `data/`, `docs/data-notes.md`,
 
 ## Status
 
-The pipeline runs end to end for California: download, clean, filter, grid, harmonize, and the website's real files in `data/processed/` (steps S01–S17). Fake sample files (`web/fixtures/`) remain for tests. The website (`web/`) has region/date selection, totals, a satellite map with area drawing, the burning calendar, charts and CSV downloads (S19–S24); hotspot points on the map are next (S27). It runs on the sample files by default.
+The pipeline runs end to end for California: download, clean, filter, grid, harmonize, and the website's real files in `data/processed/` (steps S01–S17). Fake sample files (`web/fixtures/`) remain for tests. The website (`web/`) has region/date selection, totals, a satellite map with area drawing, the burning calendar, charts, CSV downloads, map hotspots, comparison with past years and a Methods page (S19–S28). It runs on the real data by default; deploying (S29) is next.
 
 `README.md` is the source of truth for scope, task order, and ownership. Keep it consistent rather than writing the plan elsewhere.
 
@@ -42,8 +42,8 @@ Website (run inside `web/`; structure and rules in `web/README.md`):
 | What | Command |
 |---|---|
 | Install (once) | `npm install` |
-| Dev server on sample data | `npm run dev` |
-| Dev server on real data | `DATA_DIR=../data/processed npm run dev` |
+| Dev server on real data (default) | `npm run dev` |
+| Dev server on sample data | `DATA_DIR=fixtures npm run dev` |
 | Type check | `npm run typecheck` |
 | Unit tests / one file | `npm test` / `npx vitest run src/data/derive.test.ts` |
 | Build to `web/dist/` | `npm run build` |
@@ -83,8 +83,8 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 
 **Scope (changed 2026-11-15): California only.** `ACTIVE_REGIONS = ["US-CA"]` in `pipeline/config.py`; scripts default to it. The other three regions are archived (`archive/other_regions/README.md`) and remain in `docs/validation/` as evidence for the method.
 
-**Steps ticked in README Section 10:** S01–S17, S19–S24 (2026-11-16).
-- **The website's real data exists: `data/processed/`** (California, contract-valid, `"is_sample": false`). Read `data/processed/README.md` first. Run the site on it with `cd web && DATA_DIR=../data/processed npm run dev`.
+**Steps ticked in README Section 10:** S01–S17, S19–S28 (2026-11-16).
+- **The website's real data exists: `data/processed/`** (California, contract-valid, `"is_sample": false`). Read `data/processed/README.md` first. The site uses it by default (`cd web && npm run dev`); sample files: `DATA_DIR=fixtures npm run dev`.
 - **Harmonization: method A1, `method_version` `A1-1.0`,** policy `blend` (`HARMONIZE_POLICY` in `pipeline/config.py`):
   - from 20 Jan 2012, `count_harm` = half observed MODIS + half k[calendar month] × S-NPP
   - before that, observed MODIS; Terra-only months × 2.056
@@ -131,14 +131,14 @@ Last updated 2026-11-15. Details and sources: `docs/data-notes.md` §8 (numbers)
 - **The key is still in git history** (commit `c2dd4b5`, when `.env` was briefly committed). The repo is private. Advice given: request a new key after S10 finishes and replace it in Colab Secrets; no history rewrite.
 
 **Website side:**
-- **Status.** S19–S24 done: calendar (3 colour modes), charts, CSV downloads, phone and keyboard checked. Flat style, no gradients (the "no data" hatch is an SVG pattern), IBM Plex Sans/Mono, NASA GIBS basemap. The user asked for no gradients and fonts that don't look AI-generated. Keep that.
+- **Status.** S19–S28 done: calendar (3 colour modes), charts, CSV downloads, map hotspots (points or density), compare with past years, Methods page (`web/methods.html`); phone and keyboard checked. Flat style, no gradients (the "no data" hatch is an SVG pattern), IBM Plex Sans/Mono, NASA GIBS basemap. The user asked for no gradients and fonts that don't look AI-generated. Keep that.
 - **Default view is the whole region (California).** A drawn area, or one typed in "Enter an area by coordinates", narrows the summary, calendar, charts and downloads to that area. It snaps outward to the 0.25° grid. Rules and definitions: `web/README.md`, "How some numbers are defined".
-- **The site still runs on the sample files by default** (the user asked not to switch to real data yet). `web/fixtures/` has invented counts but California's real outline and the grid files. Switching needs no code change: `DATA_DIR=../data/processed npm run dev` (tested 2026-11-16: no errors, drawn area ready in about 2.5 s).
+- **The site runs on the real data by default since S25** (2026-11-16). Hotspots are one file per month (`hotspots/<YYYY-MM>.csv`, contract §7); the app loads only the months it needs. `web/fixtures/` (invented counts, California's real outline) is for tests and `DATA_DIR=fixtures npm run dev`.
 - **The area files are part of the contract** (`docs/data-contract.md` §8b, required by `scripts/validate_data.py`). The user decided this; no approval step.
 - **GIBS place-name tiles sometimes return HTTP 500,** so place names are off by default.
 
 **Next steps:**
-- **Website:** S27 hotspot points on the map; S25 switches to real data when the user says so. Do not load all 27 real hotspot files at once (131 MB): load only the years in the chosen dates.
+- **Website:** S29 deploy (GitHub Pages). Do not load all hotspot month files at once (131 MB in total): load only the months in the chosen dates.
 - **Pipeline:** S18 (one validate command). Optional: NRT data for months after Aug 2026.
 - **After every rebuild of `data/processed/`,** run `python3 scripts/validate_data.py data/processed` and `python3 pipeline/06b_audit_processed.py`; both must pass. The audit checks double counting and the harmonization arithmetic.
 - **Satellite outages are missing data, not zero fires.** FIRMS files are simply empty on those days. `06_aggregate.py` finds them (`find_outages`) and writes `satellite_outages.csv`. Any new analysis of daily or monthly counts must do the same.

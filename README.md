@@ -207,10 +207,11 @@ Each step has: **Needs** (steps that must be ticked first), **Do** (the work), *
 - [x] **S24 Phone and keyboard check.** Needs: S21. Done when: works on a phone-sized screen and with keyboard only.
 
 ### Phase 6 — Connect and finish
-- [ ] **S25 Real data in.** Needs: S17, S21. Do: switch the app from `web/fixtures/` to `data/processed/`. Done when: nothing else needed changing. If something did, the contract was broken: fix the contract or pipeline, not the app.
-- [ ] **S26 Check the calendar.** Needs: S25. Do: Section 13, Step E.
-- [ ] **S27 Map and current-fire comparison.** Needs: S25.
-- [ ] **S28 Methods page and write-up.** Needs: S26. Do: Section 13, Step F, and the known-limits list.
+- [x] **S25 Real data in.** Needs: S17, S21. Do: switch the app from `web/fixtures/` to `data/processed/`. Done when: nothing else needed changing. If something did, the contract was broken: fix the contract or pipeline, not the app.
+- [x] **S26 Check the calendar.** Needs: S25. Do: Section 13, Step E.
+- [x] **S27 Map and current-fire comparison.** Needs: S25.
+- [x] **S28 Methods page and write-up.** Needs: S26. Do: Section 13, Step F, and the known-limits list.
+  - Done 2026-11-16. S25 note: switching needed no change to the app's numbers, but the hotspot files were split per month (contract §7 updated, app loader updated) so the app loads only the months it needs. S26 results: `docs/validation/S26/README.md`. Methods page: `web/methods.html`.
 - [ ] **S29 Deploy.** Needs: S28. Do: GitHub Pages.
 - [ ] **S30 Full rebuild test.** Needs: S29. Do: run the whole pipeline from an empty `data/processed/` and check the app still works.
 - [ ] **S31 Demo.** Needs: S30. Do: write and rehearse a 3-minute demo (pick a region, show calendar, show worst year, compare a recent fire, download CSV). Done when: everything in Section 8 is true.

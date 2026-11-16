@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="How the Fire Activity Calendar makes MODIS and VIIRS hotspot counts comparable, how well it works, and its limits." />
+    <title>Methods and limits · Fire Activity Calendar</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="appbar">
+      <div class="appbar-inner">
+        <a class="brand" href="./index.html" style="color: inherit; text-decoration: none">
+          <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 2.5c.6 3.2-1.2 5-2.6 6.6C8 10.7 7 12.3 7 14.6A5 5 0 0 0 12 19.5a5 5 0 0 0 5-4.9c0-2.4-1.3-4-2.3-5.4-.3 1.3-1 2.2-2 2.7.4-3.7-.2-6.6-.7-9.4Z" fill="currentColor" />
+            <path d="M5 21.5h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none" />
+          </svg>
+          <div>
+            <p class="brand-name">Fire Activity Calendar</p>
+            <p class="brand-sub">Harmonized MODIS + VIIRS hotspot history</p>
+          </div>
+        </a>
+        <nav class="appnav" aria-label="Pages"><a href="./index.html">Back to the calendar</a></nav>
+        <div id="data-status" class="data-status"></div>
+      </div>
+    </header>
+
+    <main id="main" class="doc" tabindex="-1">
+      <div>
+        <h1>Methods and limits</h1>
+        <p class="note" id="build-line">California, November 2000 to August 2026.</p>
+      </div>
+
+      <section class="panel" aria-labelledby="m-what">
+        <h2 id="m-what">What the numbers mean</h2>
+        <p>Satellites record a <strong>hotspot</strong> when a pixel is hotter than its surroundings, usually because of a fire. Two families of instruments do this. <strong>MODIS</strong> (on the Terra and Aqua satellites, since 2000 and 2002) has 1 km pixels. <strong>VIIRS</strong> (on S-NPP since 2012, NOAA-20 since 2018 and NOAA-21 since 2023) has 375 m pixels and sees many more, smaller fires. Adding the two together would make fire activity seem to jump in 2012 and again when each new satellite started.</p>
+        <p>Every count on this site is therefore given on one scale: <strong>MODIS-equivalent hotspots</strong>, the number of detections Terra and Aqua together would have made. It is a measure of fire activity, not of burned area or of the number of separate fires. One large fire produces many hotspots, over many days.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="m-data">
+        <h2 id="m-data">Data and processing</h2>
+        <ol>
+          <li><strong>Source.</strong> NASA FIRMS standard-processing archive: MODIS Collection 6.1 and VIIRS 375 m (S-NPP, NOAA-20, NOAA-21). Near-real-time data is not used, so the record ends where the archive ends (31 August 2026 for MODIS, 31 July 2026 for VIIRS when downloaded).</li>
+          <li><strong>Cleaning.</strong> Exact duplicate rows are removed. Only vegetation fires (<code>type</code> 0) are kept, so volcanoes, industrial heat sources and offshore flares are dropped. Low-confidence detections are dropped (MODIS confidence below 30, VIIRS "low").</li>
+          <li><strong>Area.</strong> Detections are clipped to California's outline (Natural Earth) and placed on a 0.25° grid (about 25 km). A drawn area on the map is made of whole grid cells.</li>
+          <li><strong>Harmonization</strong> turns the detections into one MODIS-equivalent count per day, month and grid cell (next section).</li>
+          <li><strong>Checks.</strong> Every build is checked automatically: no detection counted twice, each detection's weight adds up exactly to the published count, and the published files match the data contract.</li>
+        </ol>
+      </section>
+
+      <section class="panel" aria-labelledby="m-harm">
+        <h2 id="m-harm">How MODIS and VIIRS are made comparable</h2>
+        <ul>
+          <li><strong>Before 20 January 2012</strong> the count is the observed MODIS count (Terra + Aqua).</li>
+          <li><strong>Terra-only months</strong> (November 2000 to 3 July 2002, before Aqua flew) are multiplied by <span class="mono">2.056</span>, the Terra + Aqua ÷ Terra ratio measured in California in 2003–2010.</li>
+          <li><strong>From 20 January 2012</strong> the count is the average of two estimates: the observed MODIS count, and the S-NPP VIIRS count multiplied by a factor <em>k</em> for that calendar month. For California, <em>k</em> is between 0.22 (September) and 0.35 (March): roughly one MODIS hotspot for every three to five VIIRS hotspots. <em>k</em> was learned from 2014–2018, when both sensors were working.</li>
+          <li><strong>Only one VIIRS satellite (S-NPP) is used for the conversion,</strong> so the start of NOAA-20 and NOAA-21 does not add fake activity. NOAA-20 stands in for S-NPP only on days when S-NPP has no data.</li>
+          <li><strong>Satellite outages are missing data, not zero fires.</strong> On days when one satellite delivered nothing, the estimate uses the others. Days with no data at all are shown as "no data" (hatched in the calendar), never as zero.</li>
+          <li><strong>Every detection carries a weight</strong> (<code>harmonized_weight</code> in the hotspot CSV). The weights of a day's detections add up to that day's harmonized count.</li>
+        </ul>
+        <figure>
+          <svg id="chart-years" class="chart" viewBox="0 0 720 300" role="img" aria-label="Yearly totals for California: raw MODIS, raw VIIRS and harmonized"></svg>
+          <figcaption>Yearly totals in California (logarithmic scale). Raw VIIRS counts (grey) start in 2012, are three to five times higher than MODIS, and rise again when NOAA-20 and NOAA-21 start. The harmonized count (orange) follows MODIS (blue) with no step in 2012. Years 2000 and 2026 are partial.</figcaption>
+        </figure>
+      </section>
+
+      <section class="panel" aria-labelledby="m-valid">
+        <h2 id="m-valid">How well it works</h2>
+        <p>Six methods were compared. Each was fitted on 2014–2018 and scored on 2019–2023, years it had never seen, by converting S-NPP counts and comparing them with real MODIS counts month by month. The chosen method (a ratio per calendar month, version <code id="method-version">A1-1.0</code>) scored best in California:</p>
+        <table>
+          <thead><tr><th>Measure (California, 60 test months)</th><th class="num">Value</th></tr></thead>
+          <tbody>
+            <tr><td>R² of monthly counts</td><td class="num" id="v-r2">0.992</td></tr>
+            <tr><td>Typical error (median, months with ≥ 10 hotspots)</td><td class="num" id="v-err">11.8%</td></tr>
+            <tr><td>Bias (sum predicted ÷ sum real)</td><td class="num">1.033</td></tr>
+            <tr><td>Approximate range shown in the app</td><td class="num">0.81 × to 1.32 ×</td></tr>
+            <tr><td>Test months really inside that range</td><td class="num">78%</td></tr>
+          </tbody>
+        </table>
+        <figure>
+          <svg id="chart-overlap" class="chart" viewBox="0 0 720 340" role="img" aria-label="Observed MODIS against converted S-NPP for each month since 2012, logarithmic scales"></svg>
+          <figcaption>Each dot is one month since 2012 with both sensors working: observed MODIS (across) against S-NPP converted to MODIS-equivalent (up), on logarithmic scales. Dots on the diagonal mean the two agree. Months with fewer than about 100 hotspots scatter more.</figcaption>
+        </figure>
+        <figure>
+          <img src="./methods/US-CA_compare.png" alt="Four validation panels for California: MODIS against S-NPP per month; the S-NPP to MODIS ratio over time by calendar month; the test years with real MODIS and converted S-NPP; predicted against real." loading="lazy" width="1600" height="1200" />
+          <figcaption>Validation plots for California from the method comparison (step S16). Full tables for all tested regions: <code>docs/validation/README.md</code> in the project repository.</figcaption>
+        </figure>
+      </section>
+
+      <section class="panel" aria-labelledby="m-ca">
+        <h2 id="m-ca">California in brief</h2>
+        <p>Fire activity in California is concentrated in summer and autumn: July to October hold 78% of all harmonized hotspots in 2003–2025, and August alone 30%. The most active years in the record are 2020 (about 48,400 hotspots) and 2021 (about 42,800), more than twice any other year. They match the 2020 season, the largest in the state's modern record at over 4.2 million acres including the August Complex, and the 2021 Dixie Fire, the largest single fire in California history (963,309 acres). The next years, 2008 and 2018, match the June 2008 lightning siege (over 1.1 million acres) and the 2018 Mendocino Complex. The quietest full years are 2010 and 2011.</p>
+        <p class="note">Sources: CAL FIRE <a href="https://www.fire.ca.gov/incidents/2020/">2020 incident archive</a>; <a href="https://en.wikipedia.org/wiki/Dixie_Fire">Dixie Fire</a>; Bay Nature, <a href="https://baynature.org/magazine/fall2008/wildfire-in-california/">"Wildfire in California"</a> (2008); <a href="https://en.wikipedia.org/wiki/Mendocino_Complex_Fire">Mendocino Complex Fire</a>. Counts are from this site's data; the checks are in <code>docs/validation/S26/README.md</code>.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="m-limits">
+        <h2 id="m-limits">Known limits</h2>
+        <ul>
+          <li><strong>The range is approximate.</strong> It should hold about 80% of months; in the test years it held 78% in California (fewer in two other tested regions). It is not a statistical confidence interval.</li>
+          <li><strong>The error grows after 2023.</strong> On 2024 to July 2026 the typical error was 20% and the conversion ran 10% low. A possible reason, not verified, is the orbit drift of Terra and Aqua.</li>
+          <li><strong>Terra-only months (November 2000 to June 2002) are less certain.</strong> They are scaled from one satellite (typical error about 9% when tested on 2011–2018).</li>
+          <li><strong>Small numbers are less reliable.</strong> Months, days or drawn areas with few hotspots have larger relative errors. The conversion is fitted to California as a whole; it is not tuned for single grid cells.</li>
+          <li><strong>Hotspots are not fires or burned area.</strong> Clouds and thick smoke hide fires; small or short fires between satellite passes are missed; one large fire gives many hotspots.</li>
+          <li><strong>Drawn areas use whole months.</strong> Their calendar, charts and comparison come from the monthly grid. The hotspot CSV of an area uses exact dates.</li>
+          <li><strong>No near-real-time data.</strong> The newest data is from the standard archive, a few months behind. S-NPP stopped on 2 November 2026, and Terra and Aqua are due to stop in late 2026 or early 2027, so extending the record will need a new reference.</li>
+          <li><strong>Only California was checked in this version.</strong> The factors cannot be used for other places without refitting.</li>
+        </ul>
+      </section>
+
+      <section class="panel" aria-labelledby="m-cite">
+        <h2 id="m-cite">Citation and licence</h2>
+        <p id="citation">We acknowledge the use of imagery from the NASA LANCE FIRMS (https://earthdata.nasa.gov/firms), part of the NASA Earth Science Data and Information System (ESDIS).</p>
+        <p>FIRMS data is shared openly by NASA; when you use images from it, cite "NASA FIRMS". The downloaded CSV files repeat the citation in their header lines. Map imagery: NASA Global Imagery Browse Services (GIBS). California's outline: Natural Earth (public domain). Fonts: IBM Plex (SIL Open Font License 1.1).</p>
+      </section>
+    </main>
+
+    <footer class="site-footer"><p>Fire Activity Calendar · NASA Space Apps project.</p></footer>
+    <script type="module" src="/src/methods.ts"></script>
+  </body>
+</html>
