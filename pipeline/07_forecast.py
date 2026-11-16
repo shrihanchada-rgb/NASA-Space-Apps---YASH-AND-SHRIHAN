@@ -115,6 +115,8 @@ def backtest(days, model):
         observed.extend(actual); timestral.extend(pred); seasonal.extend(base); persistence.extend(persist); low.extend(lo); high.extend(hi)
     actual, pred, base, persist, lo, hi = map(np.asarray, (observed, timestral, seasonal, persistence, low, high))
     mask = np.isfinite(actual) & np.isfinite(lo) & np.isfinite(hi)
+    if not mask.any():
+        raise ValueError('No observed forecast days available for backtesting')
     peak_threshold = float(np.quantile(actual[mask], .9))
     peak = mask & (actual >= peak_threshold)
     rest = mask & ~peak
@@ -143,7 +145,7 @@ def make_forecast(days, model, origin):
     predictions = []
     for i in range(HORIZON):
         q10, median, q90 = [max(0.0, float(np.expm1(v[i]))) for v in values]
-        if not q10 <= median <= q90:
+        if not np.isfinite([q10, median, q90]).all() or not q10 <= median <= q90:
             raise ValueError('Timestral returned crossed quantiles')
         predictions.append({'date': (origin + timedelta(days=i + 1)).isoformat(),
                             'median': round(median, 3), 'q10': round(q10, 3), 'q90': round(q90, 3)})

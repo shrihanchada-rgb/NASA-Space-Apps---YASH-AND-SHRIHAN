@@ -206,7 +206,11 @@ export function loadForecast(regionId: string): Promise<Forecast | null> {
       if (text == null) return null;
       try {
         const f = JSON.parse(text) as Forecast;
-        const ok = f.kind === 'experimental_forecast' && Array.isArray(f.predictions) && f.predictions.every((p) =>
+        const ok = f.kind === 'experimental_forecast' && f.region_id === regionId &&
+          typeof f.generated_utc === 'string' && typeof f.model === 'string' &&
+          /^\d{4}-\d{2}-\d{2}$/.test(f.origin_date) &&
+          Array.isArray(f.predictions) && f.predictions.length === 7 && f.predictions.every((p, i) =>
+          p.date === new Date(Date.parse(f.origin_date + 'T00:00:00Z') + (i + 1) * 86_400_000).toISOString().slice(0, 10) &&
           /^\d{4}-\d{2}-\d{2}$/.test(p.date) && [p.q10, p.median, p.q90].every(Number.isFinite) && p.q10 >= 0 && p.q10 <= p.median && p.median <= p.q90);
         return ok ? f : null;
       } catch {

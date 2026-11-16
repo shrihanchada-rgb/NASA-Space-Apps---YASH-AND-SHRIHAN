@@ -75,3 +75,19 @@ def test_backtest_reports_his_measures():
 def test_too_little_data_is_refused():
     with pytest.raises(ValueError):
         fc.build(make_daily(n_days=20), FakeModel())
+
+
+def test_forecast_rejects_overflow_after_log_inverse():
+    class OverflowModel:
+        def forecast(self, context, prediction_length):
+            class Output:
+                def quantile(self, q):
+                    return np.full(prediction_length, 1000.0)
+            return Output()
+    with np.errstate(over='ignore'), pytest.raises(ValueError):
+        fc.build(make_daily(), OverflowModel())
+
+
+def test_backtest_refuses_a_dataset_without_evaluation_days():
+    with pytest.raises(ValueError, match='No observed forecast days'):
+        fc.backtest(fc.daily_series(make_daily(n_days=900, end='2022-12-31')), FakeModel())

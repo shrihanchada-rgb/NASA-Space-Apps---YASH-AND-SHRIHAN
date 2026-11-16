@@ -404,3 +404,7 @@ Downloading 25 years of FIRMS data and running the harmonization is heavy. Colab
 
 ### 14.4 Using the AIs with Colab
 Claude Code and Codex cannot control a Colab session. They write and fix the code in the repo; a person runs it in Colab and brings the results back through the handoff entry. When prompting an AI, paste the Colab error output in full, and say which `STEPS` and `BRANCH` you ran. Start any prompt with: "Read README.md and the newest entry in docs/HANDOFF.md."
+
+## Updated submission and forecast integration
+
+The Yash?Shrihan repository is the main project. The editable, seven-slide submission deck is `submission/Yash-Shrihan-Submission.pptx`; rebuild instructions and speaker notes are in `submission/README.md`. The Timestral-5M method adapted from `yashneil75/califire` runs on **this repository?s harmonized daily data** using `pipeline/07_forecast.py`. Forecast completion on main triggers the Pages build; stale or malformed forecast files are withheld by the app. The current archive ends 2026-08-31, so its seven-day forecast is historical.

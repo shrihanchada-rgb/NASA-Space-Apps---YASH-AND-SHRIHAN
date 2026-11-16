@@ -224,3 +224,6 @@ data/raw/
 data/interim/
 node_modules/
 web/dist/
+
+# Temporary Microsoft Office lock files
+~$*.pptx
