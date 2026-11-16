@@ -2,12 +2,15 @@ import '@fontsource-variable/ibm-plex-sans';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import './styles.css';
+import { mountCalendar } from './components/calendar';
+import { mountCharts } from './components/charts';
 import { mountControls } from './components/controls';
+import { mountDownloads } from './components/downloads';
 import { mountMap } from './components/mapView';
-import { mountPlaceholder } from './components/placeholder';
 import { mountSummary } from './components/summary';
 import type { AppContext, LoadState } from './context';
-import { loadMetadata, loadRegionData, loadRegions } from './data/loader';
+import { loadGrid, loadMetadata, loadRegionData, loadRegions } from './data/loader';
+import { buildAreaSelection, buildRegionSelection } from './data/selection';
 import { type AppState, createStore } from './state';
 
 function need(id: string): HTMLElement {
@@ -33,7 +36,7 @@ async function start(): Promise<void> {
     drawnBox: null,
     drawing: false,
   });
-  const loaded = createStore<LoadState>({ regionData: null, loading: false });
+  const loaded = createStore<LoadState>({ regionData: null, loading: false, selection: null, selectionError: null });
   const ctx: AppContext = { metadata, regions, state, loaded };
 
   const tag = (text: string, cls = '') => {
@@ -58,21 +61,47 @@ async function start(): Promise<void> {
   mountControls(need('controls'), ctx);
   mountSummary(need('summary'), ctx);
   mountMap(need('map'), need('map-note'), need('map-tools'), ctx);
-  mountPlaceholder(need('calendar'), 'Burning activity calendar', 'S21', 'Years × months heatmap of hotspot counts, with absolute, percentile and anomaly colour modes.', 'calendar');
-  mountPlaceholder(need('charts'), 'Charts', 'S22', 'Monthly series with uncertainty, yearly totals and the seasonal cycle.', 'chart');
-  mountPlaceholder(need('downloads'), 'Downloads', 'S23', 'CSV of hotspots for the current selection, with the citation in the header.', 'download');
+  mountCalendar(need('calendar'), ctx);
+  mountCharts(need('charts'), ctx);
+  mountDownloads(need('downloads'), ctx);
 
   need('footer').textContent =
     `${metadata.citation} Map imagery: NASA Global Imagery Browse Services (GIBS).`;
 
+  // The selection (whole region by default, or the drawn area) feeds the calendar, charts and downloads.
+  let selToken = 0;
+  async function updateSelection(): Promise<void> {
+    const mine = ++selToken;
+    const { regionId, drawnBox } = state.get();
+    const { regionData } = loaded.get();
+    const region = regions.features.find((f) => f.properties.region_id === regionId)?.properties;
+    if (!regionId || !regionData || !region) return;
+    if (!drawnBox) {
+      loaded.set({ selection: buildRegionSelection(regionId, region.name, regionData.monthly, regionData.baseline), selectionError: null });
+      return;
+    }
+    loaded.set({ selection: null, selectionError: null });
+    try {
+      const grid = await loadGrid(regionId);
+      if (mine !== selToken) return; // a newer selection was made meanwhile
+      const sel = buildAreaSelection(regionId, region.name, drawnBox, regionData.monthly, regionData.baseline, grid.months, grid.cells);
+      loaded.set(sel.nCells
+        ? { selection: sel, selectionError: null }
+        : { selection: null, selectionError: `The drawn area is outside ${region.name}. Draw inside the outline, or clear the area.` });
+    } catch (err) {
+      if (mine === selToken) loaded.set({ selection: null, selectionError: err instanceof Error ? err.message : 'Could not load the area data.' });
+    }
+  }
+
   async function loadSelected(): Promise<void> {
     const id = state.get().regionId;
     if (!id) return;
-    loaded.set({ regionData: null, loading: true });
+    loaded.set({ regionData: null, loading: true, selection: null });
     try {
       const regionData = await loadRegionData(id);
       if (state.get().regionId === id) loaded.set({ regionData, loading: false }); // ignore stale answers
       status.hidden = true;
+      void updateSelection();
     } catch (err) {
       if (state.get().regionId === id) loaded.set({ regionData: null, loading: false });
       showError(err instanceof Error ? err.message : 'Could not load the region data.');
@@ -80,6 +109,7 @@ async function start(): Promise<void> {
   }
   state.subscribe((s, prev) => {
     if (s.regionId !== prev.regionId) void loadSelected();
+    else if (s.drawnBox !== prev.drawnBox) void updateSelection();
   });
   await loadSelected();
 }

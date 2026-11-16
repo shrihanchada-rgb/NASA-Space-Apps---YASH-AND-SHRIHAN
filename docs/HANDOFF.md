@@ -56,6 +56,43 @@ Rules for entries:
 - **Problems / open questions:** The built JavaScript is about 1.07 MB (293 kB gzipped), almost all MapLibre; fine for now, could be loaded lazily later. Some S20 work is already present in basic form (dropdown, dates, totals), but S20 is not ticked. Not tested in Firefox or Safari.
 - **Next step:** S20 (search, draw-on-map, date presets, fuller summary) or S21 (calendar). Pipeline side: S10 downloads for BR-PA, AU-NSW-VIC, PT are still to run.
 
+### 2026-11-16 — S21–S24 Calendar, charts, downloads, phone/keyboard check — DONE
+- **Who / AI:** Shrihan asked; Claude
+- **Did:**
+  - **Merged** S14–S17 into `main` (PR #30).
+  - **Data set-up for the website:**
+    - The area files (`grid_cells.csv`, `grid_monthly.csv`) are now a required part of the data contract (§8b, decided by Shrihan), checked by `scripts/validate_data.py` (they must add up to `monthly.json`).
+    - Sample fixtures rebuilt: 2015–2025, California's real outline, fake points only inside it, grid files built with the pipeline's own code.
+  - **S21:** burning activity calendar.
+  - **S22:** charts.
+  - **S23:** CSV downloads.
+  - **S24:** phone and keyboard check, plus an "Enter an area by coordinates" form as the keyboard alternative to drawing.
+  - **Selection:** the default is the whole of California. A drawn area (snapped to the 0.25° grid) changes the summary, calendar, charts and downloads to that area.
+  - The site still uses the sample data by default, as asked.
+- **Files changed:** `web/src/data/selection.ts`, `export.ts` (new), `web/src/components/calendar.ts`, `charts.ts`, `downloads.ts`, `tooltip.ts`, `scales.ts` (new), `placeholder.ts` (deleted), `web/src/main.ts`, `context.ts`, `data/loader.ts`, `data/types.ts`, `components/controls.ts`, `summary.ts`, `mapView.ts`, `web/src/styles.css`, `web/index.html`, `web/src/data/selection.test.ts` (new), `web/fixtures/*`, `web/README.md`, `scripts/make_sample_fixtures.py`, `scripts/validate_data.py`, `docs/data-contract.md`, `data/processed/README.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`
+- **How to check it:**
+  - `cd web && npm run typecheck && npm test` → 37 passed. `npm run build` succeeds.
+  - `python3 -m pytest -q tests` → 52 passed. `python3 scripts/validate_data.py web/fixtures` and `data/processed` → 0 problems.
+  - `npm run dev`: draw an area or use "Enter an area by coordinates"; the calendar subtitle says "Drawn area in California".
+- **Results / numbers:**
+  - Browser checks (Chromium): no console errors. The sample area (−123, 39.3, −120.6, 41.4) gave 90 cells and a harmonized total of 1,432; the downloaded CSV had 3,665 rows, 0 outside the box, weights summing to 1,432.25.
+  - **Phone (iPhone 13, 390 px):** no sideways scrolling, every touch target ≥ 40 px (calendar cells 24.5 × 32 px), tapping a month selects it.
+  - **Keyboard only:** Tab reaches every control; arrow keys move in the calendar; Enter selects a month; tooltips show on focus; charts readable with arrow keys.
+  - Dark mode checked.
+  - Real data (`DATA_DIR=../data/processed`): no errors, 324 calendar cells, a drawn area ready in about 2.5 s.
+- **Decisions and why:**
+  - **Snap drawn areas to whole 0.25° cells.** The calendar (from grid sums) and the CSV (from points) then always agree, and the calendar never needs the 131 MB of real hotspot files.
+  - Discrete colour steps and an SVG hatch pattern (the user asked for no gradients).
+  - The phone calendar hides the year-total column (the yearly chart shows it) to keep cells ≥ 24 px.
+  - Hotspots CSV above 400,000 rows is offered as one file per year.
+- **Problems / open questions:**
+  - Drawn areas are rectangles only (no polygons).
+  - The area's range is scaled from the region's, not computed for the area.
+  - Not tested in Firefox or Safari, or with a real screen reader.
+  - The JS bundle is 1.1 MB (mostly MapLibre).
+- **Next step:** S25 (switch to real data) when the user says so; S27 hotspot points on the map.
+- **If PAUSED — branch and resume command:** not paused.
+
 ### 2026-11-15 — Audit of the harmonized California data; satellite outages fixed — DONE
 - **Who / AI:** Shrihan asked for double counting and errors to be ruled out; Claude
 - **Did:**
