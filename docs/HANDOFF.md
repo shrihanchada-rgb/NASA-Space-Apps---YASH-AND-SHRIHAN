@@ -26,6 +26,16 @@ Rules for entries:
 
 ## Entries
 
+### 2026-11-16 — Map and name changes requested by the user — DONE (not a checklist step)
+- **Who / AI:** Shrihan using Claude
+- **Did:** Renamed the site **Califire**. Removed the "Imagery on date" background. Replaced NASA's place-name tiles (HTTP 500 left black patches on the map when switched on) with our own labels from `web/public/map/ca-places.json` (Natural Earth populated places, public domain), on by default. Added a "Show all of California" button, visible while an area is drawn. Limited drawing and the coordinates form to California's bounding box (a rectangle wholly outside is refused with a message). Limited the map: no repeated worlds, minimum zoom 4, panning limited to California plus a margin computed from the map size. The Points/Density buttons now show what is actually on the map (Points automatically becomes Density for more than 93 days or too many detections; this was deliberate, to avoid clutter).
+- **Files changed:** `web/src/components/{mapView,controls}.ts`, `web/src/data/{selection,selection.test}.ts`, `web/src/data/export.ts`, `web/src/styles.css`, `web/index.html`, `web/methods.html`, `web/public/map/ca-places.json` (new), `web/README.md`, `CLAUDE.md`, `AGENTS.md`
+- **How to check it:** `cd web && npm run typecheck && npm test` → 51 passed; `npm run dev`: names appear (28 at first view), toggling them leaves no black patches; draw a rectangle over the sea, it is cut at the coast of the box; "Show all of California" returns; zooming out and dragging stay near California.
+- **Results / numbers:** Chromium (1300 px and phone 390 px): no page errors, no requests to NASA label tiles, no sideways scroll. 7 days → "Points" pressed; one year → "Density" pressed with the note "Points are shown for 93 days or fewer; showing density instead."
+- **Decisions and why:** Own labels as HTML markers (no font server needed, works if NASA is down). The panning limit uses the map size, because a fixed box forced extra zoom on wide screens and cut California off (found and fixed in testing). The place file has 41 places chosen by population with spacing; not every town.
+- **Problems / open questions:** Place labels can overlap slightly at some zoom levels. The `/pages` deploy still needs to be confirmed on the live site (not opened from this session).
+- **Next step:** S29: confirm the live site; tick S29.
+
 ### 2026-11-16 — S29 Deploy (GitHub Pages; Vercel config added but not used) — BLOCKED (Pages setting is off)
 - **Who / AI:** Shrihan using Claude
 - **Update (same day):** The user chose GitHub Pages again. The 404 at https://shrihanchada-rgb.github.io/NASA-Space-Apps---YASH-AND-SHRIHAN/ means Pages is not enabled: both deploy runs (43794665734, 43795155772) built fine, then failed with "Failed to create deployment (status: 404) … Ensure GitHub Pages has been enabled". The repo is now public, so the plan is no longer a blocker. The session's proxy blocks the Pages API, so only the user can flip Settings → Pages → Source: GitHub Actions. The push trigger of `pages.yml` is restored. Next: after the setting is on, run "Deploy website" (or push to `main`).

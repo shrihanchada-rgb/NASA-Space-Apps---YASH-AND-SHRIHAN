@@ -2,7 +2,7 @@
 
 import type { AppContext } from '../context';
 import { datePresets } from '../data/derive';
-import { snapBox } from '../data/selection';
+import { clampBox, snapBox } from '../data/selection';
 import type { BBox } from '../data/types';
 import { h } from '../dom';
 
@@ -107,6 +107,7 @@ export function mountControls(el: HTMLElement, ctx: AppContext): void {
   const w = num('area-w', 'West', '-122.5'), s = num('area-s', 'South', '37.0'), e = num('area-e', 'East', '-121.0'), n = num('area-n', 'North', '38.5');
   const areaError = h('p', { class: 'field-error', hidden: true });
   areaError.setAttribute('role', 'alert');
+  const regionBounds = (): BBox | null => regions.features.find((f) => f.properties.region_id === state.get().regionId)?.properties.bbox ?? null;
   const apply = h('button', { type: 'button', class: 'chip' }, 'Use this area');
   const clearArea = h('button', { type: 'button', class: 'chip' }, 'Whole region');
   apply.addEventListener('click', () => {
@@ -122,8 +123,15 @@ export function mountControls(el: HTMLElement, ctx: AppContext): void {
       areaError.hidden = false;
       return;
     }
+    const bounds = regionBounds();
+    const inside = bounds ? clampBox([W, S, E, N], bounds) : ([W, S, E, N] as BBox);
+    if (!inside) {
+      areaError.textContent = 'That area is outside California. Enter coordinates inside the outline.';
+      areaError.hidden = false;
+      return;
+    }
     areaError.hidden = true;
-    state.set({ drawnBox: snapBox([W, S, E, N] as BBox), drawing: false });
+    state.set({ drawnBox: snapBox(inside), drawing: false });
   });
   clearArea.addEventListener('click', () => state.set({ drawnBox: null }));
   const areaBox = h('details', { class: 'area-form' },

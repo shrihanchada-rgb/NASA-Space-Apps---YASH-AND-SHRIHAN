@@ -1,11 +1,12 @@
-// Map: NASA GIBS satellite imagery, region outlines, click a region to select it, or draw a rectangle.
+// Map: NASA GIBS satellite imagery (Blue Marble), region outlines, place names, click a region to select it,
+// or draw a rectangle inside it. The view is limited to the region and its surroundings.
 // Imagery is from NASA's Global Imagery Browse Services (GIBS): free, no key needed.
 // S27: hotspots for the chosen dates, as points (coloured by sensor or FRP) for short ranges,
 // or as a density grid (harmonized count per 0.25-degree cell) for long ones.
 
 import {
   Map as MapLibreMap, NavigationControl, AttributionControl, setWorkerUrl,
-  Popup, type ExpressionSpecification, type GeoJSONSource, type LngLat, type RasterTileSource, type StyleSpecification,
+  Marker, Popup, type ExpressionSpecification, type GeoJSONSource, type LngLat, type StyleSpecification,
 } from 'maplibre-gl';
 // MapLibre runs part of its work in a web worker. Vite needs the worker's address given explicitly.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
@@ -15,7 +16,7 @@ import type { BBox } from '../data/types';
 import { daysBetween } from '../data/derive';
 import { estimateRows } from '../data/export';
 import { loadGrid, loadHotspots } from '../data/loader';
-import { monthsInRange, regionSeries, snapBox } from '../data/selection';
+import { clampBox, monthsInRange, regionSeries, snapBox } from '../data/selection';
 import { formatCount, h } from '../dom';
 import { icon } from '../icons';
 
@@ -23,15 +24,18 @@ setWorkerUrl(workerUrl);
 
 const GIBS = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best';
 const BLUE_MARBLE = `${GIBS}/BlueMarble_NextGeneration/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg`;
-const daily = (date: string) =>
-  `${GIBS}/MODIS_Terra_CorrectedReflectance_TrueColor/default/${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
-const LABELS = `${GIBS}/Reference_Labels_15m/default/GoogleMapsCompatible_Level13/{z}/{y}/{x}.png`;
-const COASTLINES = `${GIBS}/Coastlines_15m/default/GoogleMapsCompatible_Level13/{z}/{y}/{x}.png`;
-const DAILY_FIRST = '2000-02-24'; // first MODIS Terra true-colour day in GIBS (checked 2026-11-14)
 const ATTRIBUTION = 'Imagery: <a href="https://www.earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a>';
 
-type Basemap = 'satellite' | 'daily' | 'plain';
-const BASEMAP_LABEL: Record<Basemap, string> = { satellite: 'Satellite', daily: 'Imagery on date', plain: 'Plain' };
+type Basemap = 'satellite' | 'plain';
+const BASEMAP_LABEL: Record<Basemap, string> = { satellite: 'Satellite', plain: 'Plain' };
+
+/** Place names come from our own small file (Natural Earth), not from NASA's label tiles, which often fail. */
+interface Place { name: string; lon: number; lat: number; tier: number }
+/** A place of tier t is shown from this zoom level on (bigger cities first). */
+const TIER_ZOOM = [0, 6.2, 7.4];
+/** Extra room (degrees) beyond what the map box shows when the whole region fits, so panning stays near the region. */
+const VIEW_MARGIN_LON = 2.5;
+const VIEW_MARGIN_LAT = 2;
 
 type HotLayer = 'points' | 'density' | 'off';
 const HOT_LABEL: Record<HotLayer, string> = { points: 'Points', density: 'Density', off: 'Off' };
@@ -68,10 +72,11 @@ function toBox(a: LngLat, b: LngLat): BBox {
   return [Math.min(a.lng, b.lng), Math.min(a.lat, b.lat), Math.max(a.lng, b.lng), Math.max(a.lat, b.lat)];
 }
 
-function imageryDate(ctx: AppContext): string {
-  const end = ctx.state.get().endDate ?? ctx.metadata.time_coverage.end;
-  return end < DAILY_FIRST ? DAILY_FIRST : end;
+function regionBox(ctx: AppContext): BBox | null {
+  const id = ctx.state.get().regionId;
+  return ctx.regions.features.find((f) => f.properties.region_id === id)?.properties.bbox ?? ctx.regions.features[0]?.properties.bbox ?? null;
 }
+
 
 export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElement, ctx: AppContext): void {
   let basemap: Basemap = 'satellite';
@@ -87,13 +92,15 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
   });
   seg.append(...segButtons);
 
-  // Place names are off by default: NASA's label tiles sometimes fail (HTTP 500) on their side.
-  const labels = h('input', { type: 'checkbox', checked: false, id: 'map-labels' });
+  const labels = h('input', { type: 'checkbox', checked: true, id: 'map-labels' });
   const labelsToggle = h('label', { class: 'toggle', htmlFor: 'map-labels' }, labels, 'Place names');
-  labels.addEventListener('change', () => applyBasemap());
+  labels.addEventListener('change', () => syncPlaces());
 
   const drawBtn = h('button', { type: 'button', class: 'chip', id: 'draw-toggle' });
   drawBtn.addEventListener('click', () => ctx.state.set({ drawing: !ctx.state.get().drawing }));
+  // Shown only while an area is drawn: back to the whole region.
+  const resetBtn = h('button', { type: 'button', class: 'chip', id: 'reset-area', hidden: true }, icon('close'), 'Show all of California');
+  resetBtn.addEventListener('click', () => ctx.state.set({ drawnBox: null, drawing: false }));
   const hotSeg = h('div', { class: 'segmented', role: 'group' });
   hotSeg.setAttribute('aria-label', 'Hotspots on the map');
   let hotLayer: HotLayer = 'points';
@@ -115,7 +122,7 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
   });
   colorSeg.append(...colorButtons);
   const hotLabel = h('span', { class: 'map-tools-label' }, 'Hotspots');
-  toolbar.replaceChildren(seg, labelsToggle, drawBtn, h('div', { class: 'map-tools-row' }, hotLabel, hotSeg, colorSeg));
+  toolbar.replaceChildren(seg, labelsToggle, drawBtn, resetBtn, h('div', { class: 'map-tools-row' }, hotLabel, hotSeg, colorSeg));
   const legend = h('div', { class: 'map-legend', 'aria-live': 'polite' } as Partial<HTMLDivElement>);
   note.before(legend);
   let shown: 'points' | 'density' | 'off' = 'off';
@@ -125,33 +132,46 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
     version: 8,
     sources: {
       bluemarble: { type: 'raster', tiles: [BLUE_MARBLE], tileSize: 256, maxzoom: 8, attribution: `${ATTRIBUTION} · Blue Marble` },
-      daily: { type: 'raster', tiles: [daily(imageryDate(ctx))], tileSize: 256, maxzoom: 9, attribution: `${ATTRIBUTION} · MODIS Terra true colour` },
-      labels: { type: 'raster', tiles: [LABELS], tileSize: 256, maxzoom: 13 },
-      coastlines: { type: 'raster', tiles: [COASTLINES], tileSize: 256, maxzoom: 13 },
     },
     layers: [
       { id: 'background', type: 'background', paint: { 'background-color': cssVar('--map-bg') } },
       { id: 'bluemarble', type: 'raster', source: 'bluemarble' },
-      { id: 'daily', type: 'raster', source: 'daily', layout: { visibility: 'none' } },
     ],
   };
 
+  const home = regionBox(ctx);
   const map = new MapLibreMap({
     container: el,
     style,
-    center: [0, 20],
-    zoom: 1,
+    ...(home
+      ? { bounds: [[home[0], home[1]], [home[2], home[3]]] as [[number, number], [number, number]], fitBoundsOptions: { padding: 40 } }
+      : { center: [-119.5, 37.2] as [number, number], zoom: 5 }),
+    minZoom: 4,
     maxZoom: 11,
+    renderWorldCopies: false, // never show the world repeated side by side
     attributionControl: false,
   });
   map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
   map.addControl(new AttributionControl({ compact: true }), 'bottom-right');
-  // A missing overlay tile (labels, coastlines) only leaves a small gap; don't flood the console with it.
-  map.on('error', (e) => {
-    const src = (e as { sourceId?: string }).sourceId;
-    if (src === 'labels' || src === 'coastlines') return;
-    console.error(e.error ?? e);
-  });
+  map.on('error', (e) => console.error(e.error ?? e));
+
+  /**
+   * Limit panning to the region plus a margin. The limit is the area the map box shows when the whole region
+   * fits, plus VIEW_MARGIN_*: a fixed small box would force extra zoom on wide screens and cut the region off.
+   */
+  function applyViewLimits(): void {
+    const b = regionBox(ctx);
+    if (!b) return;
+    const cam = map.cameraForBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40 });
+    const zoom = cam?.zoom ?? 5;
+    const degPerPx = 360 / (512 * 2 ** zoom);
+    const midLat = (b[1] + b[3]) / 2;
+    const wDeg = el.clientWidth * degPerPx;
+    const hDeg = el.clientHeight * degPerPx * Math.cos((midLat * Math.PI) / 180);
+    const padLon = Math.max(0, (wDeg - (b[2] - b[0])) / 2) + VIEW_MARGIN_LON;
+    const padLat = Math.max(0, (hDeg - (b[3] - b[1])) / 2) + VIEW_MARGIN_LAT;
+    map.setMaxBounds([[b[0] - padLon, b[1] - padLat], [b[2] + padLon, b[3] + padLat]]);
+  }
 
   function setBasemap(b: Basemap): void {
     basemap = b;
@@ -160,22 +180,18 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
 
   function applyBasemap(): void {
     segButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.basemap === basemap)));
-    labelsToggle.hidden = basemap === 'plain';
+    el.classList.toggle('is-plain', basemap === 'plain'); // dark place names on the light plain map
     if (!map.getLayer('region-fill')) return;
-    const vis = (on: boolean) => (on ? 'visible' : 'none');
-    map.setLayoutProperty('bluemarble', 'visibility', vis(basemap === 'satellite'));
-    map.setLayoutProperty('daily', 'visibility', vis(basemap === 'daily'));
-    map.setLayoutProperty('labels', 'visibility', vis(basemap !== 'plain' && labels.checked));
-    map.setLayoutProperty('coastlines', 'visibility', vis(basemap === 'daily'));
+    map.setLayoutProperty('bluemarble', 'visibility', basemap === 'satellite' ? 'visible' : 'none');
     map.setPaintProperty('region-fill', 'fill-opacity', basemap === 'plain' ? 1 : 0);
     map.setPaintProperty('region-line', 'line-color', basemap === 'plain' ? cssVar('--subtle') : '#ffffff');
     updateNote();
   }
 
   function updateNote(): void {
-    const parts = ['Draw an area to see its own calendar, charts and downloads (it snaps to the 0.25° data grid, about 25 km).'];
+    const parts = ['Draw an area inside California to see its own calendar, charts and downloads (it snaps to the 0.25° data grid, about 25 km).'];
+    if (drawMessage) parts.unshift(drawMessage);
     if (basemap === 'satellite') parts.push('Background: NASA Blue Marble composite (cloud-free, not a specific date).');
-    if (basemap === 'daily') parts.push(`Background: MODIS Terra true colour for ${imageryDate(ctx)} (one day; clouds and gaps between satellite passes are normal).`);
     if (shownText) parts.push(shownText);
     note.textContent = parts.join(' ');
   }
@@ -195,14 +211,47 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
     if (!map.getLayer('region-selected')) return;
     map.setFilter('region-selected', ['==', ['get', 'region_id'], drawnBox ? '' : regionId ?? '']);
     (map.getSource('drawn') as GeoJSONSource).setData(boxFeature(drawnBox));
+    resetBtn.hidden = !drawnBox;
     const bbox = drawnBox ?? ctx.regions.features.find((f) => f.properties.region_id === regionId)?.properties.bbox;
     if (bbox) map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, animate: animate && !reduceMotion, maxZoom: 9 });
+  }
+
+  // --- place names ---
+  let places: Place[] | null = null;
+  let placesFailed = false;
+  const markers: { marker: Marker; el: HTMLElement; tier: number }[] = [];
+  async function syncPlaces(): Promise<void> {
+    if (labels.checked && !places && !placesFailed) {
+      try {
+        const res = await fetch(`${import.meta.env.BASE_URL}map/ca-places.json`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        places = ((await res.json()) as { places: Place[] }).places;
+        for (const p of places) {
+          const label = h('span', { class: 'place-label', textContent: p.name });
+          label.setAttribute('aria-hidden', 'true'); // decorative; the map itself is not read by screen readers
+          markers.push({ marker: new Marker({ element: label, anchor: 'center' }).setLngLat([p.lon, p.lat]), el: label, tier: p.tier });
+        }
+      } catch {
+        placesFailed = true; // names are optional: the map works without them
+        labels.checked = false;
+        labels.disabled = true;
+        labelsToggle.title = 'Place names could not be loaded';
+      }
+    }
+    const zoom = map.getZoom();
+    for (const m of markers) {
+      const on = labels.checked && zoom >= (TIER_ZOOM[m.tier] ?? 99);
+      if (on && !m.marker.getElement().isConnected) m.marker.addTo(map);
+      if (!on && m.marker.getElement().isConnected) m.marker.remove();
+    }
   }
 
   // --- hotspots ---
   function applyPointColors(): void {
     colorButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.color === colorBy)));
     colorSeg.hidden = shown !== 'points';
+    // The pressed button is what is on the map: long date ranges switch Points to Density by themselves.
+    hotButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.layer === shown)));
     if (map.getLayer('hot-points')) {
       map.setPaintProperty('hot-points', 'circle-color', colorBy === 'sensor'
         ? ['match', ['get', 'sensor'], 'MODIS', SENSOR_COLORS.MODIS, SENSOR_COLORS.VIIRS]
@@ -236,7 +285,6 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
   const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
   async function refreshHotspots(): Promise<void> {
     const mine = ++hotToken;
-    hotButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.layer === hotLayer)));
     const { regionId, startDate, endDate } = ctx.state.get();
     const rd = ctx.loaded.get().regionData;
     if (!map.getSource('hot-points') || !regionId || !rd || !startDate || !endDate) return;
@@ -304,17 +352,33 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
   }
 
   // --- drawing a rectangle ---
+  // The rectangle is cut to the region's box: you cannot draw outside California.
   let anchor: LngLat | null = null;
-  const begin = (p: LngLat) => { if (ctx.state.get().drawing) anchor = p; };
-  const move = (p: LngLat) => { if (anchor) (map.getSource('drawn') as GeoJSONSource).setData(boxFeature(toBox(anchor, p))); };
+  let drawMessage = '';
+  const begin = (p: LngLat) => { if (ctx.state.get().drawing) { anchor = p; drawMessage = ''; } };
+  const clipped = (a: LngLat, b: LngLat): BBox | null => {
+    const bounds = regionBox(ctx);
+    return bounds ? clampBox(toBox(a, b), bounds) : toBox(a, b);
+  };
+  const move = (p: LngLat) => {
+    if (!anchor) return;
+    const box = clipped(anchor, p);
+    (map.getSource('drawn') as GeoJSONSource).setData(boxFeature(box));
+  };
   function finish(p: LngLat): void {
     if (!anchor) return;
-    const box = toBox(anchor, p);
+    const raw = toBox(anchor, p);
+    const box = clipped(anchor, p);
     anchor = null;
-    if (box[2] - box[0] < 0.01 || box[3] - box[1] < 0.01) {
-      (map.getSource('drawn') as GeoJSONSource).setData(boxFeature(ctx.state.get().drawnBox));
-      return; // a click, not a drag
+    const back = () => (map.getSource('drawn') as GeoJSONSource).setData(boxFeature(ctx.state.get().drawnBox));
+    if (raw[2] - raw[0] < 0.01 || raw[3] - raw[1] < 0.01) { back(); return; } // a click, not a drag
+    if (!box) {
+      back();
+      drawMessage = 'That rectangle is outside California. Draw inside the outline.';
+      updateNote();
+      return;
     }
+    drawMessage = '';
     ctx.state.set({ drawnBox: snapBox(box), drawing: false }); // whole 0.25-degree cells, like the data grid
   }
 
@@ -322,7 +386,6 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
     const accent = cssVar('--accent');
     map.addSource('regions', { type: 'geojson', data: ctx.regions as unknown as GeoJSON.FeatureCollection });
     map.addSource('drawn', { type: 'geojson', data: boxFeature(null) });
-    map.addLayer({ id: 'coastlines', type: 'raster', source: 'coastlines', layout: { visibility: 'none' } });
     map.addLayer({ id: 'region-fill', type: 'fill', source: 'regions', paint: { 'fill-color': cssVar('--map-land'), 'fill-opacity': 0 } });
     map.addLayer({ id: 'region-line', type: 'line', source: 'regions', paint: { 'line-color': '#ffffff', 'line-width': 1, 'line-opacity': 0.8 } });
     map.addLayer({
@@ -345,7 +408,6 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
         'circle-color': SENSOR_COLORS.VIIRS,
       },
     }, 'drawn-fill');
-    map.addLayer({ id: 'labels', type: 'raster', source: 'labels' });
     map.on('click', 'hot-points', (e) => {
       const p = e.features?.[0]?.properties as Record<string, string | number> | undefined;
       if (!p || ctx.state.get().drawing) return;
@@ -376,17 +438,18 @@ export function mountMap(el: HTMLElement, note: HTMLElement, toolbar: HTMLElemen
     map.on('touchmove', (e) => move(e.lngLat));
     map.on('touchend', (e) => finish(e.lngLat));
 
+    map.on('zoom', () => { void syncPlaces(); });
+    map.on('resize', applyViewLimits);
+    applyViewLimits();
     applyBasemap();
     syncDrawUi();
     showSelection(false);
+    void syncPlaces();
     ctx.state.subscribe((s, prev) => {
       if (s.drawing !== prev.drawing) syncDrawUi();
+      if (s.regionId !== prev.regionId) applyViewLimits();
       if (s.regionId !== prev.regionId || s.drawnBox !== prev.drawnBox) showSelection(true);
       if (s.regionId !== prev.regionId || s.startDate !== prev.startDate || s.endDate !== prev.endDate) void refreshHotspots();
-      if (s.endDate !== prev.endDate) {
-        (map.getSource('daily') as RasterTileSource).setTiles([daily(imageryDate(ctx))]);
-        updateNote();
-      }
     });
     ctx.loaded.subscribe((l, p) => { if (l.regionData !== p.regionData) void refreshHotspots(); });
     void refreshHotspots();

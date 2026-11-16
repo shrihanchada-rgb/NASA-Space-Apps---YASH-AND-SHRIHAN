@@ -151,3 +151,18 @@ describe('monthKeys (hotspot month files to load)', () => {
     expect(monthKeys('2024-05-03', '2024-05-20')).toEqual(['2024-05']);
   });
 });
+
+import { clampBox } from './selection';
+describe('clampBox (drawing is limited to the region)', () => {
+  const ca: [number, number, number, number] = [-124.4, 32.5, -114.1, 42];
+  it('keeps a box inside the region unchanged', () => {
+    expect(clampBox([-122, 37, -121, 38], ca)).toEqual([-122, 37, -121, 38]);
+  });
+  it('cuts a box that sticks out', () => {
+    expect(clampBox([-130, 30, -120, 45], ca)).toEqual([-124.4, 32.5, -120, 42]);
+  });
+  it('returns null for a box wholly outside (the Pacific, Nevada east of the region)', () => {
+    expect(clampBox([-130, 36, -126, 38], ca)).toBeNull();
+    expect(clampBox([-112, 36, -110, 38], ca)).toBeNull();
+  });
+});

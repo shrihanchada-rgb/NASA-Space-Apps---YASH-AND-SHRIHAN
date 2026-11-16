@@ -4,7 +4,8 @@ The fire-calendar website. Vite + TypeScript, no UI framework. It reads only the
 
 **Design:** flat, Swiss-style dashboard (no gradients), one ember accent, light and dark themes from CSS variables in `src/styles.css`. Fonts: IBM Plex Sans (text) and IBM Plex Mono (dates, tags), OFL-1.1, bundled from npm (`@fontsource-variable/ibm-plex-sans`, `@fontsource/ibm-plex-mono`), so no font server is called. Design guidance came from the `ui-ux-pro-max` skill (`.claude/skills/`).
 
-**Map imagery:** NASA GIBS (free, no key): Blue Marble composite (default), MODIS Terra true colour for the selected end date, or plain. Place-name overlay is optional and off by default because NASA's label tiles sometimes return HTTP 500.
+**Califire** is the site's name. **Map:** NASA GIBS Blue Marble composite (free, no key) or a plain background. The "imagery on date" background was removed (2026-11-16). Place names are drawn by the app from `public/map/ca-places.json` (41 California places from Natural Earth, public domain; bigger places first, smaller ones as you zoom in), on by default. NASA's label tiles were dropped: they often returned HTTP 500 and left black patches on the map.
+**Map limits:** `renderWorldCopies: false`, minimum zoom 4, and panning is limited to California plus a margin (`applyViewLimits` in `mapView.ts`, computed from the map size so the whole state always fits). A drawn rectangle, and the coordinates form, are cut to California's bounding box (`clampBox`); a rectangle wholly outside is refused with a message. The button "Show all of California" (shown while an area is drawn) returns to the whole region.
 
 ## Commands (run inside `web/`)
 
@@ -72,7 +73,7 @@ src/styles.css          all styles; colours are CSS variables with light and dar
 | Region search + dropdown, click region on map, draw a rectangle | Built | S20 (polygon drawing not built) |
 | Date presets (all, last 30 days, last 12 months, last full year, fire season) + custom range | Built | S20 |
 | Summary: harmonized total, peak month, peak year, FRP, % high confidence, days with no data, raw by sensor | Built | S20 |
-| Map | NASA GIBS satellite basemap (3 modes), region outlines, selection, drawn box; hotspots as points (by sensor or FRP, click for details) or density per 0.25° cell, with legend | S20, S27 |
+| Map | NASA GIBS satellite basemap (2 modes: Satellite, Plain), place names, region outlines, selection, drawn box; hotspots as points (by sensor or FRP, click for details) or density per 0.25° cell, with legend | S20, S27 |
 | Burning activity calendar: years × months, log-count / percentile / anomaly colours, legend, tooltip (count, range, rank, percentile, anomaly, raw counts), hatching for no data, year totals, typical month, sensor-change dots, click a month to select it, arrow-key navigation | Built | S21 |
 | Charts: monthly series with approximate range, yearly totals (partial years hatched), seasonal cycle with the selected year; tooltips, keyboard, "Show as table" | Built | S22 |
 | Downloads: hotspots CSV (one file, or one per year above 400,000 rows), monthly series CSV, calendar CSV; `#` header lines with selection, dates, method, citation | Built | S23 |
