@@ -7,53 +7,53 @@
  "model": "mistralai/Timestral-5M",
  "model_revision": "bdd20cfc15a3fea0e4cb5ccef37f8d3ca7aa335f",
  "method_source": "Yashneil Gajjala's Califire forecast (yashneil75/califire, MIT), run on the harmonized daily count",
- "origin_date": "2026-11-19",
+ "origin_date": "2026-11-20",
  "note": "Forecast of the 7 days after the last day of the data; provisional NRT observations may be included. The current UTC day is incomplete.",
  "unit": "MODIS-equivalent hotspots (harmonized count) per day",
- "generated_utc": "2026-11-20T14:53:44+00:00",
+ "generated_utc": "2026-11-21T14:13:16+00:00",
  "warning": "Experimental forecast of satellite-detected activity; not a fire-risk forecast or emergency guidance.",
  "predictions": [
   {
-   "date": "2026-11-20",
-   "median": 1.997,
-   "q10": 0.123,
-   "q90": 10.868
-  },
-  {
    "date": "2026-11-21",
-   "median": 2.626,
-   "q10": 0.258,
-   "q90": 14.336
+   "median": 4.0,
+   "q10": 0.544,
+   "q90": 15.068
   },
   {
    "date": "2026-11-22",
-   "median": 3.534,
-   "q10": 0.375,
-   "q90": 17.949
+   "median": 4.388,
+   "q10": 0.542,
+   "q90": 18.077
   },
   {
    "date": "2026-11-23",
-   "median": 5.135,
-   "q10": 0.63,
-   "q90": 23.496
+   "median": 6.085,
+   "q10": 0.787,
+   "q90": 24.3
   },
   {
    "date": "2026-11-24",
-   "median": 7.282,
-   "q10": 1.037,
-   "q90": 28.97
+   "median": 8.083,
+   "q10": 1.2,
+   "q90": 30.073
   },
   {
    "date": "2026-11-25",
-   "median": 8.532,
-   "q10": 1.261,
-   "q90": 31.42
+   "median": 8.493,
+   "q10": 1.26,
+   "q90": 31.367
   },
   {
    "date": "2026-11-26",
-   "median": 6.628,
-   "q10": 0.852,
-   "q90": 28.342
+   "median": 7.153,
+   "q10": 0.935,
+   "q90": 28.146
+  },
+  {
+   "date": "2026-11-27",
+   "median": 6.058,
+   "q10": 0.745,
+   "q90": 25.718
   }
  ],
  "validation": {
